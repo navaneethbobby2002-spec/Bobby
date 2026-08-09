@@ -48,3 +48,31 @@ test("resolveRequestedModel does not rewrite ids with no recognized effort suffi
     parameters: [],
   });
 });
+
+test("resolveRequestedModel splits effort off cursor-grok ids (empty-turn fix)", () => {
+  assert.deepEqual(resolveRequestedModel("cursor-grok-4.5-high"), {
+    modelId: "cursor-grok-4.5",
+    parameters: [{ id: "effort", value: "high" }],
+  });
+  assert.deepEqual(resolveRequestedModel("cursor-grok-4.5-medium"), {
+    modelId: "cursor-grok-4.5",
+    parameters: [{ id: "effort", value: "medium" }],
+  });
+});
+
+test("resolveRequestedModel splits effort off legacy grok- ids", () => {
+  assert.deepEqual(resolveRequestedModel("grok-4.5-high"), {
+    modelId: "grok-4.5",
+    parameters: [{ id: "effort", value: "high" }],
+  });
+});
+
+test("resolveRequestedModel splits cursor-grok effort + fast together", () => {
+  assert.deepEqual(resolveRequestedModel("cursor-grok-4.5-high-fast"), {
+    modelId: "cursor-grok-4.5",
+    parameters: [
+      { id: "effort", value: "high" },
+      { id: "fast", value: "true" },
+    ],
+  });
+});

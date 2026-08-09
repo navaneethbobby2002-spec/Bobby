@@ -1291,11 +1291,6 @@
       "count": 1
     }
   },
-  "src/shared/components/CursorAuthModal.tsx": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    }
-  },
   "src/shared/components/LanguageSelector.tsx": {
     "@next/next/no-img-element": {
       "count": 1

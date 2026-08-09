@@ -263,12 +263,18 @@ Cost: $0 forever!
 
 ### Cursor IDE
 
+**Using Cursor as an OmniRoute client** (route Cursor chat through OmniRoute):
+
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [from omniroute dashboard]
   Model: cc/claude-opus-4-7
 ```
+
+**Using OmniRoute as a Cursor provider** (OmniRoute calls Cursor upstream): prefer
+**Dashboard → Providers → Cursor → Login with Cursor**. In Docker, see
+[`docs/providers/CURSOR-DOCKER.md`](../providers/CURSOR-DOCKER.md).
 
 ### Claude Code
 

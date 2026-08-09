@@ -72,10 +72,15 @@ describe("extractCursorTokensFromRows", () => {
     assert.equal(tokens.machineId, "json-machine");
   });
 
-  it("returns empty on no matches", () => {
-    const tokens = extractCursorTokensFromRows([{ key: "irrelevant", value: "x" }]);
-    assert.equal(tokens.accessToken, undefined);
-    assert.equal(tokens.machineId, undefined);
+  it("extracts refresh token when present", () => {
+    const tokens = extractCursorTokensFromRows([
+      { key: "cursorAuth/accessToken", value: "tok-1" },
+      { key: "cursorAuth/refreshToken", value: "ref-1" },
+      { key: "storage.serviceMachineId", value: "machine-1" },
+    ]);
+    assert.equal(tokens.accessToken, "tok-1");
+    assert.equal(tokens.refreshToken, "ref-1");
+    assert.equal(tokens.machineId, "machine-1");
   });
 });
 
@@ -121,9 +126,7 @@ describe("cursorDbCandidatePaths", () => {
 
   it("returns a single path on Linux", () => {
     const paths = cursorDbCandidatePaths("linux", { home: "/home/test" });
-    assert.deepEqual(paths, [
-      "/home/test/.config/Cursor/User/globalStorage/state.vscdb",
-    ]);
+    assert.deepEqual(paths, ["/home/test/.config/Cursor/User/globalStorage/state.vscdb"]);
   });
 
   it("returns a single path on Windows using APPDATA", () => {
