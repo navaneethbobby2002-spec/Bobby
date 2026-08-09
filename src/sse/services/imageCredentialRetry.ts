@@ -1,4 +1,5 @@
 import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error.ts";
+import { classify429 } from "@omniroute/open-sse/services/antigravity429Engine.ts";
 
 import { getProviderCredentialsWithQuotaPreflight } from "./auth";
 import { checkAndRefreshToken } from "./tokenRefresh";
@@ -32,6 +33,29 @@ function connectionIdOf(credentials: any): string | null {
 
 function isCredentialSentinel(credentials: any): boolean {
   return Boolean(credentials?.allRateLimited || credentials?.allExpired);
+}
+
+/**
+ * Image generation is non-idempotent, so account rotation stays deliberately
+ * narrower than chat failover. Antigravity's explicit exhausted-quota signal
+ * is safe to retry on another account; an ordinary 429 is not evidence that a
+ * different account helps and must not cause account rotation.
+ */
+export function isAntigravityImageQuotaExhausted(
+  provider: string,
+  result: ImageGenerationResult
+): boolean {
+  if (provider !== "antigravity" || Number(result.status) !== 429) return false;
+
+  let errorText = "";
+  try {
+    errorText =
+      typeof result.error === "string" ? result.error : JSON.stringify(result.error ?? "");
+  } catch {
+    return false;
+  }
+
+  return classify429(errorText) === "quota_exhausted";
 }
 
 async function selectNextCredentials(
@@ -93,14 +117,20 @@ export async function executeImageWithCredentialFallback({
 
     lastCredentials = currentCredentials;
     lastResult = await execute(currentCredentials);
-    if (lastResult.success || Number(lastResult.status) !== 401 || !connectionId) {
+    const shouldTryAnotherAccount =
+      Number(lastResult.status) === 401 || isAntigravityImageQuotaExhausted(provider, lastResult);
+    if (lastResult.success || !shouldTryAnotherAccount || !connectionId) {
       return { credentials: lastCredentials, result: lastResult };
     }
 
-    log.warn("IMAGE", "Image provider rejected credentials; trying another account", {
-      provider,
-      connectionId,
-    });
+    log.warn(
+      "IMAGE",
+      "Image provider account is ineligible for this request; trying another account",
+      {
+        provider,
+        connectionId,
+      }
+    );
     currentCredentials = await selectNextCredentials(
       provider,
       requestedModel,
