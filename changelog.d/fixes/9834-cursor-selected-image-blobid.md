@@ -1,0 +1,1 @@
+- **fix(cursor):** SelectedImage uses `blobIdWithData` + session blobStore, with JPEG soft-cap prep via sharp ([#9834](https://github.com/diegosouzapw/OmniRoute/pull/9834)) — thanks @yansigit

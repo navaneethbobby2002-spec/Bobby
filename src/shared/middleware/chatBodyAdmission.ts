@@ -15,6 +15,11 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseNonNegativeInt(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(String(value), 10);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 export const CHAT_LARGE_BODY_BYTES = parsePositiveInt(
   process.env.OMNIROUTE_CHAT_LARGE_BODY_BYTES,
   256 * 1024
@@ -30,6 +35,18 @@ const CHAT_MAX_HEAVY_IN_FLIGHT = parsePositiveInt(
   1
 );
 
+/**
+ * How long a heavy request waits for heavyweight capacity before giving up with a
+ * retryable 503. Agent loops (OpenCode, Claude Code, Cursor…) fan out sub-requests
+ * that routinely land on the admission gate together; an immediate 503 makes the
+ * client burn its retry budget in seconds and the agent dies mid-task. A short
+ * bounded wait serializes the burst instead. `0` (legacy) rejects immediately.
+ */
+export const CHAT_ADMISSION_QUEUE_MAX_MS = parseNonNegativeInt(
+  process.env.OMNIROUTE_CHAT_ADMISSION_QUEUE_MS,
+  5000
+);
+
 export const CHAT_HEAVY_MESSAGE_COUNT = parsePositiveInt(
   process.env.OMNIROUTE_CHAT_HEAVY_MESSAGE_COUNT,
   200
@@ -42,9 +59,25 @@ export const CHAT_HEAVY_ESTIMATED_TOKENS = parsePositiveInt(
   process.env.OMNIROUTE_CHAT_HEAVY_ESTIMATED_TOKENS,
   32_000
 );
+/**
+ * Optional per-deployment history cap. `0` (the default) disables it.
+ *
+ * A fixed message count is a *deployment policy*, not a universal property of a chat request:
+ * the same 900-message conversation is trivial on a 16 GB host and fatal in a 1 GB container.
+ * Enforcing one here rejected conversations before OmniRoute's own compression pipeline — the
+ * component that exists precisely to make them servable — ever ran, and returned a terminal 413
+ * that no client can retry its way out of. Message count is also not an input the caller fully
+ * controls: translation from other protocols expands a single turn into several `messages[]`
+ * entries, so the metric an operator caps is partly manufactured by OmniRoute itself.
+ *
+ * What actually bounds heap growth is the heavyweight lease below (bounded concurrency through
+ * the allocation-heavy path) plus the heap-pressure shed in the chat handler. Both remain in
+ * force for every request, including large ones. Constrained deployments that still want a hard
+ * ceiling opt in with `OMNIROUTE_CHAT_HARD_MAX_MESSAGES`.
+ */
 export const CHAT_HARD_MAX_MESSAGES = parsePositiveInt(
   process.env.OMNIROUTE_CHAT_HARD_MAX_MESSAGES,
-  800
+  0
 );
 
 export interface ChatAdmissionLease {
@@ -55,10 +88,13 @@ export interface ChatAdmissionLease {
 /**
  * Process-local heavyweight reservation. The capacity check and increment execute in one
  * synchronous JavaScript turn, making acquisition atomic within an OmniRoute process.
- * Queueing is intentionally separate: unavailable capacity is a retryable 503.
+ * Unavailable capacity is a bounded wait (see `acquireHeavyWithin`) and only then a
+ * retryable 503, so short agent bursts serialize instead of killing the client's
+ * retry budget.
  */
 export class ChatAdmissionController {
   #activeHeavy = 0;
+  #waiters: Array<() => void> = [];
 
   constructor(readonly maxHeavyInFlight = 1) {
     if (!Number.isSafeInteger(maxHeavyInFlight) || maxHeavyInFlight < 1) {
@@ -82,8 +118,39 @@ export class ChatAdmissionController {
         if (released) return;
         released = true;
         this.#activeHeavy = Math.max(0, this.#activeHeavy - 1);
+        this.#waiters.shift()?.();
       },
     };
+  }
+
+  /**
+   * Wait up to `timeoutMs` for heavyweight capacity, retrying atomically on each
+   * release. Resolves `null` when the deadline expires with no capacity freed, in
+   * which case the caller answers the retryable 503. `timeoutMs <= 0` is the
+   * legacy immediate-reject path. Waiters are served FIFO.
+   */
+  async acquireHeavyWithin(timeoutMs: number): Promise<ChatAdmissionLease | null> {
+    const deadline = Date.now() + Math.max(0, Math.floor(timeoutMs));
+    for (;;) {
+      const lease = this.tryAcquireHeavy();
+      if (lease) return lease;
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) return null;
+      let resolver: (() => void) | null = null;
+      const released = new Promise<void>((resolve) => {
+        resolver = () => resolve();
+        this.#waiters.push(resolver);
+      });
+      const timedOut = await Promise.race([
+        released.then(() => false),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(true), remaining)),
+      ]);
+      if (resolver) {
+        const index = this.#waiters.indexOf(resolver);
+        if (index >= 0) this.#waiters.splice(index, 1);
+      }
+      if (timedOut) return null;
+    }
   }
 }
 
@@ -94,8 +161,7 @@ export type ChatRequestAdmission =
   | { admit: false; response: Response };
 
 export type ChatStructureAdmission =
-  | { admit: true; lease: ChatAdmissionLease | null }
-  | { admit: false; response: Response };
+  { admit: true; lease: ChatAdmissionLease | null } | { admit: false; response: Response };
 
 function rejectionResponse(status: 413 | 503, hardMaxBytes: number): Response {
   const isPayload = status === 413;
@@ -193,7 +259,7 @@ function estimateStructureTokens(value: unknown, limit: number): TokenEstimate {
   return { tokens, exhausted: stack.length > 0 && tokens < limit };
 }
 
-export function admitChatStructure(
+export async function admitChatStructure(
   body: unknown,
   lease: ChatAdmissionLease | null,
   options: {
@@ -202,15 +268,18 @@ export function admitChatStructure(
     heavyMessages?: number;
     heavyTools?: number;
     heavyTokens?: number;
+    queueMs?: number;
   } = {}
-): ChatStructureAdmission {
+): Promise<ChatStructureAdmission> {
   if (!body || typeof body !== "object" || Array.isArray(body)) return { admit: true, lease };
 
   const record = body as Record<string, unknown>;
   const messages = Array.isArray(record.messages) ? record.messages : [];
   const tools = Array.isArray(record.tools) ? record.tools : [];
   const maxMessages = options.maxMessages ?? CHAT_HARD_MAX_MESSAGES;
-  if (messages.length > maxMessages) {
+  // Opt-in only: `0`/unset means no history cap, so oversized conversations reach the
+  // compression pipeline and the bounded heavyweight path instead of a terminal 413.
+  if (maxMessages > 0 && messages.length > maxMessages) {
     return { admit: false, response: structuralRejectionResponse(413, maxMessages) };
   }
 
@@ -232,7 +301,9 @@ export function admitChatStructure(
     estimatedTokens >= heavyTokens;
   if (!heavy || lease) return { admit: true, lease };
 
-  const acquired = (options.controller ?? defaultAdmissionController).tryAcquireHeavy();
+  const acquired = await (options.controller ?? defaultAdmissionController).acquireHeavyWithin(
+    options.queueMs ?? 0
+  );
   return acquired
     ? { admit: true, lease: acquired }
     : { admit: false, response: structuralRejectionResponse(503, maxMessages) };
@@ -258,9 +329,85 @@ function rebuildRequest(request: Request, body: Uint8Array): Request {
 }
 
 /**
+ * Internal self-loop bypass marker for the vision-bridge describe call (and any
+ * other trusted in-process sub-request). An external client cannot spoof it:
+ * it is honored ONLY when combined with a trusted self-loop credential — the
+ * local-mode `sk_omniroute` sentinel or the operator-configured env key
+ * (`OMNIROUTE_API_KEY` / `ROUTER_API_KEY`, #1350) so REQUIRE_API_KEY=true
+ * deployments can run the describe sub-request.
+ */
+export const ADMISSION_BYPASS_HEADER = "x-omniroute-admission-bypass";
+const ADMISSION_BYPASS_VALUE = "internal";
+const SELF_LOOP_KEY = "sk_omniroute";
+
+/**
+ * Resolve the bearer credential used by trusted in-process self-loop
+ * sub-requests (the vision-bridge describe call).
+ *
+ * Local mode uses the `sk_omniroute` sentinel. Deployments that force API key
+ * auth (`REQUIRE_API_KEY=true`) reject that sentinel with 401, so they must use
+ * a real key — the persistent env-var key (#1350, `OMNIROUTE_API_KEY` /
+ * `ROUTER_API_KEY`) is the natural choice because it always validates and
+ * survives restarts. Falls back to the sentinel when no env key is configured
+ * so local-mode behavior is unchanged.
+ */
+export function resolveSelfLoopBearer(): string {
+  return (
+    process.env.OMNIROUTE_API_KEY?.trim() || process.env.ROUTER_API_KEY?.trim() || SELF_LOOP_KEY
+  );
+}
+
+/**
+ * Sentinel lease returned by the admission byte stage for an internal self-loop
+ * sub-request (the vision-bridge describe call). The parent request already holds
+ * the single heavyweight lease, so the describe call must never reserve again —
+ * but a NON-NULL lease is still required so the route's later structural stage
+ * (`admitChatStructure`) treats the body as covered. With `lease: null` the
+ * structural stage classifies the base64-heavy describe body as "heavy" and tries
+ * to acquire the busy capacity, returning 503 `chat_admission_busy` anyway — the
+ * gap that kept the Zoo Code / api-key describe call failing even after the byte
+ * stage was bypassed. Release is a no-op; capacity was never reserved.
+ */
+const NULL_LEASE: ChatAdmissionLease = {
+  get released() {
+    return true;
+  },
+  release() {
+    // No-op: the sentinel never reserved heavyweight capacity.
+  },
+};
+
+/**
+ * True when the request is a trusted in-process self-loop sub-request that must
+ * not consume a heavyweight admission lease. The describe call runs WHILE the
+ * parent request already holds the single heavyweight lease (`CHAT_MAX_HEAVY_IN_FLIGHT=1`),
+ * so without this bypass it is rejected with 503 `chat_admission_busy` and the
+ * image is never described (#vision-bridge self-loop).
+ */
+function isInternalAdmissionBypass(request: Request): boolean {
+  const bypass =
+    request.headers.get(ADMISSION_BYPASS_HEADER)?.trim().toLowerCase() === ADMISSION_BYPASS_VALUE;
+  if (!bypass) return false;
+
+  // Credential gate: the bypass only applies to trusted self-loop credentials —
+  // the local `sk_omniroute` sentinel OR the operator-configured env key
+  // (`OMNIROUTE_API_KEY` / `ROUTER_API_KEY`, #1350) so REQUIRE_API_KEY=true
+  // deployments can still run the vision-bridge describe sub-request. The env
+  // key is a secret like any other API key, so honoring it here does not widen
+  // the attack surface: a third-party that holds it can already call every API.
+  const auth = request.headers.get("authorization") || "";
+  const match = /^bearer\s+(\S+)$/i.exec(auth.trim());
+  if (!match) return false;
+  return match[1].trim().toLowerCase() === resolveSelfLoopBearer().toLowerCase();
+}
+
+/**
  * Reserve heavyweight capacity and ingest the body with a hard byte bound before JSON
  * parsing. Missing/invalid Content-Length is sniffed only up to the heavyweight threshold;
  * a lease is acquired atomically before retaining bytes at or beyond that threshold.
+ *
+ * Internal self-loop sub-requests (vision-bridge describe calls) bypass the lease
+ * reservation — they run inside a parent request that already holds the lease.
  */
 export async function admitChatRequest(
   request: Request,
@@ -268,27 +415,67 @@ export async function admitChatRequest(
     controller?: ChatAdmissionController;
     largeBodyBytes?: number;
     hardMaxBytes?: number;
+    queueMs?: number;
   } = {}
 ): Promise<ChatRequestAdmission> {
   const controller = options.controller ?? defaultAdmissionController;
   const largeBodyBytes = options.largeBodyBytes ?? CHAT_LARGE_BODY_BYTES;
   const hardMaxBytes = options.hardMaxBytes ?? CHAT_HARD_MAX_BODY_BYTES;
+  const queueMs = options.queueMs ?? 0;
+  const internalBypass = isInternalAdmissionBypass(request);
   const contentLength = parseContentLength(request.headers.get("content-length"));
+
+  // Internal self-loop: skip the heavyweight reservation entirely (the parent
+  // request already holds the single lease) but still enforce the hard byte bound.
+  if (internalBypass) {
+    const contentLengthHeader = request.headers.get("content-length");
+    if (contentLength !== null && contentLength > hardMaxBytes) {
+      return { admit: false, response: rejectionResponse(413, hardMaxBytes) };
+    }
+    // Sniff bytes for the hard bound without reserving a lease.
+    const reader = request.body?.getReader();
+    if (!reader) return { admit: true, request, lease: NULL_LEASE };
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        totalBytes += value.byteLength;
+        if (totalBytes > hardMaxBytes) {
+          await reader.cancel("chat request exceeds hard body limit").catch(() => undefined);
+          return { admit: false, response: rejectionResponse(413, hardMaxBytes) };
+        }
+        chunks.push(value);
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
+    const body = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      body.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return { admit: true, request: rebuildRequest(request, body), lease: NULL_LEASE };
+  }
 
   if (contentLength !== null && contentLength > hardMaxBytes) {
     return { admit: false, response: rejectionResponse(413, hardMaxBytes) };
   }
 
   let lease: ChatAdmissionLease | null = null;
-  const reserve = (): boolean => {
+  const reserve = async (): Promise<boolean> => {
     if (lease) return true;
-    lease = controller.tryAcquireHeavy();
+    lease = await controller.acquireHeavyWithin(queueMs);
     return lease !== null;
   };
 
   // A known-large declaration can reserve before ingestion. Unknown lengths are boundedly
   // sniffed below; this avoids consuming scarce heavyweight capacity for small chunked bodies.
-  if (contentLength !== null && contentLength >= largeBodyBytes && !reserve()) {
+  if (contentLength !== null && contentLength >= largeBodyBytes && !(await reserve())) {
     return { admit: false, response: rejectionResponse(503, hardMaxBytes) };
   }
 
@@ -307,7 +494,7 @@ export async function admitChatRequest(
         lease?.release();
         return { admit: false, response: rejectionResponse(413, hardMaxBytes) };
       }
-      if (totalBytes >= largeBodyBytes && !reserve()) {
+      if (totalBytes >= largeBodyBytes && !(await reserve())) {
         await reader.cancel("chat admission capacity unavailable").catch(() => undefined);
         return { admit: false, response: rejectionResponse(503, hardMaxBytes) };
       }

@@ -22,6 +22,7 @@ import {
   getReasoningCacheStats,
   setReasoningCache,
 } from "../../src/lib/db/reasoningCache.ts";
+import { isInternalReasoningPlaceholder } from "../utils/reasoningPlaceholder.ts";
 
 // ──────────────── Provider/Model Detection ────────────────
 
@@ -63,6 +64,8 @@ const REASONING_REPLAY_MODEL_PATTERNS = [
 ];
 
 const DEEPSEEK_V4_MODEL_PATTERN = /deepseek[-/]v4[-.](flash|pro)/i;
+const K3_REASONING_REPLAY_MODEL_PATTERN = /(?:^|\/)(?:kimi-)?k3(?:$|-)/i;
+const NATIVE_K27_REASONING_REPLAY_MODEL_PATTERN = /(?:^|\/)kimi-k2\.7-code(?:$|-)/i;
 
 export function isDeepSeekReasoningModel(params: {
   provider: string;
@@ -92,6 +95,14 @@ export function requiresReasoningReplay(params: {
   // Explicit model signal from models.dev (preferred source of truth).
   if (normalizedInterleavedField === "reasoning_content") return true;
   if (normalizedInterleavedField === "reasoning_details") return false;
+
+  if (K3_REASONING_REPLAY_MODEL_PATTERN.test(normalizedModel)) return true;
+  if (
+    (normalizedProvider === "moonshot" || normalizedProvider === "kimi") &&
+    NATIVE_K27_REASONING_REPLAY_MODEL_PATTERN.test(normalizedModel)
+  ) {
+    return true;
+  }
 
   // DeepSeek legacy reasoner family has an inverse contract: do not replay.
   if (/deepseek-reasoner/i.test(normalizedModel) || /deepseek-r1/i.test(normalizedModel)) {
@@ -194,6 +205,9 @@ export function cacheReasoningByKey(
   reasoning: string
 ): void {
   if (!key || !reasoning) return;
+  // ponytail: never store the internal replay placeholder — models echo it
+  // and it poisons the cache (upstream echo loop, OmniRoute #9573).
+  if (isInternalReasoningPlaceholder(reasoning)) return;
 
   if (reasoning.length > MAX_ENTRY_BYTES) {
     reasoning = reasoning.slice(0, MAX_ENTRY_BYTES);
@@ -259,6 +273,8 @@ export function cacheReasoningFromAssistantMessage(
         ? message.reasoning
         : "";
   if (!reasoning) return 0;
+  // ponytail: don't capture the echoed placeholder into the cache.
+  if (isInternalReasoningPlaceholder(reasoning)) return 0;
 
   const toolCallIds = Array.isArray(message.tool_calls)
     ? (message.tool_calls as ToolCallLike[])
@@ -299,6 +315,12 @@ export function lookupReasoning(toolCallId: string): string | null {
   const mem = memoryCache.get(toolCallId);
   if (mem) {
     if (Date.now() < mem.expiresAt) {
+      // ponytail: never replay the internal placeholder from memory.
+      if (isInternalReasoningPlaceholder(mem.reasoning)) {
+        memoryCache.delete(toolCallId);
+        misses++;
+        return null;
+      }
       hits++;
       return mem.reasoning;
     }
@@ -314,6 +336,11 @@ export function lookupReasoning(toolCallId: string): string | null {
     // DB lookup failure is non-fatal; treat it as a cache miss.
   }
   if (dbResult) {
+    // ponytail: never promote/replay the internal placeholder from DB.
+    if (isInternalReasoningPlaceholder(dbResult.reasoning)) {
+      misses++;
+      return null;
+    }
     hits++;
     let promotedReasoning = dbResult.reasoning;
     if (promotedReasoning.length > MAX_ENTRY_BYTES) {

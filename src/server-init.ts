@@ -4,7 +4,8 @@ import { enforceWebRuntimeEnv } from "./lib/env/runtimeEnv";
 import { enforceSecrets } from "./shared/utils/secretsValidator";
 import { initAuditLog, cleanupExpiredLogs, logAuditEvent } from "./lib/compliance/index";
 import { initConsoleInterceptor } from "./lib/consoleInterceptor";
-import { startBudgetResetJob } from "./lib/jobs/budgetResetJob";
+import { registerBudgetResetJob } from "./lib/jobs/budgetResetJob";
+import { registerTokenHealthCheck } from "./lib/jobs/tokenHealthCheckJob";
 import { startReasoningCacheCleanupJob } from "./lib/jobs/reasoningCacheCleanupJob";
 import { startCleanupScheduler } from "./lib/db/cleanup";
 import { getSettings } from "./lib/db/settings";
@@ -113,7 +114,16 @@ async function startServer() {
     }
 
     await initializeCloudSync();
-    startBudgetResetJob();
+    // register() only persists the definition; startAll() is what arms the timers.
+    // This path does not call ensureCloudSyncInitialized(), so nothing else here
+    // would start the jobs on our behalf. It registers the same set as that path:
+    // starting one job and not the other is how a background job goes missing
+    // without anything failing.
+    const { getJobRegistry } = await import("./lib/jobRegistry");
+    const jobRegistry = getJobRegistry();
+    registerBudgetResetJob(jobRegistry);
+    registerTokenHealthCheck(jobRegistry);
+    await jobRegistry.startAll();
     startReasoningCacheCleanupJob();
     startCleanupScheduler();
     startRuntimeConfigHotReload();
@@ -150,6 +160,16 @@ async function startServer() {
     await initArenaEloSync();
   } catch (err) {
     startupLog.warn({ error: getErrorMessage(err) }, "Arena ELO sync could not initialize");
+  }
+
+  // Radar daily feed sync: only arms itself when RADAR_ENABLED AND the user
+  // opt-in are already on (a flag-off boot stays timer-free — Radar inertia
+  // contract). Non-blocking, never fatal.
+  try {
+    const { initRadarSyncScheduler } = await import("./lib/radar/scheduler");
+    initRadarSyncScheduler();
+  } catch (err) {
+    startupLog.warn({ error: getErrorMessage(err) }, "Radar sync scheduler could not initialize");
   }
 }
 

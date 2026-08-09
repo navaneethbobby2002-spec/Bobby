@@ -14,9 +14,13 @@
  */
 
 import { BaseExecutor, type ExecuteInput } from "./base.ts";
-import { sanitizeErrorMessage } from "../utils/error.ts";
+import { buildErrorBody, sanitizeErrorMessage } from "../utils/error.ts";
 import { prepareToolMessages } from "../translator/webTools.ts";
 import { buildToolModeResponse } from "./chatgptWebTools.ts";
+import {
+  checkGeminiWebUnsupportedControls,
+  GEMINI_WEB_UNSUPPORTED_CONTROL_CODE,
+} from "./gemini-web/capabilities.ts";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -349,6 +353,30 @@ export class GeminiWebExecutor extends BaseExecutor {
   }
 
   /**
+   * testConnection — validates the cookie format without making a network call
+   * or launching Playwright. Returns true when the cookie is non-empty and
+   * contains at least one name=value pair with a non-empty value. This is a
+   * lightweight pre-check before the browser automation path; full session
+   * validation is done by validateGeminiWebProvider in the connection test
+   * flow (#9407).
+   */
+  async testConnection(
+    credentials: Record<string, unknown>,
+    _signal?: AbortSignal
+  ): Promise<boolean> {
+    try {
+      const cookie = resolveGeminiWebCookie(
+        credentials as unknown as ExecuteInput["credentials"]
+      );
+      if (!cookie) return false;
+      const pairs = parseCookies(cookie);
+      return pairs.some((p) => p.value.length > 0);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Read the live Playwright cookie jar back after a successful run and, if
    * Google rotated any of the __Secure-1PSID* cookies, forward the merged
    * cookie string through onCredentialsRefreshed so it gets persisted to the
@@ -381,6 +409,33 @@ export class GeminiWebExecutor extends BaseExecutor {
   async execute(input: ExecuteInput) {
     const { model, body, stream, credentials, signal, log, onCredentialsRefreshed } = input;
     const requestBody = body as GeminiRequestBody;
+
+    // #9356: fail fast on controls this provider cannot honor (reasoning_effort
+    // above "minimal", forced tool_choice). Runs before the credential check and
+    // before Playwright launches — the request is unservable no matter which
+    // cookie is used, and answering 200 with ordinary prose made agents believe
+    // their reasoning/tool requirements had been met. See ./gemini-web/capabilities.ts.
+    const violation = checkGeminiWebUnsupportedControls(body as Record<string, unknown>);
+    if (violation) {
+      log?.warn?.(
+        "GEMINI-WEB",
+        `Rejected request: "${violation.param}" is not supported by this provider`
+      );
+      return {
+        response: new Response(
+          JSON.stringify(
+            buildErrorBody(400, violation.message, null, {
+              type: "invalid_request_error",
+              code: GEMINI_WEB_UNSUPPORTED_CONTROL_CODE,
+            })
+          ),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        ),
+        url: GEMINI_URL,
+        headers: {},
+        transformedBody: body,
+      };
+    }
 
     const cookie = resolveGeminiWebCookie(credentials);
     if (!cookie) {
@@ -587,6 +642,30 @@ export class GeminiWebExecutor extends BaseExecutor {
                 "X-Omni-Fallback-Hint": "connection_cooldown",
               },
             }
+          ),
+          url: GEMINI_URL,
+          headers: {},
+          transformedBody: body,
+        };
+      }
+      // #9407: Playwright selector/click timeout errors are terminal — they indicate
+      // the page DOM does not match expectations (e.g. Gemini changed their UI or
+      // the session is so expired it lands on a different page). Return 400 so the
+      // account-fallback system does NOT retry this request as a transient 5xx.
+      if (
+        error instanceof Error &&
+        (error.name === "TimeoutError" ||
+          rawMessage.includes("waitForSelector") ||
+          rawMessage.includes("Timeout") ||
+          rawMessage.includes("actionability") ||
+          rawMessage.includes("interception"))
+      ) {
+        return {
+          response: new Response(
+            JSON.stringify({
+              error: sanitizeErrorMessage(rawMessage),
+            }),
+            { status: 400, headers: { "Content-Type": "application/json" } }
           ),
           url: GEMINI_URL,
           headers: {},

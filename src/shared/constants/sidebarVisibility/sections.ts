@@ -424,6 +424,13 @@ const SYSTEM_GROUP: SidebarItemGroup = {
       subtitleKey: "runtimeSubtitle",
       icon: "bolt",
     },
+    {
+      id: "resilience-connections",
+      href: "/dashboard/resilience/connections",
+      i18nKey: "resilienceConnections",
+      subtitleKey: "resilienceConnectionsSubtitle",
+      icon: "shield",
+    },
   ],
 };
 
@@ -462,6 +469,14 @@ const COSTS_ITEMS: readonly SidebarItemDefinition[] = [
     i18nKey: "freeProviderRankings",
     subtitleKey: "freeProviderRankingsSubtitle",
     icon: "leaderboard",
+  },
+  {
+    id: "radar",
+    href: "/dashboard/radar",
+    i18nKey: "radar",
+    subtitleKey: "radarSubtitle",
+    icon: "radar",
+    featureFlagKey: "RADAR_ENABLED",
   },
 ];
 

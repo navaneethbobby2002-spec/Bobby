@@ -168,6 +168,10 @@ function normalizeRtkConfig(value: unknown): RtkConfig {
       typeof record.applyToAssistantMessages === "boolean"
         ? record.applyToAssistantMessages
         : DEFAULT_RTK_CONFIG.applyToAssistantMessages,
+    enableRenderers:
+      typeof record.enableRenderers === "boolean"
+        ? record.enableRenderers
+        : (DEFAULT_RTK_CONFIG.enableRenderers ?? false),
     enabledFilters: Array.isArray(record.enabledFilters)
       ? record.enabledFilters.filter((filter): filter is string => typeof filter === "string")
       : DEFAULT_RTK_CONFIG.enabledFilters,
@@ -612,6 +616,7 @@ export async function getCompressionSettings(): Promise<CompressionConfig> {
     stackedPipeline: normalizeStackedPipeline(undefined),
     aggressive: normalizeAggressiveConfig(undefined),
     ultra: normalizeUltraConfig(undefined),
+    lite: { compressToolResults: true },
     headroom: normalizeHeadroomConfig(undefined),
     ...buildDetailConfigDefaults(),
     contextBudget: normalizeContextBudgetConfig(undefined),
@@ -721,6 +726,9 @@ export async function getCompressionSettings(): Promise<CompressionConfig> {
       case "ultra":
       case "ultraConfig":
         config.ultra = normalizeUltraConfig(parsed);
+        break;
+      case "lite":
+        config.lite = { compressToolResults: toRecord(parsed).compressToolResults !== false };
         break;
       case "headroom":
       case "headroomConfig":

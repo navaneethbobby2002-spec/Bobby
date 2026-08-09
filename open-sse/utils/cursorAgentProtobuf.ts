@@ -20,6 +20,11 @@ import zlib from "node:zlib";
 import crypto from "node:crypto";
 import { decodeNativeTodoWriteCompletion } from "./cursorAgentProtobuf/nativeTodoWrite.ts";
 import {
+  cursorImageAttachmentPath,
+  encodeSelectedImageBody,
+  type EncodedImage,
+} from "./cursorAgentProtobuf/imageEncoding.ts";
+import {
   WT_VARINT,
   WT_LEN,
   encodeVarint,
@@ -63,24 +68,7 @@ const UM_MESSAGE_ID = 2; // UserMessage.message_id
 const UM_SELECTED_CONTEXT = 3; // UserMessage.selected_context (empty placeholder required)
 const UM_MODE = 4; // UserMessage.mode (cursor-agent sends 1)
 
-// ─── Vision input (image) field numbers ────────────────────────────────────
-// Pinned from cursor-agent's agent.v1 protobuf descriptor (bundle version
-// 2026.06.02-8c11d9f, cross-checked against composer-api's older-endpoint
-// encoder for shape). Images attach to the current UserMessage through its
-// selected_context (field 3): UserMessage.selected_context is a SelectedContext
-// whose `selected_images` (field 1) is a repeated SelectedImage. Each
-// SelectedImage carries the raw bytes inline in its `data_or_blob_id` oneof
-// (the `data` case, field 8) — cursor-agent's CLI instead sends a local file
-// `path`, which a proxy cannot use, so we inline the bytes like composer-api.
 const SC_SELECTED_IMAGES = 1; // SelectedContext.selected_images [repeated SelectedImage]
-
-const SI_UUID = 2; // SelectedImage.uuid
-const SI_DIMENSION = 4; // SelectedImage.dimension (SelectedImage.Dimension)
-const SI_MIME_TYPE = 7; // SelectedImage.mime_type
-const SI_DATA = 8; // SelectedImage.data (oneof data_or_blob_id) — inline image bytes
-
-const DIM_WIDTH = 1; // SelectedImage.Dimension.width (int32)
-const DIM_HEIGHT = 2; // SelectedImage.Dimension.height (int32)
 
 const RM_MODEL_ID = 1; // RequestedModel.model_id
 const RM_PARAMETERS = 3; // RequestedModel.parameters [repeated]
@@ -413,58 +401,15 @@ export type AgentRunInput = {
   // which the executor's processFrame replies to with the stored bytes.
   systemPrompt?: string;
   blobStore?: Map<string, Buffer>;
-  // Vision input: images attached to the current user turn. Encoded inline as
-  // SelectedContext.selected_images[] (see encodeSelectedImageBody). Empty /
-  // undefined keeps the request byte-identical to the text-only path.
+  // Vision input: images attached to the current user turn. Encoded as
+  // SelectedContext.selected_images[] via blobIdWithData (see
+  // encodeSelectedImageBody). Empty / undefined keeps the request
+  // byte-identical to the text-only path.
   images?: EncodedImage[];
 };
 
-/**
- * A resolved image ready to embed in a cursor request. `data` is the raw
- * decoded image bytes (already SSRF-checked / size-capped by the executor's
- * resolveCursorImages helper). `mimeType` (e.g. "image/png") helps cursor
- * decode the inline bytes; `width`/`height` populate the optional Dimension
- * sub-message when cheaply known; `uuid` is a stable per-image id.
- */
-export type EncodedImage = {
-  data: Buffer;
-  mimeType?: string;
-  width?: number;
-  height?: number;
-  uuid: string;
-};
-
-/**
- * Encode the body of a SelectedImage message (no outer field tag — the caller
- * wraps it via encodeMessage(SC_SELECTED_IMAGES, [body])). Sets the inline
- * `data` oneof case plus uuid, optional dimension, and mime_type. Fields are
- * written in ascending field-number order (canonical protobuf layout).
- */
-export function encodeSelectedImageBody(img: EncodedImage): Buffer {
-  const parts: Buffer[] = [encodeString(SI_UUID, img.uuid)];
-  if (
-    typeof img.width === "number" &&
-    typeof img.height === "number" &&
-    Number.isFinite(img.width) &&
-    Number.isFinite(img.height) &&
-    img.width > 0 &&
-    img.height > 0
-  ) {
-    parts.push(
-      encodeMessage(SI_DIMENSION, [
-        encodeUInt32Field(DIM_WIDTH, Math.floor(img.width)),
-        encodeUInt32Field(DIM_HEIGHT, Math.floor(img.height)),
-      ])
-    );
-  }
-  if (img.mimeType) {
-    parts.push(encodeString(SI_MIME_TYPE, img.mimeType));
-  }
-  // data_or_blob_id oneof = data (inline bytes) — field 8, written last to
-  // keep ascending field order.
-  parts.push(encodeBytes(SI_DATA, img.data));
-  return Buffer.concat(parts);
-}
+export { cursorImageAttachmentPath, encodeSelectedImageBody };
+export type { EncodedImage };
 
 /**
  * Convert OpenAI tool definitions to cursor McpToolDefinition bodies. Used
@@ -493,12 +438,15 @@ export function encodeAgentRunRequest(input: AgentRunInput): Buffer {
   // UserMessage { text, message_id, selected_context, mode=1 }.
   // selected_context is normally an empty placeholder (required by the server
   // even when empty — see below), but when the turn carries vision input we
-  // populate its selected_images[] with the inline-encoded images. The
-  // empty-images path produces byte-identical output to the text-only request.
+  // populate its selected_images[] with blobIdWithData-encoded images (and
+  // store the bytes in blobStore for getBlob). The empty-images path produces
+  // byte-identical output to the text-only request.
   const selectedContextParts: Buffer[] = [];
   if (input.images && input.images.length > 0) {
     for (const img of input.images) {
-      selectedContextParts.push(encodeMessage(SC_SELECTED_IMAGES, [encodeSelectedImageBody(img)]));
+      selectedContextParts.push(
+        encodeMessage(SC_SELECTED_IMAGES, [encodeSelectedImageBody(img, input.blobStore)])
+      );
     }
   }
   // The empty selected_context placeholder and mode=1 match cursor-agent's

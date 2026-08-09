@@ -417,7 +417,7 @@ test("v1 search POST preserves stored SearXNG baseUrl for authless providers", a
   }
 });
 
-test("v1 search POST auto-select uses authless SearXNG when no API-key providers are configured", async () => {
+test("v1 search POST returns 400 when auto-select finds no configured provider (searxng-search is now fallbackOnly)", async () => {
   const originalFetch = globalThis.fetch;
   let capturedUrl = "";
 
@@ -451,13 +451,14 @@ test("v1 search POST auto-select uses authless SearXNG when no API-key providers
     );
     const body = (await response.json()) as any;
 
-    assert.equal(response.status, 200);
-    assert.equal(
-      capturedUrl,
-      "http://localhost:8888/search?q=auto+select+self+hosted+search&format=json&categories=general"
+    assert.equal(response.status, 400);
+    assert.equal(capturedUrl, "", "fallback-only SearXNG must not receive an upstream request");
+    assert.ok(body.error?.message || body.error);
+    assert.match(
+      String(body.error?.message ?? body.error),
+      /provider|configured/i,
+      "the response must explain that no provider was selected"
     );
-    assert.equal(body.provider, "searxng-search");
-    assert.equal(body.results[0].title, "Auto-selected SearXNG result");
   } finally {
     globalThis.fetch = originalFetch;
   }

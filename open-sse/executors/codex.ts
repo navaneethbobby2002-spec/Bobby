@@ -32,6 +32,7 @@ import {
 } from "../config/codexIdentity.ts";
 import { getAccessToken } from "../services/tokenRefresh.ts";
 import { sanitizeResponsesInputItems } from "../services/responsesInputSanitizer.ts";
+import { applyResponsesInputPolicy } from "../services/responsesInputPolicy.ts";
 import { normalizeCodexVerbosity } from "../services/codexVerbosity.ts";
 import { getThinkingBudgetConfig, ThinkingMode } from "../services/thinkingBudget.ts";
 import { CORS_HEADERS } from "../utils/cors.ts";
@@ -48,6 +49,12 @@ export {
   getCodexDualWindowCooldownMs,
 } from "./codex/quota.ts";
 import { isCodexFreePlan, normalizeCodexTools } from "./codex/tools.ts";
+import {
+  CODEX_EFFORT_ORDER as EFFORT_ORDER,
+  GPT_5_6_ULTRA_ALIAS_MODELS,
+  splitCodexReasoningSuffix,
+  type CodexEffortLevel as EffortLevel,
+} from "./codex/reasoningSuffix.ts";
 // Re-exported for external importers (tests + provider services).
 export { isCodexFreePlan, normalizeCodexTools } from "./codex/tools.ts";
 
@@ -117,12 +124,6 @@ function codexWebSocketUnavailableResponse(): Response {
 // Ref: sub2api PR #1129 (feat(openai): split codex spark rate limiting from codex)
 export { getCodexModelScope, getCodexRateLimitKey, type CodexQuotaScope };
 
-// Ordered list of effort levels from lowest to highest
-const EFFORT_ORDER = ["none", "low", "medium", "high", "xhigh", "max", "ultra"] as const;
-type EffortLevel = (typeof EFFORT_ORDER)[number];
-const STANDARD_EFFORT_SUFFIXES = ["none", "low", "medium", "high", "xhigh"] as const;
-const GPT_5_6_MAX_ALIAS_MODELS = new Set(["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]);
-const GPT_5_6_ULTRA_ALIAS_MODELS = new Set(["gpt-5.6-sol", "gpt-5.6-terra"]);
 const CODEX_FAST_WIRE_VALUE = "priority";
 const CODEX_RESPONSES_WS_URL = "wss://chatgpt.com/backend-api/codex/responses";
 const CODEX_RESPONSES_LITE_HEADER = "x-openai-internal-codex-responses-lite";
@@ -185,32 +186,6 @@ function enforceCodexResponsesLiteParallelToolCalls(
   return { ...body, parallel_tool_calls: false };
 }
 
-function splitCodexReasoningSuffix(model: unknown): {
-  baseModel: string;
-  effort: EffortLevel | null;
-} {
-  const modelId = typeof model === "string" ? model : "";
-  const gpt56AliasMatch = /^(gpt-5\.6-(?:sol|terra|luna))-(max|ultra)$/.exec(modelId);
-  if (gpt56AliasMatch) {
-    const [, baseModel, alias] = gpt56AliasMatch;
-    const supportedModels =
-      alias === "ultra" ? GPT_5_6_ULTRA_ALIAS_MODELS : GPT_5_6_MAX_ALIAS_MODELS;
-    if (supportedModels.has(baseModel)) {
-      return { baseModel, effort: alias as EffortLevel };
-    }
-  }
-
-  for (const level of STANDARD_EFFORT_SUFFIXES) {
-    if (modelId.endsWith(`-${level}`)) {
-      return {
-        baseModel: modelId.slice(0, -`-${level}`.length),
-        effort: level,
-      };
-    }
-  }
-  return { baseModel: modelId, effort: null };
-}
-
 export function getCodexUpstreamModel(model: unknown): string {
   return splitCodexReasoningSuffix(model).baseModel;
 }
@@ -248,87 +223,56 @@ function convertSystemToDeveloperRole(body: Record<string, unknown>): void {
   }
 }
 
-/**
- * Strip server-generated item IDs from the input array.
- *
- * The Codex /codex/responses endpoint does not persist response items even when
- * store=true is sent. When proxy clients (e.g. OpenClaw) include response items
- * from previous turns in the input array, those items carry server-assigned IDs
- * (prefixed with "rs_", "fc_", "resp_", "msg_"). The Codex backend tries to
- * validate these IDs against its persistence store and returns 404 when the items
- * are not found (because store was effectively false).
- *
- * This function:
- *   1. Removes bare string references ("rs_abc123") from the input array
- *   2. Removes object items with type "item_reference" (explicit stored-item refs)
- *   3. Strips the "id" field from any object in input whose id matches a
- *      server-generated prefix (rs_, fc_, resp_, msg_) — so the content is
- *      preserved but the backend won't try to look it up
- */
-export function stripStoredItemReferences(body: Record<string, unknown>): void {
-  if (Array.isArray(body.input) && body.input.length === 0) {
-    body.input = [
-      {
-        type: "message",
-        role: "user",
-        content: [{ type: "input_text", text: "continue" }],
-      },
-    ];
-  }
 
+function stripOrphanedCodexFunctionCallOutputs(body: Record<string, unknown>): void {
   if (!Array.isArray(body.input)) return;
+  const input = body.input;
+  // A previous_response_id delegates history resolution to the upstream
+  // Responses service, so a matching function_call may legitimately live in
+  // that remote response rather than in the local input array.
+  if (typeof body.previous_response_id === "string" && body.previous_response_id.trim()) return;
 
-  const SERVER_ID_PATTERN = /^(rs|fc|resp|msg)_/;
-  let strippedCount = 0;
+  const callIds = new Set<string>();
+  let outputCount = 0;
 
-  body.input = body.input.filter((item) => {
-    // Bare string references: "rs_abc123", "resp_abc123"
-    if (typeof item === "string" && SERVER_ID_PATTERN.test(item)) {
-      strippedCount++;
-      return false;
+  for (const item of input) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const record = item as Record<string, unknown>;
+
+    if (record.type === "function_call" && typeof record.call_id === "string") {
+      callIds.add(record.call_id);
     }
 
-    // Object references: { type: "item_reference", id: "rs_..." }
-    if (
-      item &&
-      typeof item === "object" &&
-      !Array.isArray(item) &&
-      (item as Record<string, unknown>).type === "item_reference"
-    ) {
-      strippedCount++;
-      return false;
-    }
-
-    // Reasoning blobs (encrypted_content) are unusable with store=false since
-    // previous_response_id is deleted — strip them to avoid wasting context
-    // tokens (O(n^2) growth across agentic turns).
-    if (
-      item &&
-      typeof item === "object" &&
-      !Array.isArray(item) &&
-      (item as Record<string, unknown>).type === "reasoning"
-    ) {
-      strippedCount++;
-      return false;
-    }
-
-    // Object items with server-generated IDs: strip the id field but keep the item.
-    // e.g. { id: "rs_...", type: "reasoning", summary: [...] } → keep content, remove id
-    // e.g. { id: "fc_...", type: "function_call", ... } → keep content, remove id
-    if (item && typeof item === "object" && !Array.isArray(item)) {
-      const record = item as Record<string, unknown>;
-      if (typeof record.id === "string" && SERVER_ID_PATTERN.test(record.id)) {
-        delete record.id;
-        strippedCount++;
+    if (Array.isArray(record.tool_calls)) {
+      for (const toolCall of record.tool_calls) {
+        if (!toolCall || typeof toolCall !== "object" || Array.isArray(toolCall)) continue;
+        const toolCallId = (toolCall as Record<string, unknown>).id;
+        if (typeof toolCallId === "string") {
+          callIds.add(toolCallId);
+        }
       }
     }
 
+    if (record.type === "function_call_output") {
+      outputCount++;
+    }
+  }
+
+  if (outputCount === 0) return;
+  const filteredInput = input.filter((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return true;
+    const record = item as Record<string, unknown>;
+    if (record.type === "function_call_output" && typeof record.call_id === "string") {
+      return callIds.has(record.call_id);
+    }
     return true;
   });
 
-  if (strippedCount > 0) {
+  const removedCount = input.length - filteredInput.length;
+  body.input = filteredInput;
+  if (removedCount > 0) {
     console.debug(
-      `[Codex] stripStoredItemReferences: sanitized ${strippedCount} server-generated ID(s) from input`
+      `[Codex] stripOrphanedCodexFunctionCallOutputs: removed ${removedCount} orphaned function_call_output item(s)`
     );
   }
 }
@@ -1269,7 +1213,7 @@ export class CodexExecutor extends BaseExecutor {
     }
 
     // Issue #1832 & #1853: Map messages to input for clients like Cursor 5.5 that use responses/compact but send messages instead of input.
-    // This MUST run before convertSystemToDeveloperRole and stripStoredItemReferences.
+    // This MUST run before convertSystemToDeveloperRole.
     if (!body.input && Array.isArray(body.messages)) {
       body.input = body.messages.map((msg: ResponsesMessageInput) => ({
         type: "message",
@@ -1319,6 +1263,7 @@ export class CodexExecutor extends BaseExecutor {
         dropInternalAssistantMessages: !nativeCodexPassthrough,
       });
     }
+    stripOrphanedCodexFunctionCallOutputs(body);
     repairMissingCodexFunctionCallOutputs(body);
 
     // ── Cache-aware system prompt handling (both paths) ──
@@ -1390,11 +1335,6 @@ export class CodexExecutor extends BaseExecutor {
         isCodexFreePlan(credentials?.providerSpecificData) || getCodexModelScope(model) === "spark",
       preserveCustomTools: nativeCodexPassthrough,
     });
-
-    // Strip stored response item references (rs_, resp_, msg_ IDs) from input.
-    // The /codex/responses endpoint does not persist responses even with store=true,
-    // so any references to previous response items would cause 404 errors.
-    stripStoredItemReferences(body);
 
     // Issue #806: Even for native passthrough, some clients (purist completions) might indiscriminately inject
     // a `messages` or `prompt` array which the strict Codex Responses schema rejects.
@@ -1486,6 +1426,11 @@ export class CodexExecutor extends BaseExecutor {
     // but the upstream Codex API strictly rejects them as unsupported parameters.
     delete body.session_id;
     delete body.conversation_id;
+
+    applyResponsesInputPolicy(
+      body,
+      credentials?.providerSpecificData?.preserveEncryptedReasoning === true
+    );
 
     if (nativeCodexPassthrough) {
       return body;

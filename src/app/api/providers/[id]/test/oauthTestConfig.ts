@@ -111,6 +111,14 @@ export const OAUTH_TEST_CONFIG = {
     // Validate using token presence/expiry as a lightweight auth check.
     checkExpiry: true,
   },
+  raycast: {
+    // #8895 — Raycast Pro is an `import_token` provider: the token is imported
+    // from the local Raycast install, `refreshToken` is always null and the
+    // stored `expiresIn` defaults to 30 days. There is nothing to refresh, so
+    // the test is the expiry check on the imported token; without an entry here
+    // Test Connection persists testStatus="error" on a healthy account (#8408).
+    checkExpiry: true,
+  },
   cline: CLINE_OAUTH_TEST_CONFIG,
   // ClinePass reuses the same WorkOS OAuth flow and token lifecycle as Cline.
   clinepass: CLINE_OAUTH_TEST_CONFIG,
@@ -163,5 +171,23 @@ export const OAUTH_TEST_CONFIG = {
     authPrefix: "Bearer ",
     extraHeaders: { "User-Agent": "OmniRoute", Accept: "application/vnd.github+json" },
     refreshable: true,
+  },
+  // Openference: first-party OAuth gateway — list models to verify the JWT without
+  // consuming inference quota. 402 (no active plan) still means auth succeeded.
+  openference: {
+    url: "https://api.openference.com/v1/models",
+    method: "GET",
+    authHeader: "Authorization",
+    authPrefix: "Bearer ",
+    refreshable: true,
+    acceptStatuses: [402],
+  },
+  of: {
+    url: "https://api.openference.com/v1/models",
+    method: "GET",
+    authHeader: "Authorization",
+    authPrefix: "Bearer ",
+    refreshable: true,
+    acceptStatuses: [402],
   },
 };

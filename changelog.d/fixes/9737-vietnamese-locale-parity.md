@@ -1,0 +1,1 @@
+- Restore Vietnamese locale parity after the entity-normalization sync dropped Radar, provider, and mini-playground messages.

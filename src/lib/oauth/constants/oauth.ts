@@ -152,6 +152,19 @@ export const XAI_OAUTH_CONFIG = {
   callbackHost: "127.0.0.1",
 };
 
+// Openference OAuth Configuration (Authorization Code Flow with PKCE)
+export const OPENFERENCE_CONFIG = {
+  clientId: "omniroute",
+  authorizeUrl: "https://openference.com/app/oauth/authorize",
+  tokenUrl: "https://openference.com/oauth/token",
+  userinfoUrl: "https://openference.com/oauth/userinfo",
+  scope: "openid profile email model:invoke offline_access",
+  codeChallengeMethod: "S256",
+  loopbackPort: 56123,
+  callbackPath: "/callback",
+  callbackHost: "127.0.0.1",
+};
+
 // Kimi Coding OAuth Configuration (Device Code Flow)
 export const KIMI_CODING_CONFIG = {
   clientId: resolvePublicCred("kimi_id", "KIMI_CODING_OAUTH_CLIENT_ID"),
@@ -414,6 +427,17 @@ export const TRAE_CONFIG = {
     "Authorize via trae.ai in the popup, or sign in to solo.trae.ai and paste the Cloud-IDE-JWT from the Authorization header (~14-day lifetime).",
 };
 
+// Raycast Pro AI — reverse-engineered, unofficial API. LOCAL / PERSONAL USE ONLY.
+// See docs/security/PUBLIC_CREDS.md pattern: no secrets in repo; credentials from user's Mac.
+export const RAYCAST_CONFIG = {
+  apiEndpoint: "https://backend.raycast.com",
+  chatEndpoint: "/api/v1/ai/chat_completions",
+  modelsEndpoint: "/api/v1/ai/models",
+  clientType: "macos-app",
+  captureInstructions:
+    "macOS only: use Auto-Import (Keychain + Raycast DB) or capture Bearer, X-Raycast-DeviceId, and optional X-Raycast-Signature JWT from backend.raycast.com traffic.",
+};
+
 // Windsurf / Devin CLI Configuration
 //
 // 2026-05-29 (Phase 1 hotfix):
@@ -520,6 +544,10 @@ export const PROVIDERS = {
   KIRO: "kiro",
   AMAZON_Q: "amazon-q",
   CURSOR: "cursor",
+  // #8895 — registered in src/lib/oauth/providers/index.ts but missing here, so
+  // every consumer reading PROVIDERS (onboarding wizard, test-connection routing)
+  // did not know Raycast Pro exists as an OAuth provider.
+  RAYCAST: "raycast",
   KILOCODE: "kilocode",
   CLINE: "cline",
   CLINEPASS: "clinepass",
@@ -529,6 +557,7 @@ export const PROVIDERS = {
   CODEBUDDY_CN: "codebuddy-cn",
   GROK_CLI: "grok-cli",
   XAI_OAUTH: "xai-oauth",
+  OPENFERENCE: "openference",
   ZED: "zed",
   ZED_HOSTED: "zed-hosted",
 };

@@ -154,6 +154,15 @@ export function validateProviderSpecificData(
     });
   }
 
+  const preserveEncryptedReasoning = data.preserveEncryptedReasoning;
+  if (preserveEncryptedReasoning !== undefined && typeof preserveEncryptedReasoning !== "boolean") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "providerSpecificData.preserveEncryptedReasoning must be a boolean",
+      path: ["preserveEncryptedReasoning"],
+    });
+  }
+
   const blockExtraUsage = data.blockExtraUsage;
   if (blockExtraUsage !== undefined && typeof blockExtraUsage !== "boolean") {
     ctx.addIssue({
@@ -441,6 +450,30 @@ export function validateProviderSpecificData(
         code: z.ZodIssueCode.custom,
         message: "providerSpecificData.clientProfile must be ide or cli",
         path: ["clientProfile"],
+      });
+    }
+  }
+
+  const newApiAggregatorBalance = data.newApiAggregatorBalance;
+  if (
+    newApiAggregatorBalance !== undefined &&
+    newApiAggregatorBalance !== null &&
+    typeof newApiAggregatorBalance !== "boolean"
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "providerSpecificData.newApiAggregatorBalance must be a boolean",
+      path: ["newApiAggregatorBalance"],
+    });
+  }
+
+  const quotaPerUnit = data.quotaPerUnit;
+  if (quotaPerUnit !== undefined && quotaPerUnit !== null) {
+    if (typeof quotaPerUnit !== "number" || !Number.isFinite(quotaPerUnit) || quotaPerUnit <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "providerSpecificData.quotaPerUnit must be a positive number",
+        path: ["quotaPerUnit"],
       });
     }
   }

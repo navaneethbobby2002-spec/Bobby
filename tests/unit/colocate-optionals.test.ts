@@ -33,6 +33,11 @@ function mkPkg(
  *   @tensorflow/tfjs   → dep @tensorflow/tfjs-core → dep long
  *   js-tiktoken        → dep base64-js
  *   @huggingface/transformers present at root as a (stale) 4.2.0
+ *
+ * Each mock package gets a resolvable entrypoint so that isPackageIntact (which
+ * checks entrypoint integrity via require.resolve) can validate the co-located
+ * copy. The `main` field and corresponding index.js mirror what real npm
+ * packages ship.
  */
 function buildRoot(rootDir: string): void {
   const rootNm = join(rootDir, "node_modules");
@@ -40,6 +45,7 @@ function buildRoot(rootDir: string): void {
     rootNm,
     "@atjsh/llmlingua-2",
     {
+      main: "dist/index.js",
       dependencies: { "es-toolkit": "^1.38.0" },
       peerDependencies: {
         "@huggingface/transformers": "*",
@@ -49,12 +55,27 @@ function buildRoot(rootDir: string): void {
     },
     { "dist/index.js": "export const llmlingua = true;\n" }
   );
-  mkPkg(rootNm, "es-toolkit", {});
-  mkPkg(rootNm, "@tensorflow/tfjs", { dependencies: { "@tensorflow/tfjs-core": "4.22.0" } });
-  mkPkg(rootNm, "@tensorflow/tfjs-core", { dependencies: { long: "^5.0.0" } });
-  mkPkg(rootNm, "long", {});
-  mkPkg(rootNm, "js-tiktoken", { dependencies: { "base64-js": "^1.5.1" } });
-  mkPkg(rootNm, "base64-js", {});
+  mkPkg(rootNm, "es-toolkit", { main: "index.js" }, { "index.js": "export const esToolkit = true;\n" });
+  mkPkg(
+    rootNm,
+    "@tensorflow/tfjs",
+    { main: "index.js", dependencies: { "@tensorflow/tfjs-core": "4.22.0" } },
+    { "index.js": "export const tfjs = true;\n" }
+  );
+  mkPkg(
+    rootNm,
+    "@tensorflow/tfjs-core",
+    { main: "index.js", dependencies: { long: "^5.0.0" } },
+    { "index.js": "export const tfjsCore = true;\n" }
+  );
+  mkPkg(rootNm, "long", { main: "index.js" }, { "index.js": "export const long = true;\n" });
+  mkPkg(
+    rootNm,
+    "js-tiktoken",
+    { main: "index.js", dependencies: { "base64-js": "^1.5.1" } },
+    { "index.js": "export const tiktoken = true;\n" }
+  );
+  mkPkg(rootNm, "base64-js", { main: "index.js" }, { "index.js": "export const base64 = true;\n" });
   // Root transformers is the STALE 4.x line — the bug we must not propagate into dist.
   mkPkg(rootNm, "@huggingface/transformers", { version: "4.2.0" });
 }
@@ -170,6 +191,41 @@ test("colocateLlmlinguaOptionals skips when there is no standalone dist bundle",
     if (result.skipped === true) {
       assert.equal(result.reason, "no standalone dist/node_modules");
     }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("colocateLlmlinguaOptionals fills a Next-traced stub (package.json only, no dist) instead of skipping it", () => {
+  // Reproduces a real build failure: Next.js's own standalone trace can create
+  // a stub directory for a dynamically-imported optional dependency it
+  // references but can't fully bundle — just package.json, no actual code.
+  // The old skip check (`existsSync(dest)`) treated that stub as "already
+  // co-located" and never copied the real dist/ output, so
+  // require.resolve('@atjsh/llmlingua-2') found a package.json with no
+  // matching main file at runtime.
+  const root = mkdtempSync(join(tmpdir(), "omniroute-colocate-stub-"));
+  try {
+    buildRoot(root);
+    const distNm = join(root, "dist", "node_modules");
+    mkPkg(distNm, "@huggingface/transformers", { version: "3.5.2" });
+
+    // Simulate the Next-traced stub: directory exists, package.json only.
+    const stubDir = join(distNm, "@atjsh", "llmlingua-2");
+    mkdirSync(stubDir, { recursive: true });
+    writeFileSync(
+      join(stubDir, "package.json"),
+      readFileSync(join(root, "node_modules", "@atjsh", "llmlingua-2", "package.json"), "utf8")
+    );
+    assert.ok(!existsSync(join(stubDir, "dist", "index.js")), "stub must start without dist/");
+
+    const result = colocateLlmlinguaOptionals({ rootDir: root });
+    assert.equal(result.skipped, false, "must not treat the stub as already co-located");
+
+    assert.ok(
+      existsSync(join(stubDir, "dist", "index.js")),
+      "the real dist/index.js must be filled in, not left missing behind the stub"
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -937,7 +937,7 @@
   "disabled": "Disabled",
   "featureFlagOmnirouteEmergencyFallbackDescription": "Route budget-exhausted requests to the emergency free fallback provider/model.",
   "featureFlagArenaEloSyncEnabledDescription": "Enable periodic Arena AI leaderboard ELO sync for model intelligence rankings.",
-  "featureFlagExposeCcDiscoveryAliasesDescription": "Advertise claude/&lt;provider&gt;/&lt;model&gt; mirror ids on /v1/models so Claude Code gateway model discovery lists non-Claude models. Warning: doubles catalog entries for all clients when enabled globally.",
+  "featureFlagExposeCcDiscoveryAliasesDescription": "Advertise claude/<provider>/<model> mirror ids on /v1/models so Claude Code gateway model discovery lists non-Claude models. Warning: doubles catalog entries for all clients when enabled globally.",
   "sidebar": {
     "home": "Home",
     "dashboard": "Dashboard",
@@ -1230,7 +1230,9 @@
     "alwaysVisible": "Always visible",
     "groupSeparatorLabel": "Separator",
     "discovery": "Discovery",
-    "discoverySubtitle": "Scan providers for free access"
+    "discoverySubtitle": "Scan providers for free access",
+    "resilienceConnections": "Connection Resilience",
+    "resilienceConnectionsSubtitle": "Cooldown, breaker, lockout state"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -2512,7 +2514,7 @@
       "always": "Always"
     },
     "ccDiscoveryInfoButton": "How to enable discovery in Claude Code",
-    "ccDiscoveryInfoTooltip": "Advertise non-Claude models under claude/&lt;provider&gt;/&lt;model&gt; mirror ids so Claude Code's gateway model discovery can list them. Doubles catalog entries for all clients when enabled globally.",
+    "ccDiscoveryInfoTooltip": "Advertise non-Claude models under claude/<provider>/<model> mirror ids so Claude Code's gateway model discovery can list them. Doubles catalog entries for all clients when enabled globally.",
     "ccDiscoveryInfoLink": "Open Feature Flags",
     "ccOnboardingTitle": "settings.json for gateway model discovery",
     "ccOnboardingCopy": "Copy",
@@ -4995,10 +4997,12 @@
     "noNewModelsToImport": "No new models to import — all models are already in the registry or custom models list",
     "skippingExistingModels": "Skipping {count} existing models",
     "autoSync": "Auto-Sync",
+    "autoSyncShort": "Sync",
     "autoSyncTooltip": "Automatically refresh model list every 24h (configurable via MODEL_SYNC_INTERVAL_HOURS)",
     "autoSyncEnabled": "Auto-sync enabled — models will refresh periodically",
     "autoSyncDisabled": "Auto-sync disabled",
     "autoSyncToggleFailed": "Failed to toggle auto-sync",
+    "autoSyncPartialFailure": "Auto-sync updated for some connections, but not all",
     "clearAllModels": "Clear All Models",
     "clearAllModelsConfirm": "Are you sure you want to remove all models for this provider? This cannot be undone.",
     "clearAllModelsSuccess": "All models cleared",
@@ -5023,6 +5027,11 @@
     "hideFailedAuto": "Auto-hide failed models",
     "selectAllModels": "Select all",
     "hideAllModels": "Hide all",
+    "anonymousFallbackTitle": "Anonymous fallback",
+    "anonymousFallbackDesc": "When all configured connections are exhausted (quota, credits, or expiry), temporarily use this provider's keyless tier. Turn off to skip this provider instead of sending anonymous requests — recommended when the keyless tier rejects them (401).",
+    "anonymousFallbackEnabled": "Anonymous fallback enabled for {provider}",
+    "anonymousFallbackDisabled": "Anonymous fallback disabled for {provider} — exhausted connections will skip this provider",
+    "anonymousFallbackUpdateFailed": "Failed to update anonymous fallback setting",
     "modelsActive": "Active",
     "showModel": "Show model",
     "hideModel": "Hide model",
@@ -5198,7 +5207,7 @@
     "interceptionLoadError": "Failed to load interception settings: {error}",
     "interceptionSaveError": "Failed to save interception settings: {error}",
     "ccAliasSectionTitle": "Expose in Claude Code (claude/…)",
-    "ccAliasSectionHint": "Advertise this provider's models under claude/&lt;provider&gt;/&lt;model&gt; mirror ids so Claude Code's gateway model discovery can list them. Off by default — enabling this doubles catalog entries for all clients.",
+    "ccAliasSectionHint": "Advertise this provider's models under claude/<provider>/<model> mirror ids so Claude Code's gateway model discovery can list them. Off by default — enabling this doubles catalog entries for all clients.",
     "ccAliasProviderLevelLabel": "Provider default",
     "ccAliasModelOverridesLabel": "Per-model overrides",
     "ccAliasModelOverrideAriaLabel": "Override for {modelId}",
@@ -6013,6 +6022,8 @@
     "lmarenaWebCookieHint": "Open arena.ai, sign in, then copy the full Cookie header from a Network request. Include arena-auth-prod-v1.0 and arena-auth-prod-v1.1 (and further chunks if present), preferably with cf_clearance. Do not paste only the empty arena-auth-prod-v1 cookie. Optional: providerSpecificData.recaptchaV3Token if create-evaluation still returns 403.",
     "kimiOfficialSupporterBadge": "Founding Friend",
     "kimiOfficialSupporterTooltip": "Kimi (Moonshot AI) is OmniRoute's founding Open Source Friend",
+    "cheaperInferenceSupporterBadge": "Open Source Friend",
+    "cheaperInferenceSupporterTooltip": "Cheaper Inference backs OmniRoute as an Open Source Friend",
     "kimiPartnerLinkNote": "Partner link — supports OmniRoute at no extra cost to you"
   },
   "settings": {
@@ -7795,6 +7806,10 @@
         "label": "Minimum rows to compact",
         "description": "Minimum rows in a homogeneous JSON array required to trigger tabular compaction. Default: 8."
       },
+      "compressToolResults": {
+        "label": "Proactively truncate long tool results",
+        "description": "Truncates tool results over 2,000 characters during Lite compression. Emergency overflow protection may still trim content when the context exceeds the model budget."
+      },
       "preserveSystemPrompt": {
         "label": "Preserve system prompt"
       },
@@ -8461,6 +8476,16 @@
   },
   "usage": {
     "title": "Usage",
+    "grokExtraUsageCredits": "Extra Usage Credits",
+    "grokAutoTopUp": "Auto Top-Up",
+    "grokAutoTopUpUnavailable": "Unavailable",
+    "grokAutoTopUpEnabled": "Enabled",
+    "grokAutoTopUpDisabled": "Disabled",
+    "grokAutoTopUpAt": "at",
+    "grokAutoTopUpAdd": "add",
+    "grokAutoTopUpMax": "max",
+    "grokAutoTopUpMonth": "month",
+    "grokAdditionalCredits": "Additional Credits",
     "loggerTab": "Logger",
     "proxyTab": "Proxy",
     "budgetManagement": "Budget Management",
@@ -12205,5 +12230,100 @@
     "cta": "Get Kimi Code",
     "partnerLinkNote": "Partner link",
     "dismissAriaLabel": "Dismiss"
+  },
+  "featureFlagExposeFunctionalGatewayMirrorsDescription": "Advertise <gateway-alias>/<model> mirror ids on /v1/models for models whose canonical owner has no active credential but a passthrough gateway with an active credential routes them. Warning: adds catalog entries for all clients when enabled globally.",
+  "resilienceConnections": {
+    "title": "Connection Resilience",
+    "table": {
+      "status": "Status",
+      "provider": "Provider",
+      "connectionId": "Connection",
+      "authType": "Auth",
+      "backoffLevel": "Backoff",
+      "cooldown": "Cooldown",
+      "lastError": "Last Error",
+      "lockouts": "Lockouts",
+      "healthy": "Healthy",
+      "coolingDown": "Cooldown",
+      "circuitOpen": "Circuit Open",
+      "recovering": "Recovering",
+      "degraded": "Degraded",
+      "terminal": "Terminal",
+      "unknown": "Unknown",
+      "never": "-"
+    },
+    "timeline": {
+      "title": "Breaker Transitions",
+      "window": "Window",
+      "window1h": "1h",
+      "window6h": "6h",
+      "window24h": "24h",
+      "empty": "No transitions in selected window",
+      "currentState": "Current State",
+      "state": {
+        "open": "Open",
+        "half_open": "Half Open",
+        "closed": "Closed",
+        "degraded": "Degraded"
+      },
+      "reason": {
+        "timeout-elapsed": "Timeout Elapsed",
+        "success-recovery": "Success Recovery",
+        "manual-reset": "Manual Reset",
+        "probe-success": "Probe Success",
+        "recovery": "Recovery",
+        "probe-failed": "Probe Failed"
+      }
+    },
+    "detail": {
+      "title": "Connection Detail",
+      "metadata": "Metadata",
+      "cooldown": "Cooldown",
+      "lastError": "Last Error",
+      "breaker": "Circuit Breaker",
+      "lockouts": "Model Lockouts",
+      "rateLimitedUntil": "Rate Limited Until",
+      "backoffLevel": "Backoff Level",
+      "remaining": "Remaining",
+      "noLockouts": "No active lockouts",
+      "provider": "Provider",
+      "id": "ID",
+      "authType": "Auth Type",
+      "priority": "Priority",
+      "isActive": "Active",
+      "errorCode": "Error Code",
+      "lastErrorAt": "Last Error At",
+      "yes": "Yes",
+      "no": "No",
+      "close": "Close",
+      "never": "-",
+      "failureCount": "Failure Count",
+      "retryAfterMs": "Retry After (ms)",
+      "lastFailureKind": "Last Failure Kind"
+    },
+    "empty": {
+      "title": "No connections",
+      "description": "Provider connections will appear here."
+    },
+    "loading": {
+      "title": "Loading",
+      "description": "Fetching connection resilience state..."
+    },
+    "summary": {
+      "total": "{count} connections",
+      "coolingDown": "{count} cooling down",
+      "unhealthyBreakers": "{count} breakers not closed",
+      "capped": "showing first 1000"
+    },
+    "pollingNote": "Note: viewing this page triggers circuit breaker lazy recovery (HALF_OPEN probes). 30s refresh.",
+    "retry": "Retry",
+    "pollErrorLocalOnly": "This page is only accessible from localhost or LAN (LOCAL_ONLY).",
+    "pollErrorStopped": "Polling stopped: the server rejected the request (404/403).",
+    "pollErrorTransient": "Error fetching data: retrying automatically.",
+    "degraded": "Partial data: unavailable sources: {sources}",
+    "degraded.source.database": "Database",
+    "degraded.source.circuitBreaker": "Circuit Breaker",
+    "degraded.source.modelLockouts": "Model Lockouts",
+    "degraded.source.count": "Connection Count"
   }
 }

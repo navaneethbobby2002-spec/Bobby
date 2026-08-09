@@ -146,16 +146,46 @@ export function getChatLogTextLimit(): number {
   return parsePositiveInt(process.env.CHAT_LOG_TEXT_LIMIT, 64 * 1024);
 }
 
+/**
+ * Was a hardcoded/default 24 — real agentic CLIs with many MCP servers
+ * routinely declare 40-50+ tools in a single `tools[]` array (a live
+ * OpenClaw session logged 47), so the tail-24 default silently dropped the
+ * array's earlier entries behind an `_omniroute_truncated_array` marker —
+ * including, in one traced case, the tool actually being called
+ * (`apply_patch`), making its declared shape unrecoverable from the call
+ * log even though the call itself succeeded. Bumped to comfortably cover
+ * real large tool lists with headroom; same configurable-override pattern
+ * as the sibling CHAT_LOG_TEXT_LIMIT/CHAT_LOG_MAX_BODY_KB vars.
+ */
 export function getChatLogArrayTailItems(): number {
-  return parsePositiveInt(process.env.CHAT_LOG_ARRAY_TAIL_ITEMS, 24);
+  return parsePositiveInt(process.env.CHAT_LOG_ARRAY_TAIL_ITEMS, 128);
 }
 
+/**
+ * Was a hardcoded 6 — trivially too shallow for real Chat Completions tool
+ * calls: `body.choices[0].message.tool_calls[0].function` alone is already
+ * 6 levels deep (body→choices→[i]→message→tool_calls→[i]→function), so
+ * EVERY logged tool call got its `function` field (name + arguments)
+ * replaced outright with the literal string "[MaxDepth]" before the name/
+ * arguments one level further in were ever reached — not an edge case, a
+ * universal truncation of tool-call data in call log artifacts.
+ */
 export function getChatLogMaxDepth(): number {
-  return parsePositiveInt(process.env.CHAT_LOG_MAX_DEPTH, 6);
+  return parsePositiveInt(process.env.CHAT_LOG_MAX_DEPTH, 20);
 }
 
 export function getChatLogMaxObjectKeys(): number {
   return parseNonNegativeInt(process.env.CHAT_LOG_MAX_OBJECT_KEYS, 80);
+}
+
+/**
+ * Was a hardcoded/default 8KB — trivially exceeded by any real multi-turn
+ * agentic conversation, meaning the dashboard's "Full Conversation" panel
+ * could only ever show a placeholder instead of the actual messages for
+ * nearly every logged row of any conversation with real substance.
+ */
+export function getChatLogMaxBodyBytes(): number {
+  return parsePositiveInt(process.env.CHAT_LOG_MAX_BODY_KB, 1024) * 1024;
 }
 
 export function isChatDebugFileEnabled(): boolean {

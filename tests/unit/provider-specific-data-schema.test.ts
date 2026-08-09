@@ -42,6 +42,36 @@ test("provider schemas reject non-boolean openaiStoreEnabled values", () => {
   assert.equal(updated.success, false);
 });
 
+test("provider schemas accept boolean preserveEncryptedReasoning in providerSpecificData", () => {
+  const created = createProviderSchema.safeParse({
+    provider: "codex",
+    apiKey: "token",
+    name: "Codex",
+    providerSpecificData: { preserveEncryptedReasoning: true },
+  });
+  const updated = updateProviderConnectionSchema.safeParse({
+    providerSpecificData: { preserveEncryptedReasoning: false },
+  });
+
+  assert.equal(created.success, true);
+  assert.equal(updated.success, true);
+});
+
+test("provider schemas reject non-boolean preserveEncryptedReasoning values", () => {
+  const created = createProviderSchema.safeParse({
+    provider: "codex",
+    apiKey: "token",
+    name: "Codex",
+    providerSpecificData: { preserveEncryptedReasoning: "yes" },
+  });
+  const updated = updateProviderConnectionSchema.safeParse({
+    providerSpecificData: { preserveEncryptedReasoning: 1 },
+  });
+
+  assert.equal(created.success, false);
+  assert.equal(updated.success, false);
+});
+
 test("provider schemas accept boolean CC-compatible request defaults", () => {
   const created = createProviderSchema.safeParse({
     provider: "anthropic-compatible-cc-demo",
@@ -274,4 +304,68 @@ test("provider schemas reject incomplete GLM team quota provider-specific values
 
   assert.equal(created.success, false);
   assert.equal(updated.success, false);
+});
+
+test("provider schemas accept newApiAggregatorBalance boolean in providerSpecificData", () => {
+  const created = createProviderSchema.safeParse({
+    provider: "openai-compatible-chat-abc",
+    apiKey: "token",
+    name: "My Aggregator",
+    providerSpecificData: {
+      newApiAggregatorBalance: true,
+      quotaPerUnit: 500000,
+    },
+  });
+  const updated = updateProviderConnectionSchema.safeParse({
+    providerSpecificData: {
+      newApiAggregatorBalance: false,
+    },
+  });
+
+  assert.equal(created.success, true);
+  assert.equal(updated.success, true);
+});
+
+test("provider schemas reject non-boolean newApiAggregatorBalance", () => {
+  const created = createProviderSchema.safeParse({
+    provider: "openai-compatible-chat-abc",
+    apiKey: "token",
+    name: "My Aggregator",
+    providerSpecificData: {
+      newApiAggregatorBalance: "yes",
+    },
+  });
+
+  assert.equal(created.success, false);
+});
+
+test("provider schemas reject invalid quotaPerUnit values", () => {
+  const zero = createProviderSchema.safeParse({
+    provider: "openai-compatible-chat-abc",
+    apiKey: "token",
+    name: "My Aggregator",
+    providerSpecificData: {
+      quotaPerUnit: 0,
+    },
+  });
+  const negative = createProviderSchema.safeParse({
+    provider: "openai-compatible-chat-abc",
+    apiKey: "token",
+    name: "My Aggregator",
+    providerSpecificData: {
+      quotaPerUnit: -100,
+    },
+  });
+  const string = createProviderSchema.safeParse({
+    provider: "openai-compatible-chat-abc",
+    apiKey: "token",
+    name: "My Aggregator",
+    providerSpecificData: {
+      quotaPerUnit: "500000",
+    },
+  });
+
+  assert.equal(zero.success, false);
+  assert.equal(negative.success, false);
+  assert.equal(string.success, false);
 });

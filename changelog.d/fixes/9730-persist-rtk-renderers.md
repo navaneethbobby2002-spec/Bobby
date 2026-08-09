@@ -1,0 +1,1 @@
+- fix(compression): persist `enableRenderers` through `normalizeRtkConfig` so RTK renderer settings survive a DB round-trip ([#9730](https://github.com/diegosouzapw/OmniRoute/pull/9730))

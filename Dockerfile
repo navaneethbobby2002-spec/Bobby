@@ -77,7 +77,7 @@ RUN test -f package-lock.json \
 # a broken/rate-limited fetch fails the BUILD loudly instead of shipping a
 # broken image.
 RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
-  npm ci --no-audit --no-fund --legacy-peer-deps --ignore-scripts \
+  npm ci --include=optional --no-audit --no-fund --legacy-peer-deps --ignore-scripts \
   && (cd node_modules/better-sqlite3 \
       && node /usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js rebuild) \
   && node -e "require('better-sqlite3')(':memory:').close()" \
@@ -93,7 +93,15 @@ RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
 # build from 17min to 9min on the same 32-core box. Webpack stays available as the
 # escape hatch: `--build-arg`/-e OMNIROUTE_USE_TURBOPACK=0.
 # See docs/ops/QUALITY_GATE_PLAYBOOK.md Parte 6.
-ENV OMNIROUTE_USE_TURBOPACK=1
+#
+# Declared as ARG+ENV, not a bare ENV: a bare ENV shadows any same-named ARG for
+# the rest of the stage, so `--build-arg OMNIROUTE_USE_TURBOPACK=0` was silently
+# ignored and the escape hatch above only ever worked via `-e` at runtime, never
+# at build time. Turbopack compiles in native Rust memory that lives outside the
+# V8 heap, so OMNIROUTE_BUILD_MEMORY_MB cannot bound it and a memory-constrained
+# build host gets SIGKILLed by the cgroup OOM killer with no error message.
+ARG OMNIROUTE_USE_TURBOPACK=1
+ENV OMNIROUTE_USE_TURBOPACK="${OMNIROUTE_USE_TURBOPACK}"
 
 # Next.js basePath is fixed at build time; pass OMNIROUTE_BASE_PATH here when the
 # image should serve under a reverse-proxy subpath without a runtime patch.
@@ -119,7 +127,9 @@ ENV NODE_OPTIONS="--max-old-space-size=${OMNIROUTE_BUILD_MEMORY_MB}"
 
 COPY . ./
 RUN --mount=type=cache,id=next-cache,target=/app/.build/next/cache \
-  mkdir -p /app/data && npm run build
+  mkdir -p /app/data \
+  && npm run build \
+  && node --input-type=module -e "import { createRequire } from 'node:module'; import { pathToFileURL } from 'node:url'; const standaloneRoot = '/app/.build/next/standalone/node_modules/'; const require = createRequire('/app/.build/next/standalone/package.json'); for (const pkg of ['@atjsh/llmlingua-2', '@huggingface/transformers', '@tensorflow/tfjs', 'js-tiktoken']) { const resolved = require.resolve(pkg); if (!resolved.startsWith(standaloneRoot)) throw new Error(pkg + ' resolved outside standalone: ' + resolved); await import(pathToFileURL(resolved).href); } const onnxRuntime = require.resolve('onnxruntime-node'); if (!onnxRuntime.startsWith(standaloneRoot)) throw new Error('onnxruntime-node resolved outside standalone: ' + onnxRuntime); await import(pathToFileURL(onnxRuntime).href);"
 
 # ── Runner base ────────────────────────────────────────────────────────────
 FROM base AS runner-base
@@ -179,8 +189,8 @@ EXPOSE 20128
 USER node
 
 # Warns if the mounted data volume has wrong ownership
-COPY --chmod=755 scripts/check-permissions.sh /tmp/check-permissions.sh
-ENTRYPOINT ["/tmp/check-permissions.sh"]
+COPY --chmod=755 scripts/check-permissions.sh /app/check-permissions.sh
+ENTRYPOINT ["/app/check-permissions.sh"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD ["node", "healthcheck.mjs"]

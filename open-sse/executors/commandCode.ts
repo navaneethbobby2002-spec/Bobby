@@ -48,6 +48,21 @@ function recordOrEmpty(value: unknown): JsonRecord {
   return {};
 }
 
+/**
+ * Build the `arguments` field for an assistant tool-call part that Command
+ * Code's /alpha/generate schema REQUIRES (rejects a missing field with
+ * `missing required field 'arguments'`). Valid source values round-trip:
+ *   - object arguments  -> JSON string of the object
+ *   - string arguments  -> the string as-is (already valid JSON)
+ *   - missing / empty / invalid JSON -> "{}" (a valid empty-object string)
+ */
+function toolCallArgumentsString(value: unknown): string {
+  const parsed = recordOrEmpty(value);
+  if (isRecord(value)) return JSON.stringify(parsed);
+  if (typeof value === "string" && value.trim()) return value;
+  return JSON.stringify(parsed);
+}
+
 function normalizeContentText(content: unknown): string {
   if (typeof content === "string") return content;
   return asRecordArray(content)
@@ -73,7 +88,12 @@ const CC_VISION_MODEL_PATTERNS: readonly RegExp[] = [
   // Anthropic
   /claude-fable/i, // claude-fable-5 (not covered by claude-opus/sonnet/haiku-4)
   // OpenAI
-  /gpt-5/i, // gpt-5.6, gpt-5.5, gpt-5.3-codex
+  /gpt-5/i, // gpt-5.6, gpt-5.5, gpt-5.4, gpt-5.4-mini, gpt-5.3-codex
+  // NOTE: gpt-5.4-mini and gpt-5.3-codex deliberately stay inside the `/gpt-5/`
+  // family — both accept image input on the OpenAI API, and there is no
+  // verified Command Code backend data marking them text-only. Excluding them
+  // without evidence would re-create #4071 (image stripped from a model that
+  // can see it). Revisit only with per-model CC registry capability data.
   // Sakana
   /fugu/i, // sakana/fugu-ultra
 ];
@@ -105,9 +125,36 @@ function isCommandCodeVisionModel(model?: string | null): boolean {
  *
  * OpenAI-compatible:  { type: "image_url", image_url: { url: "..." } }
  * Command Code CLI:   { type: "image", image: "..." }
+ * AI SDK image:       { type: "image", image: "data:...;base64,..." } (#1330)
+ * Anthropic image:    { type: "image", source: { type: "base64", media_type, data } }
+ *                     or { type: "image", source: { type: "url", url } }
+ *
+ * The Anthropic-shaped block is common for Claude-Code-compatible clients
+ * (e.g. Zoo Code) that send Messages-style content arrays to the
+ * OpenAI `/v1/chat/completions` surface. Without this branch the image was
+ * silently dropped before reaching the upstream vision model.
  */
 function extractImageUrl(part: JsonRecord): string | undefined {
-  if (part.type === "image") return stringValue(part.image);
+  if (part.type === "image") {
+    const direct = stringValue(part.image);
+    if (direct) return direct;
+
+    // Anthropic source block: { source: { type: "base64", media_type, data } } or
+    // { source: { type: "url", url } }.
+    const source = isRecord(part.source) ? part.source : null;
+    if (source) {
+      if (source.type === "base64") {
+        const mediaType = stringValue(source.media_type) || "image/png";
+        const data = stringValue(source.data);
+        if (data) return `data:${mediaType};base64,${data}`;
+      }
+      if (source.type === "url") {
+        const url = stringValue(source.url);
+        if (url) return url;
+      }
+    }
+    return undefined;
+  }
   if (part.type === "image_url") {
     if (isRecord(part.image_url)) return stringValue(part.image_url.url);
     return stringValue(part.image_url);
@@ -212,11 +259,15 @@ function convertMessages(
         const id = stringValue(call.id) || "";
         if (!id || !pairedToolCallIds.has(id)) continue;
         const fn = isRecord(call.function) ? call.function : {};
+        const parsedInput = recordOrEmpty(fn.arguments);
         parts.push({
           type: "tool-call",
           toolCallId: id,
           toolName: stringValue(fn.name) || "",
-          input: recordOrEmpty(fn.arguments),
+          input: parsedInput,
+          // /alpha/generate requires this field on assistant tool-call parts;
+          // a missing one is rejected with `missing required field 'arguments'`.
+          arguments: toolCallArgumentsString(fn.arguments),
         });
       }
 
@@ -388,7 +439,61 @@ type AggregateState = {
   usage: JsonRecord | null;
 };
 
+function firstRecord(record: JsonRecord, keys: readonly string[]): JsonRecord {
+  for (const key of keys) {
+    const value = record[key];
+    if (isRecord(value)) return value;
+  }
+  return {};
+}
+
+function firstNumber(record: JsonRecord, keys: readonly string[]): number | undefined {
+  for (const key of keys) {
+    const value = numberValue(record[key]);
+    if (value !== undefined) return value;
+  }
+  return undefined;
+}
+
+/** Keep earlier finish-step usage when the terminal finish event omits it. */
+function mergeCommandCodeUsage(previous: JsonRecord | null, next: unknown): JsonRecord | null {
+  if (!isRecord(next)) return previous;
+
+  const merged: JsonRecord = { ...(previous || {}), ...next };
+  for (const key of [
+    "inputTokenDetails",
+    "input_token_details",
+    "input_tokens_details",
+    "prompt_tokens_details",
+    "outputTokenDetails",
+    "output_token_details",
+    "output_tokens_details",
+    "completion_tokens_details",
+    "reasoningTokenDetails",
+    "reasoning_token_details",
+  ]) {
+    const before = isRecord(previous?.[key]) ? previous[key] : {};
+    const after = isRecord(next[key]) ? next[key] : {};
+    if (Object.keys(before).length > 0 || Object.keys(after).length > 0) {
+      merged[key] = { ...before, ...after };
+    }
+  }
+  return merged;
+}
+
+function rememberCommandCodeUsage(state: AggregateState, event: JsonRecord): void {
+  const usage =
+    event.type === "finish-step"
+      ? (event.usage ?? event.totalUsage)
+      : (event.totalUsage ?? event.usage);
+  state.usage = mergeCommandCodeUsage(state.usage, usage);
+}
+
 function applyEventToAggregate(event: JsonRecord, state: AggregateState): void {
+  // Some Command Code protocol revisions attach usage to the terminal payload
+  // without preserving the event type. Capture it before event-specific handling.
+  rememberCommandCodeUsage(state, event);
+
   switch (event.type) {
     case "text-delta":
       state.content += stringValue(event.text) || "";
@@ -408,9 +513,10 @@ function applyEventToAggregate(event: JsonRecord, state: AggregateState): void {
       });
       break;
     }
+    case "finish-step":
+      break;
     case "finish":
       state.finishReason = mapFinishReason(event.finishReason);
-      state.usage = isRecord(event.totalUsage) ? event.totalUsage : null;
       break;
   }
 }
@@ -428,15 +534,74 @@ function applyEventToAggregateOrThrow(event: JsonRecord, state: AggregateState):
 
 function usageFromCommandCode(usage: JsonRecord | null) {
   if (!usage) return undefined;
-  const details = isRecord(usage.inputTokenDetails) ? usage.inputTokenDetails : {};
+  const inputDetails = firstRecord(usage, [
+    "inputTokenDetails",
+    "input_token_details",
+    "input_tokens_details",
+    "prompt_tokens_details",
+  ]);
+  const outputDetails = firstRecord(usage, [
+    "outputTokenDetails",
+    "output_token_details",
+    "output_tokens_details",
+    "completion_tokens_details",
+  ]);
+  const reasoningDetails = firstRecord(usage, [
+    "reasoningTokenDetails",
+    "reasoning_token_details",
+    "reasoning_tokens_details",
+  ]);
+  const cacheRead =
+    firstNumber(usage, [
+      "cachedInputTokens",
+      "cached_input_tokens",
+      "cacheReadInputTokens",
+      "cache_read_input_tokens",
+      "cacheReadTokens",
+      "cache_read_tokens",
+      "cached_tokens",
+    ]) ??
+    firstNumber(inputDetails, [
+      "cachedTokens",
+      "cached_tokens",
+      "cacheReadTokens",
+      "cache_read_tokens",
+    ]);
+  const noCache = firstNumber(inputDetails, ["noCacheTokens", "no_cache_tokens"]);
+  // Command Code's totalUsage.inputTokens is the FULL prompt total and already
+  // includes the cached portion (noCacheTokens + cacheReadTokens = inputTokens),
+  // so we must NOT add cacheRead back — that would double-count. There is no
+  // cache-write field in the upstream payload, so cache creation stays unset.
   const prompt =
-    (numberValue(usage.inputTokens) || 0) + (numberValue(details.cacheReadTokens) || 0);
-  const completion = numberValue(usage.outputTokens) || 0;
-  return {
+    firstNumber(usage, ["inputTokens", "input_tokens", "promptTokens", "prompt_tokens"]) ??
+    (noCache ?? 0) + (cacheRead ?? 0);
+  const reasoning =
+    firstNumber(usage, ["reasoningTokens", "reasoning_tokens"]) ??
+    firstNumber(outputDetails, ["reasoningTokens", "reasoning_tokens"]) ??
+    firstNumber(reasoningDetails, ["reasoningTokens", "reasoning_tokens"]);
+  const textOutput = firstNumber(outputDetails, ["textTokens", "text_tokens"]);
+  const completion =
+    firstNumber(usage, [
+      "outputTokens",
+      "output_tokens",
+      "completionTokens",
+      "completion_tokens",
+    ]) ?? (textOutput ?? 0) + (reasoning ?? 0);
+  const total = firstNumber(usage, ["totalTokens", "total_tokens"]) ?? prompt + completion;
+  const result: JsonRecord = {
     prompt_tokens: prompt,
+    prompt_tokens_details: { cached_tokens: cacheRead ?? 0 },
     completion_tokens: completion,
-    total_tokens: prompt + completion,
+    completion_tokens_details: { reasoning_tokens: reasoning ?? 0 },
+    total_tokens: total,
   };
+  // Surface the cache breakdown as informational fields so logUsage prints
+  // `| cache_read=X | no_cache=Y` and appendRequestLog persists them. These are
+  // NOT added to prompt_tokens (already included) — metering stays accurate.
+  if (cacheRead !== undefined && cacheRead > 0) result.cache_read_input_tokens = cacheRead;
+  if (noCache !== undefined && noCache > 0) result.no_cache_tokens = noCache;
+  if (reasoning !== undefined && reasoning > 0) result.reasoning_tokens = reasoning;
+  return result;
 }
 
 function createStreamResponse(
@@ -474,6 +639,7 @@ function createStreamResponse(
 
       const emitEvent = (event: unknown) => {
         if (!isRecord(event) || closed) return;
+        rememberCommandCodeUsage(state, event);
         if (!sentRole) {
           sentRole = true;
           controller.enqueue(sse(chatCompletionChunk(id, model, { role: "assistant" })));
@@ -513,10 +679,27 @@ function createStreamResponse(
           }
           case "reasoning-end":
             break;
+          case "finish-step":
+            break;
           case "finish": {
             state.finishReason = mapFinishReason(event.finishReason);
-            state.usage = isRecord(event.totalUsage) ? event.totalUsage : null;
             controller.enqueue(sse(chatCompletionChunk(id, model, {}, state.finishReason)));
+            // Emit a standards-compliant usage-only chunk (choices: []) before
+            // [DONE] when upstream reported usage. stream.ts's extractUsage
+            // recognizes this shape (see stream.ts:1661) and logs the ACTUAL
+            // token counts (in/out/cache_read/no_cache) instead of estimates.
+            const usagePayload = usageFromCommandCode(state.usage);
+            if (usagePayload) {
+              controller.enqueue(
+                sse({
+                  id,
+                  object: "chat.completion.chunk",
+                  model,
+                  usage: usagePayload,
+                  choices: [],
+                })
+              );
+            }
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             closed = true;
             controller.close();

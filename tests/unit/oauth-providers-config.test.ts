@@ -40,9 +40,11 @@ const {
   OAUTH_TIMEOUT,
   PROVIDERS: OAUTH_PROVIDER_IDS,
   QODER_CONFIG,
+  RAYCAST_CONFIG,
   TRAE_CONFIG,
   WINDSURF_CONFIG,
   XAI_OAUTH_CONFIG,
+  OPENFERENCE_CONFIG,
   ZED_HOSTED_CONFIG,
 } = oauthModule;
 const { getAntigravityLoadCodeAssistMetadata } = antigravityHeadersModule;
@@ -63,6 +65,7 @@ const EXPECTED_PROVIDER_KEYS = [
   "amazon-q",
   "cursor",
   "trae",
+  "raycast",
   "kilocode",
   "cline",
   "clinepass",
@@ -70,6 +73,7 @@ const EXPECTED_PROVIDER_KEYS = [
   "devin-cli",
   "grok-cli",
   "xai-oauth",
+  "openference",
   "codebuddy-cn",
   "zed",
   "zed-hosted",
@@ -100,9 +104,11 @@ const EXPECTED_CONFIG_BY_PROVIDER = {
   clinepass: CLINE_CONFIG, // reuses the Cline WorkOS flow (clinepass: cline in providers/index.ts)
   windsurf: WINDSURF_CONFIG,
   "devin-cli": WINDSURF_CONFIG,
+  raycast: RAYCAST_CONFIG,
   trae: TRAE_CONFIG,
   "grok-cli": GROK_BUILD_OAUTH_CONFIG,
   "xai-oauth": XAI_OAUTH_CONFIG,
+  openference: OPENFERENCE_CONFIG,
   "codebuddy-cn": CODEBUDDY_CN_CONFIG,
   zed: ZED_CONFIG,
   "zed-hosted": ZED_HOSTED_CONFIG,
@@ -150,6 +156,8 @@ const REQUIRED_FIELDS_BY_PROVIDER = {
   trae: ["apiEndpoint", "chatEndpoint", "webUrl"],
   // prettier-ignore
   "xai-oauth": ["authorizeUrl", "tokenUrl", "scope", "codeChallengeMethod", "clientId", "loopbackPort", "callbackPath", "callbackHost"],
+  // prettier-ignore
+  openference: ["authorizeUrl", "tokenUrl", "userinfoUrl", "scope", "codeChallengeMethod", "clientId", "loopbackPort", "callbackPath", "callbackHost"],
   // prettier-ignore
   "grok-cli": ["authorizeUrl", "tokenUrl", "scope", "codeChallengeMethod", "clientId", "loopbackPort", "callbackPath", "callbackHost"],
   // prettier-ignore

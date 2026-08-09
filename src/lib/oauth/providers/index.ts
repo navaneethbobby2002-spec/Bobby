@@ -22,11 +22,13 @@ import { gitlabDuo } from "./gitlab-duo";
 import { kiro } from "./kiro";
 import { cursor } from "./cursor";
 import { trae } from "./trae";
+import { raycast } from "./raycast";
 import { kilocode } from "./kilocode";
 import { cline } from "./cline";
 import { windsurf } from "./windsurf";
 import { grokCli } from "./grok-cli";
 import { xaiOauth } from "./xai-oauth";
+import { openference } from "./openference";
 import { codebuddyCn } from "./codebuddy-cn";
 import { zed } from "./zed";
 import { zedHosted } from "./zed-hosted";
@@ -45,6 +47,7 @@ export const PROVIDERS = {
   "amazon-q": kiro,
   cursor,
   trae,
+  raycast,
   kilocode,
   cline,
   // clinepass reuses the Cline WorkOS OAuth flow 1:1 (same api.cline.bot host, same token
@@ -58,6 +61,7 @@ export const PROVIDERS = {
   // under this one entry (#7013) — see grok-cli.ts's mapTokens for the dispatch.
   "grok-cli": grokCli,
   "xai-oauth": xaiOauth,
+  openference,
   "codebuddy-cn": codebuddyCn,
   // Zed IDE credential bridge — uses keychain import, not standard OAuth
   zed,

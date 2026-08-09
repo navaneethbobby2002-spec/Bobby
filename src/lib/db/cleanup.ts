@@ -253,14 +253,15 @@ export async function cleanupMemoryEntries(): Promise<CleanupResult> {
 
 /**
  * Clean up old domain_cost_history based on retention settings. (#6848)
- * Uses unix-epoch `timestamp` column (INTEGER).
+ * The `timestamp` column stores epoch milliseconds (saveCostEntry default
+ * is Date.now()), so the cutoff must be in milliseconds to match. (#9625)
  */
 export async function cleanupDomainCostHistory(): Promise<CleanupResult> {
   const db = getDbInstance();
   const retention = getRetentionSettings();
 
   const retentionDays = retention.domainCostHistory;
-  const cutoffEpoch = Math.floor(Date.now() / 1000) - retentionDays * 86_400;
+  const cutoffEpoch = Date.now() - retentionDays * 86_400_000;
 
   const result: CleanupResult = { deleted: 0, errors: 0 };
 
@@ -371,6 +372,29 @@ export async function cleanupCompressionRunTelemetry(): Promise<CleanupResult> {
 }
 
 /**
+ * Clean up expired CCR blocks (#9061).
+ *
+ * Unlike the tables above, these rows carry their own expiry: the engine writes
+ * `expires_at` from the block's TTL, so this needs no retention-days setting of its own.
+ * It is the same sweep the engine does opportunistically, run on the operator's schedule
+ * so the table cannot sit on rows nobody will read again.
+ */
+export async function cleanupCcrBlocks(): Promise<CleanupResult> {
+  const result: CleanupResult = { deleted: 0, errors: 0 };
+
+  try {
+    const { pruneExpiredCcrBlocks } = await import("./ccrBlocks");
+    result.deleted = pruneExpiredCcrBlocks(Date.now());
+    console.log(`[Cleanup] Deleted ${result.deleted} expired ccr_blocks`);
+  } catch (err: unknown) {
+    console.error("[Cleanup] Error cleaning ccr_blocks:", err);
+    result.errors++;
+  }
+
+  return result;
+}
+
+/**
  * Run all cleanup functions if auto-cleanup is enabled.
  */
 export async function runAutoCleanup(): Promise<{
@@ -401,6 +425,7 @@ export async function runAutoCleanup(): Promise<{
     xpAuditLog: await cleanupXpAuditLog(),
     compressionRunTelemetry: await cleanupCompressionRunTelemetry(),
     proxyLogs: await cleanupProxyLogs(),
+    ccrBlocks: await cleanupCcrBlocks(),
   };
 
   const totalDeleted = Object.values(results).reduce((sum, r) => sum + r.deleted, 0);
