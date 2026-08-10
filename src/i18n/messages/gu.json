@@ -13624,5 +13624,6 @@
     "hint": "જ્યારે સક્રિય કરવામાં આવે છે, ત્યારે શોધાયેલા મોડલ્સ ઓમ્નીરૂટમાં પ્રદાતા પસંદગીઓમાં દેખાય છે.",
     "updateFailed": "અપડેટ કરવામાં નિષ્ફળ (HTTP {status})",
     "networkError": "નેટવર્ક ભૂલ — પ્રદાતા એક્સપોઝર સેટિંગને અપડેટ કરી શકતા નથી"
-  }
+  },
+  "featureFlagChatVirtualLanesEnabledDescription": "Enable per-tenant adaptive virtual admission lanes for provider dispatch (#9654): one tenant's burst no longer 503s another. The OMNIROUTE_CHAT_VIRTUAL_LANES env var wins over this dashboard override; changes take effect at server restart."
 }

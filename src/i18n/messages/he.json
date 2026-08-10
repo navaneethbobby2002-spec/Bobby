@@ -13624,5 +13624,6 @@
     "hint": "כאשר זה מופעל, מודלים שהתגלו מופיעים בבחירות ספקים ברחבי OmniRoute.",
     "updateFailed": "נכשל בעדכון (HTTP {status})",
     "networkError": "שגיאת רשת — לא ניתן לעדכן את הגדרת החשיפה של הספק"
-  }
+  },
+  "featureFlagChatVirtualLanesEnabledDescription": "Enable per-tenant adaptive virtual admission lanes for provider dispatch (#9654): one tenant's burst no longer 503s another. The OMNIROUTE_CHAT_VIRTUAL_LANES env var wins over this dashboard override; changes take effect at server restart."
 }

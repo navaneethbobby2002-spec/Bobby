@@ -13624,5 +13624,6 @@
     "hint": "جب فعال ہو تو، دریافت کردہ ماڈل OmniRoute میں فراہم کنندہ کے انتخاب میں ظاہر ہوتے ہیں۔",
     "updateFailed": "اپ ڈیٹ کرنے میں ناکامی (HTTP {status})",
     "networkError": "نیٹ ورک کی خرابی — فراہم کنندہ کی نمائش کی ترتیب کو اپ ڈیٹ نہیں کر سکا"
-  }
+  },
+  "featureFlagChatVirtualLanesEnabledDescription": "Enable per-tenant adaptive virtual admission lanes for provider dispatch (#9654): one tenant's burst no longer 503s another. The OMNIROUTE_CHAT_VIRTUAL_LANES env var wins over this dashboard override; changes take effect at server restart."
 }

@@ -13624,5 +13624,6 @@
     "hint": "যখন সক্ষম করা হয়, আবিষ্কৃত মডেলগুলি OmniRoute জুড়ে প্রদানকারী নির্বাচনে প্রদর্শিত হয়।",
     "updateFailed": "আপডেট করতে ব্যর্থ (HTTP {status})",
     "networkError": "নেটওয়ার্ক ত্রুটি — প্রদানকারী এক্সপোজার সেটিং আপডেট করা যায়নি"
-  }
+  },
+  "featureFlagChatVirtualLanesEnabledDescription": "Enable per-tenant adaptive virtual admission lanes for provider dispatch (#9654): one tenant's burst no longer 503s another. The OMNIROUTE_CHAT_VIRTUAL_LANES env var wins over this dashboard override; changes take effect at server restart."
 }

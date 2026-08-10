@@ -13624,5 +13624,6 @@
     "hint": "చాలా సులభంగా, కనుగొనబడిన మోడల్స్ OmniRoute లో ప్రొవైడర్ ఎంపికలలో కనిపిస్తాయి.",
     "updateFailed": "అప్‌డేట్ చేయడంలో విఫలమైంది (HTTP {status})",
     "networkError": "నెట్‌వర్క్ లోపం — ప్రొవైడర్ ఎక్స్‌పోజర్ సెటింగ్‌ను నవీకరించలేకపోయింది"
-  }
+  },
+  "featureFlagChatVirtualLanesEnabledDescription": "Enable per-tenant adaptive virtual admission lanes for provider dispatch (#9654): one tenant's burst no longer 503s another. The OMNIROUTE_CHAT_VIRTUAL_LANES env var wins over this dashboard override; changes take effect at server restart."
 }
