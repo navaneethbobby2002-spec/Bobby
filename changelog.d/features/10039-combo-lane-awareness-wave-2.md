@@ -1,0 +1,1 @@
+- **feat(admission):** add lane-aware admission probes for combo/fusion/chaos fan-out (fail-open, queueing disabled), an env-wins `OMNIROUTE_CHAT_VIRTUAL_LANES` activation flag applied at boot, and adaptive-lane visibility in the `omniroute_get_health` MCP tool (related to #9654)
