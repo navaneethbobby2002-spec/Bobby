@@ -15,7 +15,6 @@
 import { CORS_HEADERS } from "../utils/cors";
 import { createHash } from "crypto";
 
-
 const OMNIROUTE_CHAT_VIRTUAL_TTL_MS = parsePositiveInt(
   process.env.OMNIROUTE_CHAT_VIRTUAL_TTL_MS,
   60_000
@@ -255,18 +254,25 @@ const OMNIROUTE_CHAT_VIRTUAL_MAX_SESSIONS = parsePositiveInt(
 export function resolveSessionId(request: Request): string {
   // Reuse the existing internal-bypass auth extraction: bearer token from
   // Authorization, x-api-key (Anthropic-style), or Google API key header.
+  // CodeQL: Intentionally SHA-256, NOT password hashing. The digest is a
+  // deterministic, non-reversible per-key lane-bucket ID for virtual admission
+  // lanes — never stored or used for password-style verification.
+  // codeql[js/insufficient-password-hash]
   const authHeader = request.headers.get("authorization") || "";
   const bearerMatch = /^bearer\s+(\S+)$/i.exec(authHeader.trim());
   if (bearerMatch) {
-    return "key_" + createHash("sha256").update(bearerMatch[1]).digest("hex").slice(0, 16);
+    // codeql[js/insufficient-password-hash]
+    return "key_" + createHash("sha256").update(bearerMatch[1]).digest("hex").slice(0, 16); // nosemgrep: insufficient-password-hash
   }
   const xApiKey = request.headers.get("x-api-key") || "";
   if (xApiKey.trim().length > 0) {
-    return "key_" + createHash("sha256").update(xApiKey.trim()).digest("hex").slice(0, 16);
+    // codeql[js/insufficient-password-hash]
+    return "key_" + createHash("sha256").update(xApiKey.trim()).digest("hex").slice(0, 16); // nosemgrep: insufficient-password-hash
   }
   const xGoogApiKey = request.headers.get("x-goog-api-key") || "";
   if (xGoogApiKey.trim().length > 0) {
-    return "key_" + createHash("sha256").update(xGoogApiKey.trim()).digest("hex").slice(0, 16);
+    // codeql[js/insufficient-password-hash]
+    return "key_" + createHash("sha256").update(xGoogApiKey.trim()).digest("hex").slice(0, 16); // nosemgrep: insufficient-password-hash
   }
   return "anonymous";
 }
@@ -370,7 +376,9 @@ export class PerConnectionAdmissionController {
   }
 }
 
-export const perConnectionAdmissionController = new PerConnectionAdmissionController(CHAT_MAX_HEAVY_IN_FLIGHT);
+export const perConnectionAdmissionController = new PerConnectionAdmissionController(
+  CHAT_MAX_HEAVY_IN_FLIGHT
+);
 
 export type ChatRequestAdmission =
   | { admit: true; request: Request; lease: ChatAdmissionLease | null }
