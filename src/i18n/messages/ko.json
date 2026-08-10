@@ -1290,7 +1290,9 @@
       "open": "열기",
       "close": "닫기"
     },
-    "noResults": "결과가 없습니다"
+    "noResults": "결과가 없습니다",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "웹훅",
@@ -11033,7 +11035,8 @@
       "compressed": "압축",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

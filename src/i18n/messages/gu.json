@@ -1290,7 +1290,9 @@
       "open": "ખોલો",
       "close": "બંધ કરો"
     },
-    "noResults": "કોઈ પરિણામો નથી"
+    "noResults": "કોઈ પરિણામો નથી",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "વેબહુક્સ",
@@ -11033,7 +11035,8 @@
       "compressed": "સંકોચન",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

@@ -1290,7 +1290,9 @@
       "open": "打開",
       "close": "關閉"
     },
-    "noResults": "沒有結果"
+    "noResults": "沒有結果",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "Webhook",
@@ -11033,7 +11035,8 @@
       "compressed": "壓縮",
       "tps": "TPS",
       "duration": "時長",
-      "time": "時間"
+      "time": "時間",
+      "conversation": "Conversation"
     },
     "loadingLogs": "正在載入日誌...",
     "noLogs": "暫無日誌記錄。進行一些API呼叫以在此處檢視它們。",

@@ -1290,7 +1290,9 @@
       "open": "abrir",
       "close": "cerrar"
     },
-    "noResults": "Sin resultados"
+    "noResults": "Sin resultados",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "Ganchos web",
@@ -11033,7 +11035,8 @@
       "compressed": "Compresión",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

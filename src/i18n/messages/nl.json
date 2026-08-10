@@ -1290,7 +1290,9 @@
       "open": "open",
       "close": "sluiten"
     },
-    "noResults": "Geen resultaten"
+    "noResults": "Geen resultaten",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "Webhaken",
@@ -11033,7 +11035,8 @@
       "compressed": "Compressie",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

@@ -1290,7 +1290,9 @@
       "open": "öppna",
       "close": "stäng"
     },
-    "noResults": "Inga resultat"
+    "noResults": "Inga resultat",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -11033,7 +11035,8 @@
       "compressed": "Kompression",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

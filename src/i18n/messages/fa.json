@@ -1290,7 +1290,9 @@
       "open": "باز کردن",
       "close": "بستن"
     },
-    "noResults": "هیچ نتیجه‌ای یافت نشد"
+    "noResults": "هیچ نتیجه‌ای یافت نشد",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "وب هوک ها",
@@ -11033,7 +11035,8 @@
       "compressed": "فشرده سازی",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

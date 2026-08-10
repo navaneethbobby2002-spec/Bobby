@@ -1281,6 +1281,8 @@
     "resilienceConnectionsSubtitle": "Cooldown, disjoncteur, état de blocage",
     "settingsModalityBridge": "Pont de Modalité",
     "settingsModalityBridgeSubtitle": "Fallback image/audio → texte pour les modèles uniquement textuels",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations",
     "commandPalette": {
       "title": "Palette de commandes",
       "searchPlaceholder": "Rechercher dans les pages, paramètres et outils…",

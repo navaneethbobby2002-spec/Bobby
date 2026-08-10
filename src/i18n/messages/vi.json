@@ -1281,6 +1281,8 @@
     "resilienceConnectionsSubtitle": "Cooldown, cầu dao, trạng thái khóa",
     "settingsModalityBridge": "Cầu Kết Nối Modality",
     "settingsModalityBridgeSubtitle": "Chuyển đổi hình ảnh/âm thanh → văn bản cho các mô hình chỉ văn bản",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations",
     "commandPalette": {
       "title": "Bảng lệnh",
       "searchPlaceholder": "Tìm kiếm trang, cài đặt, công cụ...",

@@ -1290,7 +1290,9 @@
       "open": "buka",
       "close": "tutup"
     },
-    "noResults": "Tidak ada hasil"
+    "noResults": "Tidak ada hasil",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "Webhook",
@@ -11033,7 +11035,8 @@
       "compressed": "Kompresi",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

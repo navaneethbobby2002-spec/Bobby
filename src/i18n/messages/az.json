@@ -1290,7 +1290,9 @@
       "open": "açıq",
       "close": "bağla"
     },
-    "noResults": "Heç bir nəticə yoxdur"
+    "noResults": "Heç bir nəticə yoxdur",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -11033,7 +11035,8 @@
       "compressed": "Compression",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",
