@@ -85,6 +85,26 @@ test("permissions modal switch buttons declare button type", () => {
   }
 });
 
+test("permissions modal serializes All and empty Restrict Combo access distinctly", () => {
+  const source = readApiManagerPage();
+
+  assert.match(
+    source,
+    /import \{ ALL_COMBOS_ACCESS_RULE \} from "@\/shared\/constants\/comboAccess";/
+  );
+  assert.match(
+    source,
+    /const \[allowAllCombos, setAllowAllCombos\] = useState\(\s*apiKey\?\.allowedCombos\?\.includes\(ALL_COMBOS_ACCESS_RULE\) === true\s*\)/
+  );
+  assert.match(source, /allowAllCombos \? \[ALL_COMBOS_ACCESS_RULE\] : selectedCombos/);
+  assert.match(
+    source,
+    /Array\.isArray\(key\.allowedCombos\) &&\s*!key\.allowedCombos\.includes\(ALL_COMBOS_ACCESS_RULE\)/
+  );
+  assert.match(source, /setAllowAllCombos\(false\)/);
+  assert.doesNotMatch(source, /!allowAllCombos && selectedCombos\.length === 0[^\n]*return/);
+});
+
 test("permissions modal exposes Claude Code default wildcard model", () => {
   const source = readApiManagerPage();
 
@@ -131,7 +151,10 @@ test("API-key model fallback preserves combo pseudo-models", () => {
   const source = readApiManagerPage();
   const fallbackBlock = source.slice(
     source.indexOf("const [fallbackRes, combosRes] = await Promise.all"),
-    source.indexOf("} catch (error)", source.indexOf("const [fallbackRes, combosRes] = await Promise.all"))
+    source.indexOf(
+      "} catch (error)",
+      source.indexOf("const [fallbackRes, combosRes] = await Promise.all")
+    )
   );
 
   assert.match(fallbackBlock, /fetch\("\/api\/models\?all=true"\)/);
