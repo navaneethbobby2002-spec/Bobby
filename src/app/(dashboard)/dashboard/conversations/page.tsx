@@ -269,31 +269,34 @@ function ConversationsPageContent() {
   // restart the interval on every single appended turn).
   const newestSeqRef = useRef<number | null>(null);
 
+  // Extracted so openConversation can force an immediate refresh instead of
+  // waiting for the next scheduled tick — see its call site for why: a
+  // conversation opened right after a new reply starts streaming otherwise
+  // shows no live text until this poll's own interval happens to land,
+  // because activeCallLogId only updates via the resync effect below, which
+  // depends on this list actually having been refetched.
+  const loadConversations = useCallback(() => {
+    if (document.visibilityState !== "visible") return;
+    return fetch("/api/conversations?limit=100", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setConversations(Array.isArray(data.conversations) ? data.conversations : []);
+        setTotal(typeof data.total === "number" ? data.total : 0);
+      })
+      .catch(() => {})
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
-
-    const load = () => {
-      if (document.visibilityState !== "visible") return;
-      fetch("/api/conversations?limit=100", { cache: "no-store" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (cancelled || !data) return;
-          setConversations(Array.isArray(data.conversations) ? data.conversations : []);
-          setTotal(typeof data.total === "number" ? data.total : 0);
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
-    };
-
-    load();
-    const interval = setInterval(load, pollSeconds * 1000);
+    loadConversations();
+    const interval = setInterval(loadConversations, pollSeconds * 1000);
     return () => {
-      cancelled = true;
       clearInterval(interval);
     };
-  }, [pollSeconds]);
+  }, [pollSeconds, loadConversations]);
 
   // activeConversation is a snapshot taken once at openConversation() time —
   // it's never touched again while the modal stays open (the turns-poll
@@ -454,6 +457,14 @@ function ConversationsPageContent() {
       } catch {
         // ignore navigation errors
       }
+      // `row` is a snapshot from whenever the list last polled — if a reply
+      // started streaming after that tick, row.activeCallLogId is still
+      // null and the live-text poll effect never starts until the next
+      // scheduled list refresh happens to land (the exact "opened it and
+      // saw nothing, closed and reopened and saw it live" report). Force
+      // one now so activeConversation resyncs with the current isActive/
+      // activeCallLogId immediately instead of waiting on pollSeconds.
+      loadConversations();
       fetchConversationPage(row.id, `limit=${CONVERSATION_PAGE_SIZE}`)
         .then((page) => {
           setConversationNodes(page?.nodes ?? []);
@@ -466,7 +477,7 @@ function ConversationsPageContent() {
           scrollToBottom();
         });
     },
-    [router, fetchConversationPage, scrollToBottom]
+    [router, fetchConversationPage, scrollToBottom, loadConversations]
   );
 
   const closeConversation = useCallback(() => {
