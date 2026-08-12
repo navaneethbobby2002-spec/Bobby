@@ -5,9 +5,17 @@
  * its predecessor — see open-sse/services/conversationTracker.ts for how the
  * chain hash is computed and walked to detect continuations/forks).
  *
+ * `conversation_turn_nodes` is identity-only (id/parent/content_hash) — no
+ * turn text/tool-call content lives on these rows. Display content is
+ * resolved on demand from the call-log pipeline artifact each node's
+ * `last_correlation_id` points at (see
+ * open-sse/services/conversationTurnContent.ts), reusing the same full,
+ * untruncated payloads call_logs already persists instead of storing a
+ * second, truncated copy of conversation content here.
+ *
  * `last_message_count`/`last_messages_hash` on `agentic_conversations` are
  * dead columns kept only for backward on-disk compatibility (superseded by
- * `conversation_turn_nodes`, migration 148) — never read, written as
+ * `conversation_turn_nodes`, migration 154) — never read, written as
  * placeholders.
  */
 
@@ -51,7 +59,7 @@ export function createAgenticConversation(input: {
   const id = input.id || `conv_${uuidv4()}`;
 
   // last_message_count/last_messages_hash are dead columns (superseded by
-  // conversation_turn_nodes, migration 148) — 0/'' placeholders only.
+  // conversation_turn_nodes, migration 154) — 0/'' placeholders only.
   db.prepare(
     `INSERT INTO agentic_conversations
        (id, api_key_id, fingerprint_hash, last_message_count, last_messages_hash, turn_count, first_seen_at, last_seen_at)
@@ -89,22 +97,18 @@ export function updateAgenticConversation(id: string, patch: { turnCount: number
   );
 }
 
-// ── Turn-node tree (migration 148) ───────────────────────────────────────
+// ── Turn-node tree (migration 154) ───────────────────────────────────────
 
 export interface ConversationTurnNode {
   id: string;
   conversationId: string;
   parentId: string | null;
   role: string;
-  textPreview: string;
-  /** 'text' | 'tool_use' | 'tool_result' — lets a consumer build the exact
-   * NormalizedBlock (src/mitm/inspector/types.ts) the request-detail panel
-   * already builds, so tool calls/results render through the same
-   * ChatBubble/MessageContent/ToolCallBlock/ToolResultBlock components
-   * everywhere instead of a parallel implementation. */
-  blockKind: string;
-  /** Set only when blockKind === 'tool_use'. */
-  toolName: string | null;
+  /** sha256(role+text) — reconnect-anchor lookup key, and the key
+   * conversationTurnContent.ts resolves this node's actual display text/
+   * tool-call shape by, from the call-log artifact its lastCorrelationId
+   * points at (no display content is stored on this row itself). */
+  contentHash: string;
   lastCorrelationId: string | null;
   firstSeenAt: string;
   lastSeenAt: string;
@@ -117,9 +121,7 @@ function toTurnNode(value: unknown): ConversationTurnNode {
     conversationId: String(r.conversation_id ?? ""),
     parentId: typeof r.parent_id === "string" ? r.parent_id : null,
     role: String(r.role ?? ""),
-    textPreview: String(r.text_preview ?? ""),
-    blockKind: String(r.block_kind ?? "text"),
-    toolName: typeof r.tool_name === "string" ? r.tool_name : null,
+    contentHash: String(r.content_hash ?? ""),
     lastCorrelationId: typeof r.last_correlation_id === "string" ? r.last_correlation_id : null,
     firstSeenAt: String(r.first_seen_at ?? ""),
     lastSeenAt: String(r.last_seen_at ?? ""),
@@ -194,9 +196,6 @@ export function insertConversationTurnNodes(
     parentId: string | null;
     role: string;
     contentHash: string;
-    textPreview: string;
-    blockKind: string;
-    toolName: string | null;
   }>
 ): void {
   if (nodes.length === 0) return;
@@ -204,8 +203,8 @@ export function insertConversationTurnNodes(
   const now = new Date().toISOString();
   const insert = db.prepare(
     `INSERT OR IGNORE INTO conversation_turn_nodes
-       (id, conversation_id, parent_id, role, content_hash, text_preview, block_kind, tool_name, last_correlation_id, first_seen_at, last_seen_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, conversation_id, parent_id, role, content_hash, last_correlation_id, first_seen_at, last_seen_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const insertMany = db.transaction((rows: typeof nodes) => {
     for (const node of rows) {
@@ -215,9 +214,6 @@ export function insertConversationTurnNodes(
         node.parentId,
         node.role,
         node.contentHash,
-        node.textPreview,
-        node.blockKind,
-        node.toolName,
         correlationId,
         now,
         now

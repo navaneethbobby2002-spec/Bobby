@@ -68,24 +68,8 @@ test("insertConversationTurnNodes + getConversationTurnIndex round-trip", () => 
   const row = createAgenticConversation({ apiKeyId: "key-nodes", fingerprintHash: "fp-nodes" });
 
   insertConversationTurnNodes(row.id, "corr-1", [
-    {
-      id: "node-a",
-      parentId: null,
-      role: "user",
-      contentHash: "hash-a",
-      textPreview: "a",
-      blockKind: "text",
-      toolName: null,
-    },
-    {
-      id: "node-b",
-      parentId: "node-a",
-      role: "assistant",
-      contentHash: "hash-b",
-      textPreview: "b",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "node-a", parentId: null, role: "user", contentHash: "hash-a" },
+    { id: "node-b", parentId: "node-a", role: "assistant", contentHash: "hash-b" },
   ]);
 
   const index = getConversationTurnIndex(row.id);
@@ -101,15 +85,7 @@ test("insertConversationTurnNodes + getConversationTurnIndex round-trip", () => 
     fingerprintHash: "fp-nodes-2",
   });
   insertConversationTurnNodes(other.id, "corr-2", [
-    {
-      id: "node-c",
-      parentId: null,
-      role: "user",
-      contentHash: "hash-c",
-      textPreview: "c",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "node-c", parentId: null, role: "user", contentHash: "hash-c" },
   ]);
   const reReadIndex = getConversationTurnIndex(row.id);
   assert.equal(reReadIndex.nodeIds.size, 2);
@@ -120,34 +96,10 @@ test("getConversationTurnIndex groups multiple node ids under the same content h
   const row = createAgenticConversation({ apiKeyId: "key-dup-content", fingerprintHash: "fp-dup" });
 
   insertConversationTurnNodes(row.id, "corr-1", [
-    {
-      id: "node-1",
-      parentId: null,
-      role: "user",
-      contentHash: "hash-ok",
-      textPreview: "ok",
-      blockKind: "text",
-      toolName: null,
-    },
-    {
-      id: "node-2",
-      parentId: "node-1",
-      role: "assistant",
-      contentHash: "hash-reply",
-      textPreview: "reply",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "node-1", parentId: null, role: "user", contentHash: "hash-ok" },
+    { id: "node-2", parentId: "node-1", role: "assistant", contentHash: "hash-reply" },
     // Same content ("ok") recurs later in the same tree, at a different node.
-    {
-      id: "node-3",
-      parentId: "node-2",
-      role: "user",
-      contentHash: "hash-ok",
-      textPreview: "ok",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "node-3", parentId: "node-2", role: "user", contentHash: "hash-ok" },
   ]);
 
   const index = getConversationTurnIndex(row.id);
@@ -160,67 +112,27 @@ test("insertConversationTurnNodes is idempotent for already-existing node ids (I
   const row = createAgenticConversation({ apiKeyId: "key-idem", fingerprintHash: "fp-idem" });
 
   insertConversationTurnNodes(row.id, "corr-1", [
-    {
-      id: "node-dup",
-      parentId: null,
-      role: "user",
-      contentHash: "hash-dup",
-      textPreview: "first",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "node-dup", parentId: null, role: "user", contentHash: "hash-dup" },
   ]);
   // Re-insert the same id — must not throw, must not duplicate.
   insertConversationTurnNodes(row.id, "corr-2", [
-    {
-      id: "node-dup",
-      parentId: null,
-      role: "user",
-      contentHash: "hash-dup",
-      textPreview: "first",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "node-dup", parentId: null, role: "user", contentHash: "hash-dup" },
   ]);
 
   const tree = getConversationTurnTree(row.id);
   assert.equal(tree.length, 1);
 });
 
-test("getConversationTurnTree returns nodes with parent/child structure and text preview", () => {
+test("getConversationTurnTree returns nodes with parent/child structure and content hash", () => {
   const row = createAgenticConversation({ apiKeyId: "key-tree", fingerprintHash: "fp-tree" });
 
   insertConversationTurnNodes(row.id, "corr-tree", [
-    {
-      id: "root-turn",
-      parentId: null,
-      role: "user",
-      contentHash: "hash-hello",
-      textPreview: "hello",
-      blockKind: "text",
-      toolName: null,
-    },
-    {
-      id: "child-turn",
-      parentId: "root-turn",
-      role: "assistant",
-      contentHash: "hash-hi",
-      textPreview: "hi there",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "root-turn", parentId: null, role: "user", contentHash: "hash-hello" },
+    { id: "child-turn", parentId: "root-turn", role: "assistant", contentHash: "hash-hi" },
   ]);
   // A sibling branch off the same parent.
   insertConversationTurnNodes(row.id, "corr-tree-2", [
-    {
-      id: "sibling-turn",
-      parentId: "root-turn",
-      role: "assistant",
-      contentHash: "hash-hey",
-      textPreview: "hey",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "sibling-turn", parentId: "root-turn", role: "assistant", contentHash: "hash-hey" },
   ]);
 
   const tree = getConversationTurnTree(row.id);
@@ -229,7 +141,7 @@ test("getConversationTurnTree returns nodes with parent/child structure and text
   const root = tree.find((n) => n.id === "root-turn");
   const children = tree.filter((n) => n.parentId === "root-turn");
   assert.equal(root?.parentId, null);
-  assert.equal(root?.textPreview, "hello");
+  assert.equal(root?.contentHash, "hash-hello");
   assert.equal(children.length, 2);
   assert.deepEqual(children.map((c) => c.id).sort(), ["child-turn", "sibling-turn"]);
 });
@@ -241,18 +153,15 @@ test("getConversationTurnPage: initial load returns only the last `limit` turns,
     parentId: i === 0 ? null : `n${i - 1}`,
     role: i % 2 === 0 ? "user" : "assistant",
     contentHash: `hash-${i}`,
-    textPreview: `turn-${i}`,
-    blockKind: "text",
-    toolName: null,
   }));
   insertConversationTurnNodes(row.id, "corr-page", nodes);
 
   const page = getConversationTurnPage(row.id, { limit: 20 });
   assert.equal(page.nodes.length, 20);
   assert.equal(page.hasMore, true);
-  // Oldest-first within the page, and it's the LAST 20 (turn-5..turn-24).
-  assert.equal(page.nodes[0].textPreview, "turn-5");
-  assert.equal(page.nodes[19].textPreview, "turn-24");
+  // Oldest-first within the page, and it's the LAST 20 (n5..n24).
+  assert.equal(page.nodes[0].id, "n5");
+  assert.equal(page.nodes[19].id, "n24");
 });
 
 test("getConversationTurnPage: beforeSeq loads the previous page (older turns), with correct hasMore", () => {
@@ -262,9 +171,6 @@ test("getConversationTurnPage: beforeSeq loads the previous page (older turns), 
     parentId: i === 0 ? null : `m${i - 1}`,
     role: "user",
     contentHash: `hash-m${i}`,
-    textPreview: `turn-${i}`,
-    blockKind: "text",
-    toolName: null,
   }));
   insertConversationTurnNodes(row.id, "corr-page-2", nodes);
 
@@ -274,31 +180,15 @@ test("getConversationTurnPage: beforeSeq loads the previous page (older turns), 
   const olderPage = getConversationTurnPage(row.id, { limit: 20, beforeSeq: oldestSeqInFirstPage });
   assert.equal(olderPage.nodes.length, 5, "only 5 turns (0-4) exist before the first page");
   assert.equal(olderPage.hasMore, false);
-  assert.equal(olderPage.nodes[0].textPreview, "turn-0");
-  assert.equal(olderPage.nodes[4].textPreview, "turn-4");
+  assert.equal(olderPage.nodes[0].id, "m0");
+  assert.equal(olderPage.nodes[4].id, "m4");
 });
 
 test("getConversationTurnPage: afterSeq returns only turns newer than the cursor (for polling), uncapped", () => {
   const row = createAgenticConversation({ apiKeyId: "key-page-3", fingerprintHash: "fp-page-3" });
   insertConversationTurnNodes(row.id, "corr-page-3", [
-    {
-      id: "p0",
-      parentId: null,
-      role: "user",
-      contentHash: "h0",
-      textPreview: "a",
-      blockKind: "text",
-      toolName: null,
-    },
-    {
-      id: "p1",
-      parentId: "p0",
-      role: "assistant",
-      contentHash: "h1",
-      textPreview: "b",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "p0", parentId: null, role: "user", contentHash: "h0" },
+    { id: "p1", parentId: "p0", role: "assistant", contentHash: "h1" },
   ]);
   const firstPage = getConversationTurnPage(row.id, { limit: 20 });
   const newestSeq = firstPage.nodes[firstPage.nodes.length - 1].seq;
@@ -308,19 +198,11 @@ test("getConversationTurnPage: afterSeq returns only turns newer than the cursor
 
   // A new turn arrives (e.g. a later request continuing this conversation).
   insertConversationTurnNodes(row.id, "corr-page-3b", [
-    {
-      id: "p2",
-      parentId: "p1",
-      role: "user",
-      contentHash: "h2",
-      textPreview: "c",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "p2", parentId: "p1", role: "user", contentHash: "h2" },
   ]);
   const polled = getConversationTurnPage(row.id, { afterSeq: newestSeq });
   assert.equal(polled.nodes.length, 1);
-  assert.equal(polled.nodes[0].textPreview, "c");
+  assert.equal(polled.nodes[0].id, "p2");
   assert.equal(polled.hasMore, false);
 });
 
@@ -350,15 +232,7 @@ test("listMultiTurnConversations only returns conversations with >= 2 actual tur
     fingerprintHash: "fp-single",
   });
   insertConversationTurnNodes("conv-single-turn", "corr-single", [
-    {
-      id: "single-node-1",
-      parentId: null,
-      role: "user",
-      contentHash: "hash-single-1",
-      textPreview: "hi",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "single-node-1", parentId: null, role: "user", contentHash: "hash-single-1" },
   ]);
 
   const multi = createAgenticConversation({
@@ -372,23 +246,12 @@ test("listMultiTurnConversations only returns conversations with >= 2 actual tur
   // on listMultiTurnConversations) — the filter must key off actual node
   // count, not turn_count, for this conversation to be listed at all.
   insertConversationTurnNodes(multi.id, "corr-multi", [
-    {
-      id: "multi-node-1",
-      parentId: null,
-      role: "user",
-      contentHash: "hash-multi-1",
-      textPreview: "hi",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: "multi-node-1", parentId: null, role: "user", contentHash: "hash-multi-1" },
     {
       id: "multi-node-2",
       parentId: "multi-node-1",
       role: "assistant",
       contentHash: "hash-multi-2",
-      textPreview: "hello",
-      blockKind: "text",
-      toolName: null,
     },
   ]);
 

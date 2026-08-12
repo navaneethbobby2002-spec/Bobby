@@ -19,7 +19,7 @@ process.env.API_KEY_SECRET = process.env.API_KEY_SECRET || "conversation-tracker
 // code runs — ESM instantiates the whole dependency graph, dependencies first,
 // regardless of source-line order — so the override above would silently miss
 // and the module would resolve the real host DATA_DIR instead of the temp dir.
-const { extractCanonicalTurns, computeFingerprintHash, resolveConversationId } =
+const { extractCanonicalTurns, computeFingerprintHash, resolveConversationId, hashTurnContent } =
   await import("../../open-sse/services/conversationTracker.ts");
 const { getConversationTurnTree } = await import("../../src/lib/db/agenticConversations.ts");
 
@@ -27,6 +27,14 @@ let correlationCounter = 0;
 function nextCorrelationId(): string {
   correlationCounter += 1;
   return `corr-${correlationCounter}`;
+}
+
+// conversation_turn_nodes stores identity only (content_hash), never display
+// text — see migration 154 and conversationTurnContent.ts. Tests that need
+// to assert WHICH turns ended up on a chain compare content hashes instead
+// of stored text.
+function hashOfPlainTextTurn(role: "user" | "assistant" | "system" | "tool", text: string): string {
+  return hashTurnContent({ role, text, blockKind: "text", toolName: null });
 }
 
 test("extractCanonicalTurns: OpenAI messages array", () => {
@@ -134,28 +142,6 @@ test("computeFingerprintHash: identical apiKeyId/model/toolNames produce the sam
   const a = computeFingerprintHash({ apiKeyId: "key1", model: "gpt-4o", toolNames: ["exec"] });
   const b = computeFingerprintHash({ apiKeyId: "key1", model: "gpt-4o", toolNames: ["exec"] });
   assert.equal(a, b);
-});
-
-test("resolveConversationId: stores clean extracted text_preview for content-block turns, not raw JSON (real OpenClaw/Responses-API traffic shape)", async () => {
-  const apiKeyId = "key-preview-json-bug";
-  const turn = await resolveConversationId({
-    body: {
-      model: "big-pickle",
-      input: [{ role: "user", content: [{ type: "input_text", text: "hello there" }] }],
-    },
-    model: "big-pickle",
-    apiKeyId,
-    clientSessionIdHeader: null,
-    correlationId: nextCorrelationId(),
-  });
-
-  const tree = getConversationTurnTree(turn.conversationId);
-  assert.equal(tree.length, 1);
-  assert.equal(tree[0].textPreview, "hello there");
-  assert.ok(
-    !tree[0].textPreview.includes("{"),
-    "text_preview must be the extracted turn text, not a JSON-stringified content-block array"
-  );
 });
 
 test("resolveConversationId: exact-match continuation reuses the same id", async () => {
@@ -286,8 +272,18 @@ test("resolveConversationId: an edited/duplicated mid-history turn mints its own
   const tree1 = getConversationTurnTree(request1.conversationId);
   assert.equal(tree1.length, 9);
   assert.deepEqual(
-    tree1.map((n) => n.textPreview).sort(),
-    ["a", "b", "c", "d", "e", "f", "g", "h", "i"].sort()
+    tree1.map((n) => n.contentHash).sort(),
+    [
+      hashOfPlainTextTurn("user", "a"),
+      hashOfPlainTextTurn("assistant", "b"),
+      hashOfPlainTextTurn("user", "c"),
+      hashOfPlainTextTurn("assistant", "d"),
+      hashOfPlainTextTurn("user", "e"),
+      hashOfPlainTextTurn("assistant", "f"),
+      hashOfPlainTextTurn("user", "g"),
+      hashOfPlainTextTurn("assistant", "h"),
+      hashOfPlainTextTurn("user", "i"),
+    ].sort()
   );
 
   // request2's chain is its own complete, independent 12-turn history —
@@ -297,8 +293,21 @@ test("resolveConversationId: an edited/duplicated mid-history turn mints its own
   const tree2 = getConversationTurnTree(request2.conversationId);
   assert.equal(tree2.length, 12);
   assert.deepEqual(
-    tree2.map((n) => n.textPreview).sort(),
-    ["a", "b", "c'", "d", "e", "f", "g", "h", "i'", "i", "j", "k"].sort()
+    tree2.map((n) => n.contentHash).sort(),
+    [
+      hashOfPlainTextTurn("user", "a"),
+      hashOfPlainTextTurn("assistant", "b"),
+      hashOfPlainTextTurn("user", "c'"),
+      hashOfPlainTextTurn("assistant", "d"),
+      hashOfPlainTextTurn("user", "e"),
+      hashOfPlainTextTurn("assistant", "f"),
+      hashOfPlainTextTurn("user", "g"),
+      hashOfPlainTextTurn("assistant", "h"),
+      hashOfPlainTextTurn("user", "i'"),
+      hashOfPlainTextTurn("assistant", "i"),
+      hashOfPlainTextTurn("user", "j"),
+      hashOfPlainTextTurn("assistant", "k"),
+    ].sort()
   );
 
   const ids1 = new Set(tree1.map((n) => n.id));
@@ -529,7 +538,7 @@ test("resolveConversationId: continuation is detected even when the reconnect tu
     9,
     "the new turn should be appended, not a whole new duplicate history"
   );
-  assert.ok(tree.some((n) => n.textPreview === "brand new turn"));
+  assert.ok(tree.some((n) => n.contentHash === hashOfPlainTextTurn("user", "brand new turn")));
 });
 
 test("resolveConversationId: different api keys never merge, even with byte-identical content", async () => {
@@ -624,80 +633,8 @@ test("resolveConversationId: client-supplied X-Omniroute-Session-Id wins outrigh
   assert.equal(second.conversationId, headerValue);
 });
 
-test("resolveConversationId: a plain text turn over the preview bound is simply sliced", async () => {
-  const longText = "y".repeat(9000);
-  const turn = await resolveConversationId({
-    body: { model: "big-pickle", messages: [{ role: "user", content: longText }] },
-    model: "big-pickle",
-    apiKeyId: "key-long-text",
-    clientSessionIdHeader: null,
-    correlationId: nextCorrelationId(),
-  });
-
-  const tree = getConversationTurnTree(turn.conversationId);
-  assert.equal(tree.length, 1);
-  assert.equal(tree[0].textPreview.length, 8000);
-  assert.equal(tree[0].textPreview, longText.slice(0, 8000));
-});
-
-// Real bug (2026-08-06): a tool_use turn's `text` is the tool call's raw
-// JSON `arguments` string (see extractCanonicalTurns/stringifyContent — a
-// JSON string is passed through as-is, never parsed). Slicing that raw JSON
-// at a fixed character offset routinely lands mid-string, storing INVALID
-// JSON — /dashboard/conversations page.tsx's toTurn() then fails to
-// JSON.parse it and falls back to showing the raw, still-escaped text
-// verbatim: a large `edit`/`write`/apply_patch-style tool call with a long
-// `content`/`new_string` field renders with literal `\n` sequences visible
-// instead of real line breaks, looking exactly like a JSON-escaping bug.
-test("resolveConversationId: an oversized tool_use turn stores truncated but still VALID JSON", async () => {
-  const bigContent = "line one\nline two\n".repeat(1000); // well over 8000 chars
-  const args = JSON.stringify({ path: "/tmp/big.md", content: bigContent });
-  assert.ok(
-    args.length > 8000,
-    "the raw arguments JSON must exceed the preview bound for this test"
-  );
-
-  const turn = await resolveConversationId({
-    body: {
-      model: "big-pickle",
-      input: [{ type: "function_call", name: "write", call_id: "c1", arguments: args }],
-    },
-    model: "big-pickle",
-    apiKeyId: "key-big-tool-call",
-    clientSessionIdHeader: null,
-    correlationId: nextCorrelationId(),
-  });
-
-  const tree = getConversationTurnTree(turn.conversationId);
-  assert.equal(tree.length, 1);
-  assert.equal(tree[0].blockKind, "tool_use");
-
-  // The critical assertion: whatever got stored must be re-parseable JSON,
-  // never a mid-string cut fragment.
-  let parsed: { path?: string; content?: string } | undefined;
-  assert.doesNotThrow(() => {
-    parsed = JSON.parse(tree[0].textPreview);
-  }, "stored text_preview for a tool_use turn must always be valid, parseable JSON");
-  assert.equal(parsed?.path, "/tmp/big.md");
-  assert.ok(typeof parsed?.content === "string" && parsed.content.length > 0);
-  // The oversized string value was capped, not the whole serialized blob —
-  // real newlines inside it must survive (they did before truncation too).
-  assert.ok(parsed!.content!.includes("\n"));
-});
-
-test("resolveConversationId: a tool_use turn already within the preview bound is stored untouched", async () => {
-  const args = JSON.stringify({ command: "ls -la" });
-  const turn = await resolveConversationId({
-    body: {
-      model: "big-pickle",
-      input: [{ type: "function_call", name: "exec", call_id: "c1", arguments: args }],
-    },
-    model: "big-pickle",
-    apiKeyId: "key-small-tool-call",
-    clientSessionIdHeader: null,
-    correlationId: nextCorrelationId(),
-  });
-
-  const tree = getConversationTurnTree(turn.conversationId);
-  assert.equal(tree[0].textPreview, args);
-});
+// The old 8000-char text_preview truncation (and the JSON-validity-after-
+// truncation concern it required) no longer applies: conversation_turn_nodes
+// stores identity only, never turn text (migration 154) — display content is
+// always resolved fresh, full and untruncated, from the call-log artifact
+// (see conversationTurnContent.test.ts).

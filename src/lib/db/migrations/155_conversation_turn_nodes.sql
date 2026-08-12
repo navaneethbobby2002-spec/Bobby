@@ -1,8 +1,8 @@
 -- 155_conversation_turn_nodes.sql
--- Per-turn hash-chain nodes backing a conversation's linear transcript
--- (open-sse/services/conversationTracker.ts). Each row is one distinct
--- turn instance, chained to its predecessor the same way a git commit
--- graph chains commits: id = sha256(parentId ?? conversationId, role,
+-- Per-turn hash-chain IDENTITY nodes backing a conversation's linear
+-- transcript (open-sse/services/conversationTracker.ts). Each row is one
+-- distinct turn instance, chained to its predecessor the same way a git
+-- commit graph chains commits: id = sha256(parentId ?? conversationId, role,
 -- sha256(text)). A request whose turns all match existing nodes just
 -- extends the chain; a request whose Nth turn differs from what's on file
 -- (a real-world OpenClaw pattern: cache-aware context injection edits/
@@ -20,35 +20,30 @@
 -- at index 0 of a new request is often not the chain's first turn at all —
 -- a start-only walk would find zero match and mint a spurious new
 -- conversation despite a real, unbroken tail overlap.
+--
+-- Deliberately identity-only, no display content: the dashboard transcript
+-- view resolves each node's actual text/tool-call shape on demand from the
+-- call-log pipeline artifact `last_correlation_id` points at (see
+-- open-sse/services/conversationTurnContent.ts), reusing the same full,
+-- untruncated request/response payloads call_logs already persists behind
+-- call_log_pipeline_enabled instead of storing a second, truncated copy of
+-- conversation content here.
 
 CREATE TABLE IF NOT EXISTS conversation_turn_nodes (
   id TEXT PRIMARY KEY,               -- chain hash, see above
   conversation_id TEXT NOT NULL,     -- agentic_conversations.id (this chain's conversation)
   parent_id TEXT,                    -- NULL for the first turn of the chain
   role TEXT NOT NULL,
-  content_hash TEXT NOT NULL DEFAULT '', -- sha256(role+text) alone, for reconnect-anchor lookup
-  text_preview TEXT NOT NULL,        -- extracted turn text (bounded, see
-                                      -- conversationTracker.ts's
-                                      -- TEXT_PREVIEW_LENGTH) — rendered as
-                                      -- full markdown in the
-                                      -- /dashboard/conversations view, not
-                                      -- truncated to a one-line label
-  block_kind TEXT NOT NULL DEFAULT 'text', -- 'text' | 'tool_use' | 'tool_result' — lets
-                                      -- the conversation view build the exact same
-                                      -- NormalizedBlock (src/mitm/inspector/types.ts) the
-                                      -- request-detail panel already builds from
-                                      -- buildRequestTurns/buildResponseTurns, so both render
-                                      -- tool calls/results through the SAME ChatBubble/
-                                      -- MessageContent/ToolCallBlock/ToolResultBlock
-                                      -- components — not a parallel implementation
-  tool_name TEXT,                    -- set only for block_kind='tool_use'
+  content_hash TEXT NOT NULL DEFAULT '', -- sha256(role+text) — reconnect-anchor lookup AND
+                                      -- the key the tree API resolves display content by
   last_correlation_id TEXT,          -- call_logs.correlation_id of the request that
                                       -- (re)touched this node — resolveConversationId
                                       -- runs before the call_logs row's own id exists,
                                       -- but correlation_id (109_call_logs_correlation_id)
                                       -- is already generated earlier in the same request
-                                      -- and is available synchronously; the API route
-                                      -- joins through it to resolve a navigable call_logs.id
+                                      -- and is available synchronously; the tree API route
+                                      -- joins through it to the call_logs artifact holding
+                                      -- this node's actual display content
   first_seen_at TEXT NOT NULL,
   last_seen_at TEXT NOT NULL
 );

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { getConversationTurnPage } from "@/lib/db/agenticConversations";
+import { resolveTurnDisplayContent } from "@omniroute/open-sse/services/conversationTurnContent.ts";
 
 export const dynamic = "force-dynamic";
 
@@ -42,17 +43,29 @@ export async function GET(
       afterSeq: parseSeqParam(searchParams.get("afterSeq")),
     });
 
+    // Nodes store identity only (see migration 154) — resolve each node's
+    // actual text/tool-call shape from the call-log artifact its
+    // correlation id points at. A node whose artifact is gone (purged,
+    // never captured because detailed logging was off at the time, or
+    // size-limit-omitted) falls back to an empty text placeholder rather
+    // than failing the whole page — the chain/identity data is still valid
+    // even when the display content underneath it aged out.
+    const displayContent = resolveTurnDisplayContent(nodes);
+
     return NextResponse.json({
-      nodes: nodes.map((n) => ({
-        seq: n.seq,
-        id: n.id,
-        parentId: n.parentId,
-        role: n.role,
-        textPreview: n.textPreview,
-        blockKind: n.blockKind,
-        toolName: n.toolName,
-        firstSeenAt: n.firstSeenAt,
-      })),
+      nodes: nodes.map((n) => {
+        const content = displayContent.get(n.contentHash);
+        return {
+          seq: n.seq,
+          id: n.id,
+          parentId: n.parentId,
+          role: n.role,
+          textPreview: content?.textPreview ?? "",
+          blockKind: content?.blockKind ?? "text",
+          toolName: content?.toolName ?? null,
+          firstSeenAt: n.firstSeenAt,
+        };
+      }),
       hasMore,
     });
   } catch (err) {

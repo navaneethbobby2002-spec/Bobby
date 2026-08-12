@@ -38,24 +38,8 @@ test.beforeEach(() => {
 function seedTwoTurnConversation(id: string) {
   agenticConversations.createAgenticConversation({ id, apiKeyId: null, fingerprintHash: "fp" });
   agenticConversations.insertConversationTurnNodes(id, null, [
-    {
-      id: `${id}-n1`,
-      parentId: null,
-      role: "user",
-      contentHash: "h1",
-      textPreview: "hi",
-      blockKind: "text",
-      toolName: null,
-    },
-    {
-      id: `${id}-n2`,
-      parentId: `${id}-n1`,
-      role: "assistant",
-      contentHash: "h2",
-      textPreview: "hello",
-      blockKind: "text",
-      toolName: null,
-    },
+    { id: `${id}-n1`, parentId: null, role: "user", contentHash: "h1" },
+    { id: `${id}-n2`, parentId: `${id}-n1`, role: "assistant", contentHash: "h2" },
   ]);
 }
 
