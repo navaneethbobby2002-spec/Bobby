@@ -820,3 +820,4 @@ export {
   setRadarKey,
 } from "./db/radar";
 export type { RadarCache, RadarSettings } from "./db/radar";
+export * from "./db/conductorBridge"; // OmniConductor hub mirror — SSE cursor (PRD Conductor RF1)

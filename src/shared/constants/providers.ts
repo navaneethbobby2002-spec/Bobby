@@ -54,6 +54,7 @@ export function supportsDualAuthProvider(providerId: unknown): boolean {
 
 // Web / Cookie Providers
 
+
 // API Key Providers
 
 // Sub-categories within APIKEY_PROVIDERS (used by dashboard and catalog views).
@@ -66,6 +67,7 @@ export const IMAGE_ONLY_PROVIDER_IDS = new Set([
   "topaz",
   "segmind",
   "freepik",
+  "deepai",
 ]);
 
 export const AGGREGATOR_PROVIDER_IDS = new Set([
@@ -92,7 +94,34 @@ export const AGGREGATOR_PROVIDER_IDS = new Set([
   "g4f-pollinations",
   "g4f-ollama",
   "g4f-nvidia",
-]);
+  "naga-ac",
+  "chatanywhere",
+  "zylo-api",
+  "fastrouter",
+  "anyapi",
+  "electronhub",
+  "llmgateway",
+  "llm-kiwi",
+  "literouter",
+  "mnn-ai",
+  "meganova-ai",
+  "mixlayer",
+  "speka",
+  "tokenreply",
+  "yolo-auto",
+  "dxnt",
+  "cloudcode-one",
+  "ofoxai",
+  "zerolimitai",
+  "helyxai",
+  "auriko",
+  "poixe-ai",
+  "naga-ai",
+  "chat-oripe",
+  "freeinference",
+  "free-ai",
+
+]);;
 
 export const ENTERPRISE_CLOUD_PROVIDER_IDS = new Set([
   "azure-openai",
@@ -112,6 +141,7 @@ export const ENTERPRISE_CLOUD_PROVIDER_IDS = new Set([
 ]);
 
 export const VIDEO_PROVIDER_IDS = new Set([
+  "agnes",
   "runwayml",
   "veoaifree-web",
   "pollinations",
@@ -195,6 +225,7 @@ const EXPLICIT_OPTIONAL_APIKEY_PROVIDER_IDS = new Set([
   "huggingchat",
   "gitlawb",
   "gitlawb-gmi",
+  "naga-ac",
 ]);
 
 export function providerAllowsOptionalApiKey(providerId: unknown): boolean {
@@ -465,6 +496,8 @@ export const USAGE_SUPPORTED_PROVIDERS = [
   "firecrawl",
   // Command Code credits + 5h/weekly rolling windows
   "command-code",
+  "conol-web",
+  "cnl",
 ];
 
 // ── Zod validation at module load (Phase 7.2) ──
