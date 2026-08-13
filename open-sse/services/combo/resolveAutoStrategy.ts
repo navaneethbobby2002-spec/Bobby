@@ -44,6 +44,7 @@ import type {
   ComboLogger,
   ResolvedComboTarget,
 } from "./types.ts";
+import { getComboAdaptationByModel } from "../../../src/lib/db/comboAdaptation";
 
 /**
  * Dependency-injected `buildAutoCandidates` — it lives in `combo.ts` (the host of
@@ -81,7 +82,12 @@ export interface ResolveAutoStrategyDeps {
 
 export type ResolveAutoStrategyResult =
   | { earlyResponse: Response }
-  | { orderedTargets: ResolvedComboTarget[]; autoUsedExplicitRouter: boolean };
+  | {
+      orderedTargets: ResolvedComboTarget[];
+      autoUsedExplicitRouter: boolean;
+      /** Intent-classified task type for this request (adaptive learning). */
+      taskType: string;
+    };
 
 /**
  * Resolve target ordering for the `auto` combo strategy.
@@ -318,7 +324,25 @@ export async function resolveAutoStrategyOrder(
       ),
     };
   }
-  if (routableCandidates.length > 0) {
+
+  // Persisted adaptation cooldown (combo_adaptation_state): a model that
+  // repeatedly failed (exponential backoff — 3→5m, 6→15m, 9→60m) is removed
+  // from the *selection* pool so the router doesn't keep hammering it. It stays
+  // in the fallback tail (like quota-cutoff targets) so a fully-cooled pool can
+  // still attempt the least-bad option instead of erroring out.
+  const selectionPool =
+    routableCandidates.length > 0
+      ? applyAdaptationCooldown(routableCandidates, combo.name)
+      : routableCandidates;
+  const cooldownBlockedCount = routableCandidates.length - selectionPool.length;
+  if (cooldownBlockedCount > 0) {
+    log.info(
+      "COMBO",
+      `Auto strategy: adaptation cooldown excluded ${cooldownBlockedCount}/${routableCandidates.length} candidates from selection`
+    );
+  }
+
+  if (selectionPool.length > 0) {
     let selectedProvider: string | null = null;
     let selectedModel: string | null = null;
     let selectedConnectionId: string | null = null;
@@ -327,7 +351,7 @@ export async function resolveAutoStrategyOrder(
     if (routingStrategy !== "rules") {
       try {
         const decision = selectWithStrategy(
-          routableCandidates,
+          selectionPool,
           {
             taskType,
             requestHasTools,
@@ -365,7 +389,7 @@ export async function resolveAutoStrategyOrder(
             budgetFallback,
             explorationRate,
           },
-          routableCandidates,
+          selectionPool,
           taskType
         );
       } catch (err) {
@@ -397,7 +421,7 @@ export async function resolveAutoStrategyOrder(
 
     const scoredTargets = scoreAutoTargets(
       eligibleTargets,
-      routableCandidates,
+      selectionPool,
       taskType,
       weights,
       autoManifestHint
@@ -442,5 +466,36 @@ export async function resolveAutoStrategyOrder(
     log.warn("COMBO", "Auto strategy has no candidates, keeping default ordering");
   }
 
-  return { orderedTargets, autoUsedExplicitRouter };
+  return { orderedTargets, autoUsedExplicitRouter, taskType };
+}
+
+/**
+ * Remove candidates that are currently in a persisted adaptation cooldown
+ * (combo_adaptation_state.cooldown_until in the future) from the selection pool.
+ *
+ * Models are re-admitted as soon as their cooldown expires; a model that
+ * succeeds again is cleared immediately by recordComboAdaptationOutcome.
+ * Exported for unit testing.
+ */
+export function applyAdaptationCooldown(
+  candidates: AutoProviderCandidate[],
+  comboName: string
+): AutoProviderCandidate[] {
+  if (candidates.length === 0) return candidates;
+  const now = Date.now();
+  let adaptation: Map<string, { cooldownUntil: string | null }> | null = null;
+  return candidates.filter((candidate) => {
+    if (adaptation === null) {
+      try {
+        adaptation = getComboAdaptationByModel(comboName);
+      } catch {
+        adaptation = new Map();
+      }
+    }
+    const state = adaptation.get(candidate.modelStr);
+    if (!state?.cooldownUntil) return true;
+    const until = Date.parse(state.cooldownUntil);
+    if (!Number.isFinite(until)) return true;
+    return until <= now;
+  });
 }

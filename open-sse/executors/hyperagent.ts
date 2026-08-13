@@ -726,18 +726,33 @@ export async function parseHyperAgentSseStream(
     }
   };
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    // Split SSE frames
-    const parts = buffer.split("\n");
-    buffer = parts.pop() || "";
-    for (const line of parts) {
-      const t = line.trimEnd();
-      if (t.startsWith("data:")) {
-        handleData(t.slice(5).trimStart());
+  let retryCount = 0;
+  const maxRetries = 10;
+  const timeoutMs = 30000;
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("SSE stream timeout")), timeoutMs));
+
+  while (retryCount < maxRetries) {
+    try {
+      const { done, value } = await Promise.race([reader.read(), timeout]);
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // Split SSE frames
+      const parts = buffer.split("\n");
+      buffer = parts.pop() || "";
+      for (const line of parts) {
+        const t = line.trimEnd();
+        if (t.startsWith("data:")) {
+          handleData(t.slice(5).trimStart());
+        }
       }
+    } catch (err) {
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        throw new Error(
+          `SSE stream failed after ${maxRetries} retries: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
     }
   }
   if (buffer.trim()) {

@@ -107,7 +107,6 @@ test("AgentRouter threads the resolved Responses protocol only into execution cr
   });
   assert.deepEqual(credentials.providerSpecificData, { apiKeyHealth: {} });
 });
-
 test("#8969: poe + responses target sets the responses-upstream marker (no apiType)", () => {
   const out = resolveExecutionCredentials({
     ...base,

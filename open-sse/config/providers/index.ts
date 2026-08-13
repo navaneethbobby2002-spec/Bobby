@@ -5,6 +5,7 @@ import { aimlapiProvider } from "./registry/aimlapi/index.ts";
 import { byteplusProvider } from "./registry/byteplus/index.ts";
 import { mimocodeProvider } from "./registry/mimocode/index.ts";
 import { ollama_cloudProvider } from "./registry/ollama-cloud/index.ts";
+import { ollama_localProvider } from "./registry/ollama-local/index.ts";
 import { syntheticProvider } from "./registry/synthetic/index.ts";
 import { ideogramProvider } from "./registry/ideogram/index.ts";
 import { friendliaiProvider } from "./registry/friendliai/index.ts";
@@ -263,6 +264,7 @@ import { helixmindProvider } from "./registry/helixmind/index.ts";
 export const REGISTRY: Record<string, RegistryEntry> = {
   aimlapi: aimlapiProvider,
   "ollama-cloud": ollama_cloudProvider,
+  "ollama-local": ollama_localProvider,
   synthetic: syntheticProvider,
   ideogram: ideogramProvider,
   friendliai: friendliaiProvider,

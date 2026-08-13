@@ -62,6 +62,13 @@ import { extractSessionAffinityKey } from "@/sse/services/auth";
 import { getHiddenModelsByProvider } from "@/models";
 import { resolveModelLockoutSettings } from "../../src/lib/resilience/modelLockoutSettings";
 import { fetchCodexQuota } from "./codexQuotaFetcher.ts";
+import {
+  getLastDispatchedOllamaModel,
+  maybeUnloadPreviousOllamaModel,
+  settleOllamaModelAfterSuccess,
+  trackOllamaModelDispatch,
+} from "./ollamaRamManager.ts";
+import { resolveOllamaUnloadStrategy } from "./combo/autoConfig.ts";
 import { evaluateQuotaCutoff, getQuotaFetcher, type QuotaInfo } from "./quotaPreflight.ts";
 import * as semaphore from "./rateLimitSemaphore.ts";
 import { getCircuitBreaker } from "../../src/shared/utils/circuitBreaker";
@@ -451,6 +458,11 @@ export async function buildAutoCandidates(
       const breakerStateRaw = getCircuitBreaker(provider)?.getStatus?.()?.state;
       const circuitBreakerState: ProviderCandidate["circuitBreakerState"] =
         breakerStateRaw === "OPEN" || breakerStateRaw === "HALF_OPEN" ? breakerStateRaw : "CLOSED";
+      // #8874: a locally-loaded Ollama model is "warm" — the router scores it up so
+      // it doesn't pay an unload/load/cold-start cycle to hop to a marginally-better
+      // alternative (warm_bonus + switch_cost live in scoreAutoTargets).
+      const isWarm =
+        provider === "ollama-local" && getLastDispatchedOllamaModel(comboName) === modelStr;
       const contextAffinity = calculateTargetContextAffinity(target, sessionId);
       let resetWindowAffinity = 0.5;
       let quotaRemaining = 100;
@@ -543,6 +555,7 @@ export async function buildAutoCandidates(
         statusPenaltyReason,
         connectionPoolSize: connectionPoolCounts.get(provider) ?? 1,
         connectionId: target.connectionId ?? undefined,
+        isWarm,
         authType,
       };
     })
@@ -752,9 +765,16 @@ export async function handleComboChat({
     clientManagedResponsesContext,
   });
   if ("earlyResponse" in targetResolution) return targetResolution.earlyResponse;
-  const { stickyWeightedLimit, getWeightedStepKeyForTarget, preScreenMap } = targetResolution;
+  const { stickyWeightedLimit, getWeightedStepKeyForTarget, preScreenMap, taskType } =
+    targetResolution;
   const _sticky = targetResolution.sticky;
   let orderedTargets = targetResolution.orderedTargets;
+  // PR1 adaptive learning: quality signals forwarded to the adaptation layer.
+  // recordComboRequest stays a cheap telemetry sink — hasTools is the only body
+  // introspection done here, once, so every attempt-loop record call can pass it.
+  const hasTools =
+    Array.isArray((body as { tools?: unknown } | undefined)?.tools) &&
+    ((body as { tools?: unknown[] }).tools?.length ?? 0) > 0;
   if (activeNativeTurnPin) {
     orderedTargets = applyNativeCodexTurnPin(orderedTargets, activeNativeTurnPin);
     if (orderedTargets.length === 0) {
@@ -1193,6 +1213,17 @@ export async function handleComboChat({
             "COMBO",
             `Trying model ${i + 1}/${orderedTargets.length}: ${modelStr}${retry > 0 ? ` (retry ${retry})` : ""}`
           );
+          await maybeUnloadPreviousOllamaModel(
+            combo.name,
+            modelStr,
+            provider,
+            log,
+            resolveOllamaUnloadStrategy(
+              isRecord((combo.config as { auto?: unknown } | undefined)?.auto)
+                ? ((combo.config as { auto?: unknown }).auto as Record<string, unknown>)
+                : ((combo.config as Record<string, unknown> | undefined) ?? null)
+            )
+          );
           emit("combo.target.attempt", {
             comboName: combo.name,
             targetIndex: i,
@@ -1337,6 +1368,12 @@ export async function handleComboChat({
                 fallbackCount,
                 strategy,
                 target: toRecordedTarget(target),
+                learning: {
+                  taskType,
+                  hasTools,
+                  isEmptyResponse: true,
+                  qualityFailure: true,
+                },
               });
               recordedAttempts++;
               // Fix #1707: Set terminal state so the fallback doesn't emit
@@ -1416,12 +1453,30 @@ export async function handleComboChat({
               "COMBO",
               `Model ${modelStr} succeeded (${latencyMs}ms, ${fallbackCount} fallbacks)`
             );
+            trackOllamaModelDispatch(combo.name, modelStr, provider);
+            // #8874: availability-first — the previous model was left resident while
+            // this one loaded; now that it succeeded, unload the old one to reclaim VRAM.
+            await settleOllamaModelAfterSuccess(
+              combo.name,
+              modelStr,
+              provider,
+              log,
+              resolveOllamaUnloadStrategy(
+                isRecord((combo.config as { auto?: unknown } | undefined)?.auto)
+                  ? ((combo.config as { auto?: unknown }).auto as Record<string, unknown>)
+                  : ((combo.config as Record<string, unknown> | undefined) ?? null)
+              )
+            );
             recordComboRequest(combo.name, modelStr, {
               success: true,
               latencyMs,
               fallbackCount,
               strategy,
               target: toRecordedTarget(target),
+              learning: {
+                taskType,
+                hasTools,
+              },
             });
             recordedAttempts++;
 
@@ -2114,14 +2169,26 @@ export async function handleComboChat({
             if (res && !anySuccess) {
               if (res.ok) {
                 anySuccess = true;
-                globalResolve!(res.response!);
+                const responseWithAttempt = new Response(res.response!.body, {
+                  status: res.response!.status,
+                  statusText: res.response!.statusText,
+                  headers: new Headers(res.response!.headers),
+                });
+                responseWithAttempt.headers.set("x-omniroute-attempt", String(globalAttempts));
+                globalResolve!(responseWithAttempt);
                 for (const [idx, ac] of abortControllers.entries()) {
                   if (idx !== i) ac.abort();
                 }
               } else if (res.response) {
                 // Fatal error, abort combo
                 anySuccess = true;
-                globalResolve!(res.response);
+                const responseWithAttempt = new Response(res.response.body, {
+                  status: res.response.status,
+                  statusText: res.response.statusText,
+                  headers: new Headers(res.response.headers),
+                });
+                responseWithAttempt.headers.set("x-omniroute-attempt", String(globalAttempts));
+                globalResolve!(responseWithAttempt);
               }
             }
           } finally {
@@ -2420,6 +2487,15 @@ async function handleRoundRobinCombo({
   clientManagedResponsesContext,
   relayOptions,
 }: HandleRoundRobinOptions): Promise<Response> {
+  // PR1 adaptive learning: quality signals forwarded to the adaptation layer.
+  // Round-robin has no auto-strategy target classification, so taskType is
+  // always unset here (only the "auto" strategy pipeline resolves one) —
+  // hasTools mirrors the same cheap, once-per-request body introspection used
+  // in handleComboChat.
+  const taskType: string | undefined = undefined;
+  const hasTools =
+    Array.isArray((body as { tools?: unknown } | undefined)?.tools) &&
+    ((body as { tools?: unknown[] }).tools?.length ?? 0) > 0;
   const config = settings
     ? resolveComboConfig(combo, settings)
     : { ...getDefaultComboConfig(), ...(combo.config || {}) };
@@ -2873,6 +2949,12 @@ async function handleRoundRobinCombo({
               fallbackCount,
               strategy: "round-robin",
               target: toRecordedTarget(target),
+              learning: {
+                taskType,
+                hasTools,
+                isEmptyResponse: true,
+                qualityFailure: true,
+              },
             });
             recordedAttempts++;
             // Fix #1707: Set terminal state so the fallback doesn't emit
@@ -2893,6 +2975,10 @@ async function handleRoundRobinCombo({
             fallbackCount,
             strategy: "round-robin",
             target: toRecordedTarget(target),
+            learning: {
+              taskType,
+              hasTools,
+            },
           });
           recordedAttempts++;
 

@@ -1209,6 +1209,7 @@
     "logsSubtitle": "Application logs",
     "logsProxySubtitle": "Proxy traffic logs",
     "consoleLogsSubtitle": "Console output",
+    "logsTimelineSubtitle": "Визуальная временная шкала запросов",
     "logsActivitySubtitle": "User activity log",
     "healthSubtitle": "System health check",
     "costsPricingSubtitle": "Per-model pricing rules",
@@ -1651,7 +1652,8 @@
     "settingsAdvancedDescription": "Advanced payload rules, request limits, and proxy API settings",
     "mitmProxyDescription": "Configure MITM proxy settings for traffic inspection and debugging",
     "oneProxyDescription": "Configure 1Proxy settings for advanced proxy chaining",
-    "omniSkillsDescription": "Установите и управляйте песочными навыками для автоматизированного выполнения запросов и инструментов"
+    "omniSkillsDescription": "Установите и управляйте песочными навыками для автоматизированного выполнения запросов и инструментов",
+    "logo": "OmniRoute"
   },
   "cloudSyncStatus": {
     "synced": "Синхронизировано",
@@ -2639,7 +2641,13 @@
     "sharedResult": "Общее",
     "overlapSummary": "{first} против {second}: {overlap} общего",
     "compareEmptyTitle": "Выберите провайдеров и введите запрос для сравнения",
-    "compareEmptyDescription": "Результаты будут показаны рядом друг с другом с указанием задержки, стоимости и совпадения URL"
+    "compareEmptyDescription": "Результаты будут показаны рядом друг с другом с указанием задержки, стоимости и совпадения URL",
+    "minChars": "Введите минимум {min} символа(ов)",
+    "agentId": "ID агента",
+    "agentName": "Имя агента",
+    "searchProviders": "Поиск провайдеров...",
+    "searchModels": "Поиск моделей...",
+    "searchEndpoints": "Поиск endpoint'ов..."
   },
   "cliTools": {
     "title": "Инструменты интерфейса командной строки",
@@ -3804,7 +3812,13 @@
     "noMatchingCostRows": "Нет подходящих строк затрат",
     "noMatchingCostRowsDescription": "Измените текст поиска, группировку или выбранное временное окно.",
     "showingCostRows": "Показано {shown} из {total} совпадающих строк.",
-    "showingTopCostRows": "Показано {shown} из {total} совпадающих строк (топ 50)."
+    "showingTopCostRows": "Показано {shown} из {total} совпадающих строк (топ 50).",
+    "spendRateComparisonTooltipHighSpend": "Аномальный скачок расхода: {rate} ({changePercent}% от нормы)",
+    "totalCostBreadcrumb": "Общая стоимость",
+    "providerCostShareBreadcrumb": "Доля провайдеров",
+    "providerSpendAnalysisBreadcrumb": "Анализ расходов",
+    "costByModelBreadcrumb": "По моделям",
+    "spendAnalysisBreadcrumb": "Анализ трат"
   },
   "endpoint": {
     "title": "Конечная точка API",
@@ -4103,6 +4117,17 @@
     "obsidianUsername": "Имя пользователя",
     "obsidianPassword": "Пароль",
     "obsidianTailscaleHint": "Используйте IP-адрес Tailscale вместо localhost при подключении с мобильного устройства. Оба устройства должны находиться в одной сети Tailscale.",
+    "settingsAudienceTtl": "TTL аудитории",
+    "settingsAudienceTtlDescription": "Как долго кэшировать соответствия audience → endpoint (в секундах)",
+    "settingsEndpointAudienceRefreshLimit": "Лимит обновления аудитории endpoint'а",
+    "settingsEndpointAudienceRefreshLimitDescription": "Максимальное количество переключений audience в минуту",
+    "settingsSourceHeader": "Заголовок источника",
+    "settingsSourceHeaderDescription": "HTTP заголовок, определяющий источник запроса (опционально)",
+    "apiManagementHelpTitle": "API к этому endpoint'у",
+    "apiManagementHelp": "Используйте эти заголовки и URL для подключения инструментов, таких как OpenCode, Cline, Continue и т.д.",
+    "apiManagementEndpointHint": "Пользовательский URL endpoint'а отображается перед авторизацией.",
+    "endpointMenuSaveAndContinue": "Сохранить и продолжить",
+    "sessionLimitReached": "Сессия достигла лимита",
     "cloudSyncNotConfigured": "Синхронизация с облаком не настроена на этом экземпляре.",
     "notionConnect": "Подключиться",
     "notionConnectFailed": "Не удалось подключиться",
@@ -9434,7 +9459,16 @@
     "updatedShort": "Обновлено",
     "lastRefreshed": "Последнее обновление",
     "providerQuota": "Квота Провайдера",
-    "providerQuotaHomeHint": "Живой статус по подключенным аккаунтам"
+    "providerQuotaHomeHint": "Живой статус по подключенным аккаунтам",
+    "tokensPerDay": "токенов/день",
+    "tokensPerMonth": "токенов/месяц",
+    "models": "модели",
+    "providers": "провайдеры",
+    "totalCostLabel": "Общая стоимость",
+    "totalTokensLabel": "Всего токенов",
+    "requestsLabel": "Запросы",
+    "costPerDay": "стоимость/день",
+    "costPerMonth": "стоимость/месяц"
   },
   "modals": {
     "waitingAuth": "Ожидание авторизации",
@@ -10402,7 +10436,10 @@
     "minutesAgo": "{minutes}м назад",
     "hoursAgo": "{hours}ч назад",
     "daysAgo": "{days}д назад",
-    "entries": "Записи"
+    "entries": "Записи",
+    "breadcrumb": "Кэш",
+    "statsBreadcrumb": "Статистика",
+    "configBreadcrumb": "Конфигурация"
   },
   "proxyConfigModal": {
     "levelGlobal": "Глобальный",
@@ -12706,7 +12743,8 @@
       "SKILLS_SANDBOX_NETWORK_ENABLED": {
         "description": "Enable network access in the skills sandbox."
       }
-    }
+    },
+    "ccDiscoveryAliasesEnvWarning": "Active via environment variable (EXPOSE_CC_DISCOVERY_ALIASES) — this overrides any dashboard toggle below."
   },
   "comboControl": {
     "title": "Combo Control Center",

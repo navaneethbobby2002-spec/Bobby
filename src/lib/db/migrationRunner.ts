@@ -487,6 +487,10 @@ function isSchemaAlreadyApplied(
       // but still burn a version-tracking slot mismatch — guard it the same
       // way as the other renumbers for consistency.
       return hasTable(db, "connection_runtime_state");
+    case "134":
+      // Combo adaptation state v2 rebuild (keyed on model_str). If the new
+      // per-model shape is already present, the rebuild ran — skip it.
+      return hasColumn(db, "combo_adaptation_state", "model_str");
     default:
       return false;
   }
