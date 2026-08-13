@@ -13624,5 +13624,6 @@
     "hint": "Cuando está habilitado, los modelos descubiertos aparecen en las selecciones de proveedores a través de OmniRoute.",
     "updateFailed": "Error al actualizar (HTTP {status})",
     "networkError": "Error de red: no se pudo actualizar la configuración de exposición del proveedor"
-  }
+  },
+  "featureFlagChatVirtualLanesEnabledDescription": "Enable per-tenant adaptive virtual admission lanes for provider dispatch (#9654): one tenant's burst no longer 503s another. The OMNIROUTE_CHAT_VIRTUAL_LANES env var wins over this dashboard override; changes take effect at server restart."
 }

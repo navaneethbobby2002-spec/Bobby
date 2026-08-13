@@ -13624,5 +13624,6 @@
     "hint": "இது செயல்படுத்தப்பட்டால், கண்டறியப்பட்ட மாதிரிகள் OmniRoute இல் வழங்குநர் தேர்வுகளில் தோன்றும்.",
     "updateFailed": "புதுப்பிக்க முடியவில்லை (HTTP {status})",
     "networkError": "நெட்வொர்க் பிழை — வழங்குநர் வெளிப்பாடு அமைப்பை புதுப்பிக்க முடியவில்லை"
-  }
+  },
+  "featureFlagChatVirtualLanesEnabledDescription": "Enable per-tenant adaptive virtual admission lanes for provider dispatch (#9654): one tenant's burst no longer 503s another. The OMNIROUTE_CHAT_VIRTUAL_LANES env var wins over this dashboard override; changes take effect at server restart."
 }

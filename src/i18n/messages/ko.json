@@ -13624,5 +13624,6 @@
     "hint": "활성화되면 발견된 모델이 OmniRoute 전역의 공급자 선택 목록에 나타납니다.",
     "updateFailed": "업데이트 실패 (HTTP {status})",
     "networkError": "네트워크 오류 — 공급자 노출 설정을 업데이트할 수 없습니다."
-  }
+  },
+  "featureFlagChatVirtualLanesEnabledDescription": "Enable per-tenant adaptive virtual admission lanes for provider dispatch (#9654): one tenant's burst no longer 503s another. The OMNIROUTE_CHAT_VIRTUAL_LANES env var wins over this dashboard override; changes take effect at server restart."
 }

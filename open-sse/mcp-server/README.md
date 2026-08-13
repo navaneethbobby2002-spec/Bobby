@@ -122,16 +122,16 @@ omniroute --mcp
 
 ### Phase 1: Essential Tools (8)
 
-| #   | Tool                            | Scopes                | Description                                                                |
-| --- | ------------------------------- | --------------------- | -------------------------------------------------------------------------- |
-| 1   | `omniroute_get_health`          | `read:health`         | Gateway health, uptime, memory, circuit breakers, rate limits, cache stats |
-| 2   | `omniroute_list_combos`         | `read:combos`         | List all combos (model chains) with strategies and optional metrics        |
-| 3   | `omniroute_get_combo_metrics`   | `read:combos`         | Performance metrics for a specific combo                                   |
-| 4   | `omniroute_switch_combo`        | `write:combos`        | Activate or deactivate a combo for routing                                 |
-| 5   | `omniroute_check_quota`         | `read:quota`          | Remaining API quota per provider with token health status                  |
-| 6   | `omniroute_route_request`       | `execute:completions` | Send a chat completion through intelligent routing                         |
-| 7   | `omniroute_cost_report`         | `read:usage`          | Cost report by period (session/day/week/month) with per-provider breakdown |
-| 8   | `omniroute_list_models_catalog` | `read:models`         | List all available models across providers with capabilities and pricing   |
+| #   | Tool                            | Scopes                | Description                                                                                         |
+| --- | ------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------- |
+| 1   | `omniroute_get_health`          | `read:health`         | Gateway health, uptime, memory, circuit breakers, rate limits, cache stats + adaptive lane pressure |
+| 2   | `omniroute_list_combos`         | `read:combos`         | List all combos (model chains) with strategies and optional metrics                                 |
+| 3   | `omniroute_get_combo_metrics`   | `read:combos`         | Performance metrics for a specific combo                                                            |
+| 4   | `omniroute_switch_combo`        | `write:combos`        | Activate or deactivate a combo for routing                                                          |
+| 5   | `omniroute_check_quota`         | `read:quota`          | Remaining API quota per provider with token health status                                           |
+| 6   | `omniroute_route_request`       | `execute:completions` | Send a chat completion through intelligent routing                                                  |
+| 7   | `omniroute_cost_report`         | `read:usage`          | Cost report by period (session/day/week/month) with per-provider breakdown                          |
+| 8   | `omniroute_list_models_catalog` | `read:models`         | List all available models across providers with capabilities and pricing                            |
 
 ### Phase 2: Advanced Tools (8)
 
@@ -172,6 +172,45 @@ MCP listable metadata descriptions are compressed at registration/list time when
 compression is enabled. `omniroute_compression_status` exposes those savings separately as
 `analytics.mcpDescriptionCompression` with `source: "mcp_metadata_estimate"`, so clients do not
 mistake metadata shrink estimates for provider token receipts.
+
+---
+
+### Adaptive Admission Lane Data
+
+`omniroute_get_health` includes an `adaptiveAdmission` block whenever the gateway's adaptive
+virtual-lane admission is active. It is a curated subset of the live admission snapshot:
+
+| Field              | Meaning                                                                |
+| ------------------ | ---------------------------------------------------------------------- |
+| `virtualLanes`     | Whether per-tenant virtual-lane admission is enabled                   |
+| `pressure`         | Current pressure state (e.g. `healthy`, `high`, `critical`)            |
+| `utilization`      | Current capacity utilization (0.0–1.0)                                 |
+| `laneCount`        | Number of live lanes                                                   |
+| `laneQueuedCount`  | Total requests queued across lanes                                     |
+| `laneQueuedCost`   | Total estimated cost queued across lanes                               |
+| `laneTenants`      | Top 10 lanes by queued cost (`tenantKey`, `queuedCount`, `queuedCost`) |
+| `admittedCount`    | Requests admitted since boot                                           |
+| `rejectedCount`    | Requests rejected since boot                                           |
+| `wouldRejectCount` | Requests that would be rejected under the current limit                |
+| `shutdown`         | Whether the admission runtime is shutting down                         |
+
+`tenantKey` is an opaque per-API-key derived identifier, never the raw key. The block is omitted
+entirely when the health endpoint reports no adaptive-admission data.
+
+### Skills & Tool Navigability
+
+The catalog rows above are a curated summary, not the full surface: they cover 29 of the 43 schema
+entries in `schemas/` (audit snapshot — expect drift as the catalog grows), and the authoritative
+full catalog lives in
+[`docs/frameworks/MCP-SERVER.md`](../../docs/frameworks/MCP-SERVER.md). The schema entries without a
+README row are the agent-skills group (`agent_skills_coverage` / `agent_skills_get` /
+`agent_skills_list`), the oneproxy group (`oneproxy_fetch` / `oneproxy_rotate` / `oneproxy_stats`),
+`web_fetch` / `web_search`, `tool_search`, `create_combo`, `set_routing_strategy`,
+`pick_fastest_model`, `sync_pricing`, and `db_health_check`.
+
+Agents never need the README to find these: `omniroute_tool_search` performs keyword search
+across the registered tool set and returns compact signatures (token-efficient discovery), so
+undiscovered capabilities stay discoverable at runtime.
 
 ---
 

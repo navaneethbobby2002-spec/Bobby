@@ -446,6 +446,18 @@ export const FEATURE_FLAG_DEFINITIONS: FeatureFlagDefinition[] = [
     warningLevel: "info",
   },
   {
+    key: "OMNIROUTE_CHAT_VIRTUAL_LANES",
+    label: "Adaptive Virtual Admission Lanes",
+    description:
+      "Enable per-tenant adaptive virtual admission lanes for provider dispatch (#9654): one tenant's burst no longer 503s another. The OMNIROUTE_CHAT_VIRTUAL_LANES env var wins over this dashboard override; changes take effect at server restart.",
+    descriptionI18nKey: "featureFlagChatVirtualLanesEnabledDescription",
+    category: "runtime",
+    defaultValue: "false",
+    type: "boolean",
+    requiresRestart: true,
+    warningLevel: "info",
+  },
+  {
     key: "EXPOSE_FUNCTIONAL_GATEWAY_MIRRORS",
     label: "Functional Gateway Mirrors",
     description:

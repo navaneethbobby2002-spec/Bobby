@@ -13624,5 +13624,6 @@
     "hint": "Khi được kích hoạt, các mô hình đã phát hiện sẽ xuất hiện trong các lựa chọn nhà cung cấp trên toàn bộ OmniRoute.",
     "updateFailed": "Cập nhật không thành công (HTTP {status})",
     "networkError": "Lỗi mạng — không thể cập nhật cài đặt hiển thị nhà cung cấp"
-  }
+  },
+  "featureFlagChatVirtualLanesEnabledDescription": "Enable per-tenant adaptive virtual admission lanes for provider dispatch (#9654): one tenant's burst no longer 503s another. The OMNIROUTE_CHAT_VIRTUAL_LANES env var wins over this dashboard override; changes take effect at server restart."
 }
