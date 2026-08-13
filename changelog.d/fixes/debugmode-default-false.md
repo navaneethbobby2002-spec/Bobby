@@ -1,0 +1,1 @@
+- **fix(settings):** default `debugMode` to false so installs without a persisted key are not in debug (`src/lib/db/settings.ts`)
