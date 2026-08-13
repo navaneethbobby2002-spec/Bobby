@@ -55,6 +55,7 @@ import {
   getCombosCacheVersion,
   getSessionAccountAffinity,
 } from "@/lib/localDb";
+import { dispatchChatWithAffinityEviction } from "./chatDispatch";
 import { resolveModelLockoutSettings } from "@/lib/resilience/modelLockoutSettings";
 import {
   ensureOpenAIStoreSessionFallback,
@@ -64,7 +65,6 @@ import { guardrailRegistry, resolveDisabledGuardrails } from "@/lib/guardrails";
 import {
   resolveModelOrError,
   checkPipelineGates,
-  executeChatWithBreaker,
   handleNoCredentials,
   safeResolveProxy,
   safeLogEvents,
@@ -1420,38 +1420,37 @@ async function handleSingleModelChat(
 
       // 4. Execute chat via core after breaker gate checks (with optional TLS tracking)
       if (telemetry) telemetry.startPhase("connect");
-      const dispatchClientRawRequest = resolveDispatchClientRawRequest(
-        clientRawRequest,
-        runtimeOptions.modelAbortSignal
+      const { result, tlsFingerprintUsed } = await dispatchChatWithAffinityEviction(
+        {
+          bypassCircuitBreaker: forceLiveComboTest || hasForcedConnection,
+          breaker,
+          body: requestBody,
+          provider,
+          model: effectiveModel,
+          refreshedCredentials,
+          proxyInfo,
+          appliedProxySink,
+          log,
+          clientRawRequest,
+          credentials,
+          apiKeyInfo,
+          userAgent,
+          comboName,
+          comboStrategy,
+          isCombo,
+          comboStepId: runtimeOptions.comboStepId ?? null,
+          comboExecutionKey: runtimeOptions.comboExecutionKey ?? runtimeOptions.comboStepId ?? null,
+          extendedContext,
+          modelApiFormat: apiFormat,
+          providerProfile,
+          cachedSettings: runtimeOptions.cachedSettings,
+          skipUpstreamRetry: runtimeOptions.skipUpstreamRetry ?? false,
+          correlationId: runtimeOptions?.correlationId ?? null,
+          modelPinned: runtimeOptions?.modelPinned ?? false,
+          routingComboId: runtimeOptions?.routingComboId ?? null,
+        },
+        runtimeOptions
       );
-      const { result, tlsFingerprintUsed } = await executeChatWithBreaker({
-        bypassCircuitBreaker: forceLiveComboTest || hasForcedConnection,
-        breaker,
-        body: requestBody,
-        provider,
-        model: effectiveModel,
-        refreshedCredentials,
-        proxyInfo,
-        appliedProxySink,
-        log,
-        clientRawRequest: dispatchClientRawRequest,
-        credentials,
-        apiKeyInfo,
-        userAgent,
-        comboName,
-        comboStrategy,
-        isCombo,
-        comboStepId: runtimeOptions.comboStepId ?? null,
-        comboExecutionKey: runtimeOptions.comboExecutionKey ?? runtimeOptions.comboStepId ?? null,
-        extendedContext,
-        modelApiFormat: apiFormat,
-        providerProfile,
-        cachedSettings: runtimeOptions.cachedSettings,
-        skipUpstreamRetry: runtimeOptions.skipUpstreamRetry ?? false,
-        correlationId: runtimeOptions?.correlationId ?? null,
-        modelPinned: runtimeOptions?.modelPinned ?? false,
-        routingComboId: runtimeOptions?.routingComboId ?? null,
-      });
       if (telemetry) telemetry.endPhase();
 
       const proxyLatency = Date.now() - proxyStartTime;
