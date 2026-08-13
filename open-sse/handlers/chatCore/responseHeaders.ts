@@ -28,6 +28,9 @@ const STREAMING_RESPONSE_HEADER_DENYLIST = new Set([
   "x-amz-security-token",
   "x-auth-token",
   "x-accel-buffering",
+  // 314-byte Codex session blob. It is not a client rate-limit signal and
+  // alone ate ~40% of the old 768-byte budget, evicting x-codex-*-used-percent.
+  "x-codex-turn-state",
 ]);
 
 /**
@@ -35,7 +38,7 @@ const STREAMING_RESPONSE_HEADER_DENYLIST = new Set([
  * This budget includes each header name, separator, value, and trailing CRLF. OmniRoute's own
  * response metadata and framework/security headers are added separately.
  */
-export const MAX_FORWARDED_UPSTREAM_RESPONSE_HEADER_BYTES = 768;
+export const MAX_FORWARDED_UPSTREAM_RESPONSE_HEADER_BYTES = 2048;
 const MAX_LOGGED_DROPPED_RESPONSE_HEADERS = 20;
 const responseHeaderEncoder = new TextEncoder();
 
@@ -64,6 +67,30 @@ function getForwardingPriority(headerName: string): number {
   }
   if (normalized === "retry-after") return 1;
   if (normalized.includes("ratelimit") || normalized.includes("rate-limit")) return 2;
+  // Codex quota / reset / credits do not contain "ratelimit" in the name,
+  // so they used to fall through to priority 3 and lose to date/csp/cf-ray.
+  if (
+    normalized.startsWith("x-codex-") &&
+    (normalized.includes("used-percent") ||
+      normalized.includes("reset") ||
+      normalized.includes("window") ||
+      normalized.includes("credits") ||
+      normalized.includes("over-secondary") ||
+      normalized.includes("plan-type"))
+  ) {
+    return 2;
+  }
+  if (
+    normalized === "date" ||
+    normalized === "vary" ||
+    normalized === "x-robots-tag" ||
+    normalized === "content-security-policy" ||
+    normalized.startsWith("cf-") ||
+    normalized.endsWith("-organization-id") ||
+    normalized.endsWith("-workspace-id")
+  ) {
+    return 4;
+  }
   return 3;
 }
 
