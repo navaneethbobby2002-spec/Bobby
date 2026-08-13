@@ -12,10 +12,18 @@
  * Auth rejection is NOT handled here and must stay in the caller: it depends on
  * live per-request state (dashboard cookie, API key) and must never be cached.
  */
+import { createHash } from "node:crypto";
+
 import { getModelCatalogCacheVersion } from "@/lib/db/readCache";
 import { extractApiKey } from "@/sse/services/auth";
 
 import { isCodexModelCatalogClient } from "./catalogRequest";
+
+/** Fingerprint an API key for the catalog memo Map. Never store the raw secret. */
+export function fingerprintCatalogAuthKey(apiKey: string): string {
+  if (!apiKey) return "";
+  return createHash("sha256").update(apiKey).digest("hex").slice(0, 16);
+}
 
 export type CachedCatalog = {
   body: string;
@@ -76,7 +84,7 @@ function buildCatalogCacheKey(request: Request): string {
   const apiKey = extractApiKey(request) || "";
   const isCodex = isCodexModelCatalogClient(request) ? "1" : "0";
   const configuredOnly = url.searchParams.get("configuredOnly") === "true" ? "1" : "0";
-  return `${prefix}|${isCodex}|${apiKey}|${configuredOnly}`;
+  return `${prefix}|${isCodex}|${fingerprintCatalogAuthKey(apiKey)}|${configuredOnly}`;
 }
 
 // Tracks the model-catalog cache version (src/lib/db/readCache.ts) as of the last
