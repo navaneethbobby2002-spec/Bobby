@@ -14,9 +14,8 @@ process.env.DATA_DIR = TEST_DATA_DIR;
 
 const core = await import("../../src/lib/db/core.ts");
 const { hashTurnContent } = await import("../../open-sse/services/conversationTracker.ts");
-const { resolveTurnDisplayContent } = await import(
-  "../../open-sse/services/conversationTurnContent.ts"
-);
+const { resolveTurnDisplayContent } =
+  await import("../../open-sse/services/conversationTurnContent.ts");
 
 test.after(() => {
   core.resetDbInstance();
