@@ -1701,11 +1701,6 @@
       "count": 43
     }
   },
-  "tests/unit/call-log-file-rotation.test.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 5
-    }
-  },
   "tests/unit/call-log-startup.test.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1

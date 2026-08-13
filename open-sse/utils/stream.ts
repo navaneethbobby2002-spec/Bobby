@@ -74,7 +74,6 @@ import {
   hasUnsupportedReasoningSignal,
 } from "./reasoningFields.ts";
 import { applyThinkTag, flushThink, initThinkState } from "./thinkTagParser.ts";
-import { sseCommentsEnabled } from "./sseHeartbeat.ts";
 import {
   caseInsensitiveToolNameLookup,
   restoreOpenAIToolNames,
@@ -1882,7 +1881,6 @@ export function createSSEStream(options: StreamOptions = {}) {
                     passthroughSawFinishReason = true;
                   }
 
-
                   if (isFinishChunk && passthroughHasToolCalls) {
                     toolFinishTime = now;
                     try {
@@ -2221,7 +2219,8 @@ export function createSSEStream(options: StreamOptions = {}) {
               },
               pushProviderPayload: (payload: unknown) => providerPayloadCollector.push(payload),
               pushClientPayload: (payload: unknown) => clientPayloadCollector.push(payload),
-              sanitizeUsagePayload: (payload: unknown) => sanitizeUsagePayloadForRequest(payload, body, clientResponseFormat),
+              sanitizeUsagePayload: (payload: unknown) =>
+                sanitizeUsagePayloadForRequest(payload, body, clientResponseFormat),
               setPassthroughResponsesId: (value: string) => {
                 passthroughResponsesId = value;
               },
@@ -2282,7 +2281,8 @@ export function createSSEStream(options: StreamOptions = {}) {
               const bufferedPayload = parseSSELine(bufferedLine);
               if (bufferedPayload) {
                 providerPayloadCollector.push(bufferedPayload);
-                if (sanitizeUsagePayloadForRequest(bufferedPayload, body, clientResponseFormat)) output = `data: ${JSON.stringify(bufferedPayload)}\n\n`;
+                if (sanitizeUsagePayloadForRequest(bufferedPayload, body, clientResponseFormat))
+                  output = `data: ${JSON.stringify(bufferedPayload)}\n\n`;
                 if (
                   shouldInjectClaudeEmptyResponseBeforeCurrentEvent(
                     claudeEmptyResponseLifecycle,
