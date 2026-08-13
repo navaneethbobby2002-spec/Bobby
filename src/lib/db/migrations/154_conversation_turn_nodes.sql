@@ -1,4 +1,4 @@
--- 155_conversation_turn_nodes.sql
+-- 154_conversation_turn_nodes.sql
 -- Per-turn hash-chain IDENTITY nodes backing a conversation's linear
 -- transcript (open-sse/services/conversationTracker.ts). Each row is one
 -- distinct turn instance, chained to its predecessor the same way a git
@@ -9,7 +9,7 @@
 -- duplicates a turn mid-history to keep provider-side prompt caches warm)
 -- becomes its OWN independent conversation instead (2026-08-06 — every
 -- OmniRoute conversation is a single straight line, it never forks; see
--- resolveConversationId's doc comment). See agentic_conversations (154) for
+-- resolveConversationId's doc comment). See agentic_conversations (153) for
 -- the conversation-root record; its last_message_count/last_messages_hash
 -- columns are superseded by this table and no longer written to.
 --
