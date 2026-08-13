@@ -536,6 +536,29 @@ test("syncModelsDev honors abort signals during retry backoff", async () => {
   }
 });
 
+test("MODELS_DEV_SYNC_ENABLED=0 kills init and getModelsDevPricing even when settings are on", async () => {
+  process.env.MODELS_DEV_SYNC_ENABLED = "0";
+  const modelsDev = await importFresh("env-kill-switch");
+  mockFetchWith(MOCK_MODELS_DEV_DATA);
+
+  const pricing = modelsDev.transformModelsDevToPricing(MOCK_MODELS_DEV_DATA);
+  modelsDev.saveModelsDevPricing(pricing);
+  assert.deepEqual(modelsDev.getModelsDevPricing(), {});
+
+  await settingsDb.updateSettings({
+    modelsDevSyncEnabled: true,
+    modelsDevSyncInterval: 15,
+  });
+  await modelsDev.initModelsDevSync();
+  assert.equal(modelsDev.getSyncStatus().enabled, false);
+  assert.equal(modelsDev.readModelsDevSyncEnvFlag("0"), "false");
+  assert.equal(modelsDev.readModelsDevSyncEnvFlag("false"), "false");
+  assert.equal(modelsDev.readModelsDevSyncEnvFlag("off"), "false");
+  assert.equal(modelsDev.readModelsDevSyncEnvFlag(""), "unset");
+  assert.equal(modelsDev.readModelsDevSyncEnvFlag("maybe"), "unset");
+  assert.equal(modelsDev.readModelsDevSyncEnvFlag("1"), "true");
+});
+
 test("startPeriodicSync, stopPeriodicSync, getSyncStatus, and initModelsDevSync honor settings and avoid duplicate timers", async () => {
   const modelsDev = await importFresh("periodic-sync");
   mockFetchWith(MOCK_MODELS_DEV_DATA);

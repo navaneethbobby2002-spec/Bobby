@@ -14,7 +14,11 @@
  *   3. LiteLLM sync (`pricing_synced` namespace)
  *   4. Hardcoded defaults (`pricing.ts`)
  *
- * Opt-in via MODELS_DEV_SYNC_ENABLED=true (default: false).
+ * Settings UI (`modelsDevSyncEnabled`) controls the periodic sync by default.
+ * `MODELS_DEV_SYNC_ENABLED=0|false|off|no` is a hard kill switch: it wins over
+ * the DB setting so an operator can recover a wedged process (dashboard /
+ * /healthz frozen on the same event loop — #10052) without the UI. Unset =
+ * honor settings. `1|true|on|yes` forces sync on even if the setting is off.
  */
 
 import { getDbInstance } from "./db/core";
@@ -75,6 +79,35 @@ const MODELS_DEV_API_URL = "https://models.dev/api.json";
 const parsedInterval = parseInt(process.env.MODELS_DEV_SYNC_INTERVAL || "86400", 10);
 const SYNC_INTERVAL_MS =
   Number.isFinite(parsedInterval) && parsedInterval > 0 ? parsedInterval * 1000 : 86400 * 1000;
+
+/** Parse MODELS_DEV_SYNC_ENABLED. Invalid / empty → unset (honor DB settings). */
+export function readModelsDevSyncEnvFlag(
+  value: string | undefined = process.env.MODELS_DEV_SYNC_ENABLED
+): "true" | "false" | "unset" {
+  if (value == null) return "unset";
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "") return "unset";
+  if (normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on") {
+    return "true";
+  }
+  if (
+    normalized === "0" ||
+    normalized === "false" ||
+    normalized === "no" ||
+    normalized === "off"
+  ) {
+    return "false";
+  }
+  return "unset";
+}
+
+export function isModelsDevSyncEnvDisabled(): boolean {
+  return readModelsDevSyncEnvFlag() === "false";
+}
+
+export function isModelsDevSyncEnvForcedOn(): boolean {
+  return readModelsDevSyncEnvFlag() === "true";
+}
 
 // ─── Periodic sync state ─────────────────────────────────
 
@@ -216,6 +249,12 @@ registerDbStateResetter(invalidateModelsDevPricingCache);
  * Results are memoized until `saveModelsDevPricing` / `clearModelsDevPricing`.
  */
 export function getModelsDevPricing(): PricingByProvider {
+  // Kill switch: skip the SQL + JSON.parse scan entirely so a leftover
+  // models_dev_pricing namespace cannot pin the event loop (#9685 / #10052).
+  if (isModelsDevSyncEnvDisabled()) {
+    return {};
+  }
+
   if (modelsDevPricingCache) {
     return modelsDevPricingCache;
   }
@@ -694,11 +733,16 @@ export function getSyncStatus(): SyncStatus {
  * Initialize models.dev sync if enabled.
  */
 export async function initModelsDevSync(): Promise<void> {
+  if (isModelsDevSyncEnvDisabled()) {
+    console.log("[MODELS_DEV] Disabled (MODELS_DEV_SYNC_ENABLED=0)");
+    return;
+  }
+
   const { getSettings } = await import("./localDb");
   const settings = await getSettings();
 
-  if (settings.modelsDevSyncEnabled !== true) {
-    console.log("[MODELS_DEV] Disabled (enable via Settings > AI)");
+  if (!isModelsDevSyncEnvForcedOn() && settings.modelsDevSyncEnabled !== true) {
+    console.log("[MODELS_DEV] Disabled (enable via Settings > AI or MODELS_DEV_SYNC_ENABLED=1)");
     return;
   }
 
