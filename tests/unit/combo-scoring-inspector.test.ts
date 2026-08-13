@@ -215,10 +215,13 @@ test("scoring inspector reports mode packs over explicit auto weights", async ()
 });
 
 test("scoring inspector reports valid explicit auto weights", async () => {
+  // Shift 0.05 from costInv to latencyInv so the override stays sum-normalized no matter
+  // what the DEFAULT_WEIGHTS values are (validateWeights requires sum ≈ 1.0 — the previous
+  // hardcoded override only summed to 1.0 against the pre-#8940 default values).
   const explicitWeights = {
     ...DEFAULT_WEIGHTS,
-    latencyInv: 0.2,
-    costInv: 0.07,
+    latencyInv: DEFAULT_WEIGHTS.latencyInv + 0.05,
+    costInv: DEFAULT_WEIGHTS.costInv - 0.05,
   };
   const combo = await combosDb.createCombo({
     name: "combo-scoring-explicit-weights",

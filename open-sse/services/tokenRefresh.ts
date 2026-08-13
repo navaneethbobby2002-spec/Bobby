@@ -7,9 +7,9 @@
 // cross-provider plumbing. The provider-module split was originally proposed
 // by KooshaPari in PR #7338, whose base was too old to merge as-is; this is an
 // independent implementation of the same idea against the current tip, not a
-// reuse of that diff. All previously-public exports are re-exported below so existing
+// reuse of that diff. Supported provider refresh exports are re-exported below so
 // importers (open-sse/index.ts, executors, src/sse/services/tokenRefresh.ts,
-// tests) are unaffected.
+// tests) keep a stable surface.
 import { AsyncLocalStorage } from "node:async_hooks";
 import { PROVIDERS } from "../config/constants.ts";
 import { runWithProxyContext } from "../utils/proxyFetch.ts";
@@ -38,7 +38,6 @@ import {
   getCircuitBreakerStatus,
   refreshWithRetry,
 } from "./tokenRefresh/circuitBreaker.ts";
-import { refreshWindsurfToken } from "./tokenRefresh/providers/windsurf.ts";
 import { refreshCodebuddyCnToken } from "./tokenRefresh/providers/codebuddyCn.ts";
 import { refreshClineToken } from "./tokenRefresh/providers/cline.ts";
 import { refreshKimiCodingToken } from "./tokenRefresh/providers/kimiCoding.ts";
@@ -55,7 +54,6 @@ import { refreshGitHubToken } from "./tokenRefresh/providers/github.ts";
 import { refreshCopilotToken } from "./tokenRefresh/providers/copilot.ts";
 
 export {
-  refreshWindsurfToken,
   refreshCodebuddyCnToken,
   refreshClineToken,
   refreshKimiCodingToken,
@@ -414,15 +412,6 @@ async function _getAccessTokenInternal(provider, credentials, log, proxyConfig: 
         proxyConfig
       );
 
-    case "windsurf":
-    case "devin-cli":
-      return await refreshWindsurfToken(
-        credentials.refreshToken,
-        credentials.providerSpecificData,
-        log,
-        proxyConfig
-      );
-
     case "codebuddy-cn":
       return await refreshCodebuddyCnToken(credentials.refreshToken, log, proxyConfig);
 
@@ -449,12 +438,11 @@ export function supportsTokenRefresh(provider) {
     "amazon-q",
     "cline",
     "kimi-coding",
-    "windsurf",
-    // #8407: do NOT list "devin-cli" here. It is import-token / local-CLI owned
-    // (`devin auth login`); connections never carry a refresh token. Leaving it
-    // in this set made tokenHealthCheck treat it as refresh-capable and force
-    // testStatus="expired" / errorCode="no_refresh_token". Keep it out of the
-    // explicit set (same idea as not listing non-refresh local-CLI providers).
+    // Devin auth is not refreshable here: devin-desktop accepts an imported API
+    // key (#8228), while devin-cli is local-CLI owned via `devin auth login`
+    // (#8407). Neither connection carries a refresh token, so listing either
+    // provider would make tokenHealthCheck force a healthy connection to
+    // testStatus="expired" / errorCode="no_refresh_token".
     "gitlab-duo",
     "codebuddy-cn",
   ]);

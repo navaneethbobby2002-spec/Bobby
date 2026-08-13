@@ -53,6 +53,9 @@ export const APIKEY_PROVIDERS_GATEWAYS = {
     color: "#8B5CF6",
     textIcon: "UR",
     passthroughModels: true,
+    hasFree: true,
+    freeNote:
+      "Models with the :free suffix do not debit balance; limit is 1 request/minute per free model per user.",
     website: "https://unorouter.ai",
     apiHint: "Create an API key at https://unorouter.ai, then paste it here as a Bearer token.",
   },
@@ -439,6 +442,37 @@ export const APIKEY_PROVIDERS_GATEWAYS = {
     apiHint:
       "Use https://api.oriper.com/v1 only after confirming the provider's current documentation, terms and key issuance. No quota is guaranteed by this catalog.",
   },
+  freeinference: {
+    id: "freeinference",
+    alias: "freeinference",
+    name: "FreeInference",
+    icon: "science",
+    color: "#8B5CF6",
+    textIcon: "FI",
+    passthroughModels: true,
+    website: "https://freeinference.org",
+    hasFree: true,
+    freeNote:
+      "Free research access without a card; non-Harvard applicants require manual approval and no numeric quota is publicly guaranteed.",
+    apiHint:
+      "Apply for a FreeInference key, then use https://freeinference.org/v1 as the OpenAI-compatible base URL. Terms allow prompt/response logging and possible publication of anonymized research data; never send sensitive or production data.",
+  },
+  "free-ai": {
+    id: "free-ai",
+    alias: "free-ai",
+    name: "Free.ai",
+    icon: "hub",
+    color: "#16A34A",
+    textIcon: "FA",
+    passthroughModels: true,
+    website: "https://free.ai",
+    hasFree: true,
+    freeNote:
+      "30,000 tokens/day cover self-hosted models after email verification. Usage beyond the pool can bill at raw cost, and premium external models are paid.",
+    apiHint:
+      "Create an sk-free- key, then use the nonstandard but OpenAI-shaped https://api.free.ai/v1/chat/ endpoint. Select a self-hosted zero-price model to stay within the free pool.",
+  },
+
   dgrid: {
     id: "dgrid",
     alias: "dgrid",
@@ -578,7 +612,8 @@ export const APIKEY_PROVIDERS_GATEWAYS = {
     textIcon: "DA",
     website: "https://inference.dahl.global",
     hasFree: true,
-    freeNote: "Free — MiniMax M2.7, Kimi K2.6. Click 'Add Account' to auto-generate a token, or add your own API key.",
+    freeNote:
+      "Free — MiniMax M2.7, Kimi K2.6. Click 'Add Account' to auto-generate a token, or add your own API key.",
     authHint: "Click 'Add Account' to auto-generate a token, or add a manual API key.",
     apiHint: "Auto-generate a token or paste your own API key.",
     apiKeyUrl: "https://inference.dahl.global/tokens",
@@ -587,20 +622,6 @@ export const APIKEY_PROVIDERS_GATEWAYS = {
     notice: {
       text: "Dahl auto-generates tokens via https://inference.dahl.global/tokens. No signup needed. Rate limits apply. You can also add your own API key.",
     },
-  },
-  puter: {
-    id: "puter",
-    alias: "pu",
-    name: "Puter AI",
-    icon: "cloud_circle",
-    color: "#6366F1",
-    textIcon: "PU",
-    website: "https://puter.com",
-    hasFree: true,
-    freeNote:
-      "500+ models (GPT-5, Claude Opus 4, Gemini 3 Pro, Grok 4, DeepSeek V3...) — Users pay via free Puter account",
-    passthroughModels: true,
-    authHint: "Get token at puter.com/dashboard → Copy Auth Token",
   },
   uncloseai: {
     id: "uncloseai",
@@ -1179,6 +1200,7 @@ export const APIKEY_PROVIDERS_GATEWAYS = {
     authHint: "Get your Regolo API key from regolo.ai, then paste it here as a Bearer token.",
     apiHint:
       "OpenAI-compatible endpoint at https://api.regolo.ai/v1 with dynamic model discovery (19 models).",
+  },
   "naga-ac": {
     id: "naga-ac",
     alias: "naga",
@@ -1192,22 +1214,36 @@ export const APIKEY_PROVIDERS_GATEWAYS = {
     freeNote:
       "Free models include Nemotron 3 Ultra (free) and Llama 3.3 70B Instruct (Free). Paid models require credits. Google/GitHub/Discord signup.",
     passthroughModels: true,
-    authHint:
-      "Get API key at naga.ac — Google/GitHub/Discord signup available.",
+    authHint: "Get API key at naga.ac — Google/GitHub/Discord signup available.",
   },
-  chatanywhere: {
-    id: "chatanywhere",
-    alias: "chtany",
-    name: "ChatAnywhere",
-    icon: "chat",
-    color: "#10B981",
-    textIcon: "CA",
-    website: "https://api.chatanywhere.tech",
+  "void-ai": {
+    id: "void-ai",
+    alias: "void-ai",
+    name: "Void AI",
+    icon: "science",
+    color: "#111827",
+    textIcon: "VA",
+    passthroughModels: true,
+    website: "https://voidai.app",
     hasFree: true,
     freeNote:
-      "Free tier: 5 req/day for GPT-5/4o/4.1, 30/day DeepSeek, 200/day gpt-4o-mini. Personal non-commercial use only — see chatanywhere/GPT_API_free. Requires GitHub-account-gated API key.",
+      "The public model catalog marks some models with a free plan requirement, but access is conditional and no numeric quota is confirmed.",
+    apiHint:
+      "Use https://api.voidai.app/v1 only after confirming authentication, account eligibility and terms. Treat this integration as experimental until the blocked documentation becomes public.",
+  },
+  helixmind: {
+    id: "helixmind",
+    alias: "helixmind",
+    name: "HelixMind",
+    icon: "hub",
+    color: "#4F46E5",
+    textIcon: "HM",
     passthroughModels: true,
-    authHint:
-      "Get free API key at api.chatanywhere.tech — requires GitHub account signup.",
+    website: "https://helixmind.online",
+    hasFree: false,
+    freeNote:
+      "Previously circulated 3 RPM/50 RPD and no-card claims were not confirmed during the 2026-08-02 audit; current quota and billing require account verification.",
+    apiHint:
+      "Create a helix- key and use https://helixmind.online/v1. OpenAI requests use Bearer authentication; the Anthropic-compatible messages endpoint accepts x-api-key.",
   },
 };

@@ -4,6 +4,7 @@
   "pages": [
     "ALIBABA-QWEN-PROVIDER-FAMILIES",
     "CLAUDE_WEB",
+    "CHATGPT_WEB",
     "AGENTROUTER",
     "ZED-DOCKER",
     "CURSOR-DOCKER"

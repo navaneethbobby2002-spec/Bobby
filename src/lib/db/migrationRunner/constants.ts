@@ -70,6 +70,95 @@ export const RENAMED_MIGRATION_COMPATIBILITY = [
     toName: "manifest_routing",
   },
   {
+    fromVersion: "123",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    fromVersion: "124",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    fromVersion: "125",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    fromVersion: "126",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    fromVersion: "127",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    fromVersion: "128",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    fromVersion: "131",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    // 133 collided with 133_call_logs_session_tag once that landed on release.
+    fromVersion: "133",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    // 135 and 136 are canonical release migrations now.
+    fromVersion: "135",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    fromVersion: "136",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    // 139 and 140 are occupied by CCR and connection runtime state.
+    fromVersion: "139",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    fromVersion: "140",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    // 143–145 are reserved for the stacked Radar migration series.
+    fromVersion: "143",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
+    // 144 was published by this PR before the Radar reservation landed.
+    fromVersion: "144",
+    fromName: "windsurf_to_devin_desktop",
+    toVersion: "151",
+    toName: "windsurf_to_devin_desktop",
+  },
+  {
     fromVersion: "134",
     fromName: "ccr_blocks",
     toVersion: "139",

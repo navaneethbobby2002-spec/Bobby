@@ -153,7 +153,7 @@ You can see the details of the request by clicking [Monitoring/Logs](http://loca
 - **[Auto-Combo Guide](./AUTO-COMBO-GUIDE.md)** — Let OmniRoute pick the best AI for you
 - **[Providers Guide](./PROVIDERS-GUIDE.md)** — Connect more providers (free and paid)
 - **[Free Tiers Guide](./FREE-TIERS-GUIDE.md)** — Get free AI with no credit card
-- **[Troubleshooting](./TROUBLESHOOTING.md)** — Fix common issues
+- **[Troubleshooting](../guides/TROUBLESHOOTING.md)** — Fix common issues
 
 ---
 
@@ -183,6 +183,6 @@ OmniRoute automatically skips failed providers and tries the next one. You don't
 
 ## Need Help?
 
-- **[Troubleshooting](./TROUBLESHOOTING.md)** — Common issues and fixes
+- **[Troubleshooting](../guides/TROUBLESHOOTING.md)** — Common issues and fixes
 - **[Discord](https://discord.gg/U47eFqAXCn)** — Community support
 - **[GitHub Issues](https://github.com/diegosouzapw/OmniRoute/issues)** — Report bugs

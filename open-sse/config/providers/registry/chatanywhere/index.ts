@@ -1,17 +1,12 @@
 import type { RegistryEntry } from "../../shared.ts";
+import { buildOpenAiCompatibleRegistryEntry } from "../../shared.ts";
 
-// ChatAnywhere (api.chatanywhere.tech) — OpenAI-compatible gateway from the
-// chatanywhere/GPT_API_free project (~38.7k GitHub stars). Requires GitHub-account-
-// gated API key. Free tier is for personal non-commercial use only.
-export const chatanywhereProvider: RegistryEntry = {
+// International endpoint; audited free access is limited to non-commercial use.
+export const chatanywhereProvider: RegistryEntry = buildOpenAiCompatibleRegistryEntry({
   id: "chatanywhere",
-  alias: "chtany",
-  format: "openai",
-  executor: "default",
-  baseUrl: "https://api.chatanywhere.tech/v1/chat/completions",
-  modelsUrl: "https://api.chatanywhere.tech/v1/models",
-  authType: "apikey",
-  authHeader: "bearer",
-  passthroughModels: true,
+  alias: "chatanywhere",
+  baseUrl: "https://api.chatanywhere.org/v1/chat/completions",
+  modelsUrl: "https://api.chatanywhere.org/v1/models",
   models: [],
-};
+  passthroughModels: true,
+});

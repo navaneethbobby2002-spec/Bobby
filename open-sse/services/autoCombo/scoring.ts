@@ -43,20 +43,20 @@ export interface ScoringWeights {
 }
 
 export const DEFAULT_WEIGHTS: ScoringWeights = {
-  quota: 0.15,
-  health: 0.2,
-  costInv: 0.15,
-  latencyInv: 0.12,
-  taskFit: 0.08,
-  stability: 0.05,
-  tierPriority: 0.05,
-  tierAffinity: 0.05,
-  specificityMatch: 0.05,
-  contextAffinity: 0.05,
+  quota: 0.1429,
+  health: 0.1905,
+  costInv: 0.1429,
+  latencyInv: 0.1143,
+  taskFit: 0.0762,
+  stability: 0.0476,
+  tierPriority: 0.0476,
+  tierAffinity: 0.0476,
+  specificityMatch: 0.0476,
+  contextAffinity: 0.0476,
   cacheAffinity: 0,
-  sessionAvailability: 0.05,
+  sessionAvailability: 0.0476,
   resetWindowAffinity: 0,
-  connectionDensity: 0.05,
+  connectionDensity: 0.0476,
 };
 
 /** Normalize independently configured UI weights into a scoring distribution. */

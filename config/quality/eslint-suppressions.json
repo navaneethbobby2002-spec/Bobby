@@ -34,11 +34,6 @@
       "count": 7
     }
   },
-  "open-sse/executors/puter.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 4
-    }
-  },
   "open-sse/executors/t3-chat-web.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 11
@@ -408,11 +403,6 @@
       "count": 1
     }
   },
-  "src/app/api/combos/[id]/route.ts": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
   "src/app/api/combos/reorder/route.ts": {
     "no-restricted-imports": {
       "count": 1
@@ -559,11 +549,6 @@
     }
   },
   "src/app/api/providers/[id]/login/route.ts": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "src/app/api/providers/[id]/models/discovery/providerModelsConfig.ts": {
     "no-restricted-imports": {
       "count": 1
     }
@@ -1793,7 +1778,7 @@
   },
   "tests/unit/chatcore-translation-paths.test.ts": {
     "@typescript-eslint/no-explicit-any": {
-      "count": 34
+      "count": 31
     }
   },
   "tests/unit/chatgpt-web-tools-5240.test.ts": {

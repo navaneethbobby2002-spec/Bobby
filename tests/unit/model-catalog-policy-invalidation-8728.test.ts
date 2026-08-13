@@ -159,7 +159,8 @@ test("quota pools and quota-group renames signal model-catalog invalidation as e
   assert.equal(catalogVersion(), version + 1);
 
   version = catalogVersion();
-  assert.equal(quotaPools.deletePool(pool.id), true);
+  // deletePool became async in #8906 (managed-combo cleanup on pool deletion).
+  assert.equal(await quotaPools.deletePool(pool.id), true);
   assert.equal(catalogVersion(), version + 1);
 });
 
@@ -171,7 +172,8 @@ test("deletePool clears primed key metadata after allowed_quotas rewrite", async
   const before = await apiKeys.getApiKeyMetadata(key.key);
   assert.deepEqual(before?.allowedQuotas, [pool.id]);
 
-  assert.equal(quotaPools.deletePool(pool.id), true);
+  // deletePool became async in #8906 (managed-combo cleanup on pool deletion).
+  assert.equal(await quotaPools.deletePool(pool.id), true);
 
   const after = await apiKeys.getApiKeyMetadata(key.key);
   assert.deepEqual(after?.allowedQuotas, [], "allowed_quotas cache must reflect direct rewrite");

@@ -758,7 +758,12 @@ test("getProviderCredentials intersects forcedConnectionId with allowedConnectio
     }
   );
 
-  assert.equal(selected, null);
+  // #8893: a forced pin outside the eligible pool is DROPPED (not honored) so a
+  // stale reset-aware pin cannot brick the request — selection falls back to the
+  // policy-allowed pool. The policy-blocked connection must never be selected.
+  assert.equal(selected.connectionId, allowedConn.id);
+  assert.equal(selected.apiKey, "sk-allowed");
+  assert.notEqual(selected.connectionId, blockedConn.id);
 });
 
 test("getProviderCredentials retains rate-limited accounts when allowSuppressedConnections is enabled", async () => {

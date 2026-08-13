@@ -263,7 +263,17 @@ test("CodeBuddyCnExecutor retries a sensitive-content rejection with compact too
 
   assert.equal(status, 200);
   assert.equal(calls.length, 2, "known rejection should dispatch exactly one compact retry");
-  assert.deepEqual(calls[0].body.tools, input.tools, "the first request must remain unchanged");
+  // #9723 (55c2b35eb7): transformRequest now proactively strips descriptions from
+  // oversized (>=64KB) tool payloads BEFORE the first dispatch, so the first
+  // request already ships compact tools — it is no longer sent unchanged.
+  const firstTools = calls[0].body.tools as ToolDefinition[];
+  assert.deepEqual(
+    firstTools.map((tool) => tool.function.name),
+    ["read_file", "run_workflow"],
+    "the first request must preserve tool order and names"
+  );
+  assert.equal("description" in firstTools[0].function, false);
+  assert.equal("description" in firstTools[1].function, false);
 
   const retryTools = calls[1].body.tools as ToolDefinition[];
   assert.deepEqual(
@@ -287,13 +297,41 @@ test("CodeBuddyCnExecutor retries a sensitive-content rejection with compact too
   }
 });
 
-test("CodeBuddyCnExecutor sends successful tool requests once without compacting them", async () => {
+test("CodeBuddyCnExecutor sends successful oversized tool requests once, proactively compacted (#9723)", async () => {
   const input = toolRequestBody();
   const { calls, status } = await executeWithMockedUpstream(input, [successResponse()]);
 
   assert.equal(status, 200);
+  assert.equal(calls.length, 1, "a successful request must not trigger the rejection retry");
+  // #9723: >=64KB of tool metadata is stripped up-front to dodge the content
+  // filter — names, order and parameter schemas survive; descriptions do not.
+  const sentTools = calls[0].body.tools as ToolDefinition[];
+  assert.deepEqual(
+    sentTools.map((tool) => tool.function.name),
+    ["read_file", "run_workflow"]
+  );
+  assert.equal("description" in sentTools[0].function, false);
+  assert.equal("description" in sentTools[1].function, false);
+  assert.deepEqual(
+    sentTools.map((tool) => tool.function.parameters),
+    (input.tools as ToolDefinition[]).map((tool) => tool.function.parameters)
+  );
+});
+
+test("CodeBuddyCnExecutor sends normal-sized tool requests once and unchanged", async () => {
+  const input = toolRequestBody();
+  for (const tool of input.tools as ToolDefinition[]) {
+    tool.function.description = "A normal-sized tool description";
+  }
+  const { calls, status } = await executeWithMockedUpstream(input, [successResponse()]);
+
+  assert.equal(status, 200);
   assert.equal(calls.length, 1);
-  assert.deepEqual(calls[0].body.tools, input.tools);
+  assert.deepEqual(
+    calls[0].body.tools,
+    input.tools,
+    "sub-64KB tool payloads must pass through untouched"
+  );
 });
 
 test("CodeBuddyCnExecutor does not retry the rejection without tools", async () => {

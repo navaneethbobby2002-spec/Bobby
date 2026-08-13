@@ -129,9 +129,33 @@ function buildTestInput(connection, apiKey) {
 }
 
 async function runProviderTest(db, connection) {
+  // Only API-key connections can be probed with a stored credential. OAuth /
+  // no-auth connections have nothing for testProviderApiKey() to send, and
+  // getProviderApiKey() throws for them by design — reporting that as a FAILED
+  // test marked perfectly healthy OAuth connections as broken *and* persisted
+  // that verdict to provider_connections.test_status.
+  if (connection.authType !== "apikey") {
+    return {
+      connection: publicConnection(connection),
+      valid: false,
+      skipped: true,
+      error: `No API-key probe for ${connection.authType || "unknown"} connections`,
+    };
+  }
+
   try {
     const apiKey = getProviderApiKey(connection);
     const result = await testProviderApiKey(buildTestInput(connection, apiKey));
+    // PROVIDER_TEST_CONFIGS only knows a handful of providers; "unsupported"
+    // means the CLI has no probe recipe, not that the provider is unhealthy.
+    // Persisting it would overwrite a good test_status with a failure.
+    if (result.unsupported) {
+      return {
+        connection: publicConnection(connection),
+        ...result,
+        skipped: true,
+      };
+    }
     updateProviderTestResult(db, connection.id, result);
     return {
       connection: publicConnection(connection),

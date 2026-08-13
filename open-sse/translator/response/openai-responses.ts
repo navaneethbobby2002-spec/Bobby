@@ -528,9 +528,21 @@ function emitToolCall(state, emit, tc) {
 
   // Custom tools are surfaced as custom_tool_call items and stream raw input instead of the
   // function_call_arguments.* events used for regular function tools. (#1007)
+  //
+  // apply_patch defaults to custom (native Codex CLI convention: the model emits it
+  // without the client ever declaring it as a tool) UNLESS the client's own request
+  // explicitly declared it with a `parameters` JSON schema — i.e. as a plain
+  // `type:"function"` tool (state.toolSchemas, populated from body.tools by
+  // extractToolSchemaMap()). Live incident: a client that registers apply_patch as a
+  // function tool and only implements function_call dispatch never recognized the
+  // custom_tool_call item this produced, so the tool call was silently never executed
+  // and no follow-up request ever carried a result back. PR #7905 already intended this
+  // precedence ("...while preserving explicit function-tool precedence") but its
+  // unconditional `toolName === "apply_patch"` OR never actually implemented the carve-out.
   const toolName = state.funcNames[tcIdx] || funcName || "";
   const isCustomTool =
-    toolName === "apply_patch" || state.customToolNames?.has?.(toolName) === true;
+    (toolName === "apply_patch" && !state.toolSchemas?.has?.(toolName)) ||
+    state.customToolNames?.has?.(toolName) === true;
 
   if (!state.funcCallIds[tcIdx] && newCallId) state.funcCallIds[tcIdx] = newCallId;
   const callId = state.funcCallIds[tcIdx];
@@ -597,8 +609,11 @@ function closeToolCall(state, emit, idx, recordAsCompleted = true) {
     const normalizedIndex = toolCallOutputIndexBase(state) + normalizeOutputIndex(idx);
     const args = state.funcArgsBuf[idx] || "{}";
     const toolName = state.funcNames[idx] || "";
+    // See emitToolCall()'s isCustomTool comment — must stay in sync (both compute the
+    // same classification independently for their respective add/close call sites).
     const isCustomTool =
-      toolName === "apply_patch" || state.customToolNames?.has?.(toolName) === true;
+      (toolName === "apply_patch" && !state.toolSchemas?.has?.(toolName)) ||
+      state.customToolNames?.has?.(toolName) === true;
 
     let funcItem;
     if (isCustomTool) {

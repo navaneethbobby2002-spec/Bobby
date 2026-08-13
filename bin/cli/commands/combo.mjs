@@ -152,6 +152,7 @@ export async function runComboListCommand(opts = {}) {
     return await withRuntime(async ({ kind, api, db }) => {
       let combos = [];
       let activeCombo = null;
+      let listError = null;
 
       if (kind === "http") {
         const [listRes, activeRes] = await Promise.all([
@@ -161,6 +162,12 @@ export async function runComboListCommand(opts = {}) {
         if (listRes.ok) {
           const data = await listRes.json();
           combos = Array.isArray(data) ? data : (data.combos ?? []);
+        } else {
+          // The server answered, but not with a combo list. Falling through to
+          // an empty array here rendered "No combos configured" — which is
+          // indistinguishable from genuine emptiness and reads as real state,
+          // so a transport/auth failure looked like a wiped configuration.
+          listError = listRes.status;
         }
         if (activeRes.ok) {
           const settings = await activeRes.json();
@@ -171,11 +178,25 @@ export async function runComboListCommand(opts = {}) {
       }
 
       if (opts.json || opts.output === "json") {
-        console.log(JSON.stringify({ combos, active: activeCombo }, null, 2));
-        return 0;
+        console.log(
+          JSON.stringify(
+            { combos, active: activeCombo, error: listError && `HTTP ${listError}` },
+            null,
+            2
+          )
+        );
+        return listError ? 1 : 0;
       }
 
       printHeading(t("combo.title"));
+      if (listError) {
+        console.error(
+          t("common.error", {
+            message: `could not list combos from the server (HTTP ${listError})`,
+          })
+        );
+        return 1;
+      }
       if (combos.length === 0) {
         console.log(t("combo.noCombos"));
         return 0;

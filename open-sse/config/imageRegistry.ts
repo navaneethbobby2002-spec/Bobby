@@ -136,6 +136,17 @@ function resolveImageModelAlias(modelStr) {
   return alias ? { provider: alias.provider, model: alias.model } : null;
 }
 
+// A bare alias may only rewrite a provider-prefixed model when it stays on the
+// SAME provider (e.g. `antigravity/gemini-3.1-flash-image-preview` →
+// antigravity's callable `gemini-3.1-flash-image`). A cross-provider bare alias
+// must NOT override an explicit prefix — #9982 removed the unconditional bare
+// fallback because `fal-ai/flux-2-max` was being hijacked to black-forest-labs
+// by the bare `flux-2-max` alias.
+function resolveSameProviderBareAlias(providerId, model) {
+  const aliased = resolveImageModelAlias(model);
+  return aliased && aliased.provider === providerId ? aliased : null;
+}
+
 function findImageModelConfig(providerId, modelId) {
   const provider = IMAGE_PROVIDERS[providerId];
   if (!provider) return null;
@@ -527,8 +538,11 @@ export const IMAGE_PROVIDERS: Record<string, ImageProviderConfig> = {
       { id: "bytedance/seedream/v4.5/text-to-image", name: "SeeDream V4.5" },
       { id: "bytedance/dreamina/v3.1/text-to-image", name: "Dreamina V3.1" },
       { id: "ideogram/v3", name: "Ideogram V3" },
-      { id: "nano-banana-pro", name: "Nano Banana Pro" },
-      { id: "nano-banana-2", name: "Nano Banana 2" },
+      // Prefix-only on purpose: adobe-firefly owns the bare nano-banana ids
+      // (operator decision 2026-07-31, pinned by cheaperinference-image-models
+      // guard). The dispatch path tolerates the fal-ai/ prefix (fal.ts).
+      { id: "fal-ai/nano-banana-pro", name: "Nano Banana Pro" },
+      { id: "fal-ai/nano-banana-2", name: "Nano Banana 2" },
       { id: "recraft/v4/pro/text-to-image", name: "Recraft V4 Pro via Fal" },
       { id: "recraft/v4/text-to-image", name: "Recraft V4 via Fal" },
       { id: "stable-diffusion-v35-medium", name: "Stable Diffusion v3.5 Medium" },
@@ -852,13 +866,17 @@ export function parseImageModel(modelStr) {
   for (const [providerId, config] of Object.entries(IMAGE_PROVIDERS)) {
     if (modelStr.startsWith(providerId + "/")) {
       const model = modelStr.slice(providerId.length + 1);
-      const aliased = resolveImageModelAlias(`${providerId}/${model}`);
+      const aliased =
+        resolveImageModelAlias(`${providerId}/${model}`) ||
+        resolveSameProviderBareAlias(providerId, model);
       return aliased || { provider: providerId, model };
     }
     // Check alias if available
     if (config.alias && modelStr.startsWith(config.alias + "/")) {
       const model = modelStr.slice(config.alias.length + 1);
-      const aliased = resolveImageModelAlias(`${providerId}/${model}`);
+      const aliased =
+        resolveImageModelAlias(`${providerId}/${model}`) ||
+        resolveSameProviderBareAlias(providerId, model);
       return aliased || { provider: providerId, model };
     }
   }

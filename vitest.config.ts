@@ -40,7 +40,6 @@ export default defineConfig({
       "tests/e2e/protocol-clients.test.ts",
       // ── Pre-existing failures tracked by #8618 ───────────────────────────────
       "open-sse/services/autoCombo/__tests__/providerDiversity.test.ts", // #8618 — pre-existing failure; remove this exclusion when fixed
-      "tests/unit/ui/kimiSponsorBanner.test.tsx", // #8618 — pre-existing failure; remove this exclusion when fixed
       "tests/unit/ui/compareView.test.tsx", // #8618 — pre-existing failure; remove this exclusion when fixed
       "tests/unit/ui/model-select-modal-keep-open.test.tsx", // #8618 — pre-existing failure; remove this exclusion when fixed
       "tests/unit/ui/model-select-field-6540.test.tsx", // #8618 — pre-existing failure; remove this exclusion when fixed

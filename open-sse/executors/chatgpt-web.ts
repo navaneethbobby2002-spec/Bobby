@@ -441,7 +441,7 @@ function configuredProPollIntervalMs(): number {
 
 async function setUserThinkingEffort(
   modelSlug: string,
-  effort: "standard" | "extended",
+  effort: "standard" | "extended" | "max",
   accessToken: string,
   accountId: string | null,
   sessionId: string,
@@ -984,7 +984,7 @@ function buildConversationBody(
     // chatgpt.com history. Disable Temporary Chat only when ChatGPT needs a
     // durable image conversation (image generation/editing).
     persistConversation: boolean;
-    thinkingEffort: "standard" | "extended" | null;
+    thinkingEffort: "standard" | "extended" | "max" | null;
     continuation?: ChatGptImageConversationContext | null;
   }
 ): Record<string, unknown> {

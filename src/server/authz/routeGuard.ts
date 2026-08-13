@@ -89,6 +89,7 @@ export const LOCAL_ONLY_API_PREFIXES: ReadonlyArray<string> = [
  *     gated, matching the `/login` precedent's narrow-scoping rationale.
  */
 export const LOCAL_ONLY_API_PATTERNS: ReadonlyArray<RegExp> = [
+  /^\/api\/providers\/[^/]+\/login\/?$/,
   /^\/api\/providers\/[^/]+\/refresh-cursor\/?$/,
   /^\/api\/providers\/[^/]+\/chatgpt-web-codex-doctor\/?$/,
 ];

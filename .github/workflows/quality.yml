@@ -266,6 +266,15 @@ jobs:
           echo "::group::check:dashboard-typecheck"
           npm run check:dashboard-typecheck || failed+=("check:dashboard-typecheck")
           echo "::endgroup::"
+          # #10134: TS7 zero-new-diagnostics ratchet — folded into this non-fail-fast
+          # loop (never a separate blocking step) so an earlier red gate cannot abort
+          # the job and mask it (#8542 mechanism). PR-only: the base-relative
+          # comparison needs the PR base SHA (empty on workflow_dispatch).
+          if [ -n "${PR_BASE_SHA:-}" ]; then
+            echo "::group::check:ts7-diagnostics-ratchet"
+            npm run check:ts7-diagnostics-ratchet -- --base-ref "$PR_BASE_SHA" || failed+=("ts7-diagnostics-ratchet")
+            echo "::endgroup::"
+          fi
           if (( ${#failed[@]} )); then
             printf '::error::%d gate(s) failed: %s\n' "${#failed[@]}" "${failed[*]}"
             exit 1
@@ -275,13 +284,16 @@ jobs:
       # arrives in 7.1, so typescript-eslint / type-coverage / Stryker stay on 6.x
       # (the hybrid is the officially documented pattern). Isolated npx on purpose:
       # installing an alias package could collide node_modules/.bin/tsc with 6.x.
-      # Promote to the blocking gate after ~1 week of parity with the step above.
+      # The full result stays advisory while #8484 has a backlog. The blocking
+      # base-relative ratchet (folded into the non-fail-fast gates step above)
+      # rejects only diagnostics added by the PR, so existing release debt does
+      # not block unrelated work.
       - name: Typecheck (core) — TS7 native shadow (advisory)
         continue-on-error: true
         run: |
           RC=0
           START=$(date +%s)
-          npx -y -p typescript@7 tsc --pretty false -p tsconfig.typecheck-core.json || RC=$?
+          npm exec --yes --package=typescript@7.0.2 -- tsc --pretty false -p tsconfig.typecheck-core.json || RC=$?
           echo "[ts7-shadow] exit=$RC elapsed=$(( $(date +%s) - START ))s — the 6.x step above stays authoritative"
           exit $RC
       # TIA: build the impact map at runtime (gitignored, ~21MB) and run only the

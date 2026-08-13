@@ -91,6 +91,12 @@ const IGNORE_FROM_CODE = new Set([
   // CI providers (set by the runner).
   "GITHUB_BASE_REF",
   "GITHUB_BASE_SHA",
+  // Set by the Actions runner; the ts7 ratchet appends its job summary there
+  // (scripts/check/check-ts7-diagnostics-ratchet.mjs) — never OmniRoute runtime config (#9985).
+  "GITHUB_STEP_SUMMARY",
+  // Same class as BASE_REF: CI passes the PR base ref to the ts7 diagnostics ratchet
+  // (scripts/check/check-ts7-diagnostics-ratchet.mjs) — a check signal, not runtime config (#9985).
+  "TS7_BASE_REF",
   // CI passes BASE_REF=${{ github.base_ref }} to the OpenAPI breaking-change gate
   // (scripts/check/check-openapi-breaking.mjs) — a build/check signal, not OmniRoute runtime config.
   "BASE_REF",

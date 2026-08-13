@@ -382,6 +382,8 @@ Controls how OmniRoute discovers and launches CLI sidecars (Claude Code, Codex, 
 | `CLI_QODER_BIN`           | `qoder`     | `src/shared/services/cliRuntime.ts`                 | Custom path to Qoder CLI binary.                                                                                                                                               |
 | `CLI_QWEN_BIN`            | `qwen`      | `src/shared/services/cliRuntime.ts`                 | Custom path to the Qwen Code CLI binary.                                                                                                                                       |
 | `CLI_DEVIN_BIN`           | `devin`     | `open-sse/executors/devin-cli.ts`                   | Custom path to the Devin CLI binary (v3.8.0). Used by the Windsurf/Devin executor.                                                                                             |
+| `DEVIN_DESKTOP_VERSION`   | `3.6.27`    | `open-sse/executors/devin-desktop.ts`               | Devin Desktop `ide_version`. Overrides must use `x.y.z` format; invalid values fall back to the verified default.                                                            |
+| `DEVIN_DESKTOP_EXTENSION_VERSION` | `1.48.2` | `open-sse/executors/devin-desktop.ts`                | Bundled Codeium/language-server `extension_version`, distinct from Desktop `ide_version`. Overrides must use `x.y.z`; invalid values use the bundled default.                 |
 | `CLI_DEVIN_AGENTIC_BIN`   | `devin`     | `open-sse/executors/devin-cli-agentic.ts`           | Agentic bridge-only Devin CLI override. The executor accepts only the local ACP stdio upstream.                                                                               |
 | `DEVIN_AGENTIC_HOME`      | _(required)_ | `open-sse/executors/devin-cli-agentic.ts`           | Absolute isolated home for the agentic Devin subprocess; accepted bridge paths are `/home/bridge` and task-local `.sandbox` paths.                                            |
 | `DEVIN_AGENTIC_ACP_TIMEOUT_MS` | `120000` | `open-sse/executors/devin-cli-agentic.ts`           | Maximum duration of one Devin ACP turn before the bridge terminates the child and returns an explicit timeout.                                                                |
@@ -507,7 +509,6 @@ Built-in credentials for **localhost development**. For remote deployments, regi
 | `ANTIGRAVITY_OAUTH_CLIENT_SECRET` | Antigravity (Google)    | —                                                                                                                                                                                                                                               |
 | `GITHUB_OAUTH_CLIENT_ID`          | GitHub Copilot          | Public client.                                                                                                                                                                                                                                  |
 | `GHE_COPILOT_OAUTH_CLIENT_ID`     | GHE Copilot             | Optional override for GitHub Enterprise Copilot's OAuth client id. Falls back to `GITHUB_OAUTH_CLIENT_ID`'s public default when unset.                                                                                                          |
-| `WINDSURF_FIREBASE_API_KEY`       | Windsurf / Devin (v3.8) | Public Firebase Web API key used by Windsurf's Secure Token Service to refresh short-lived browser-flow tokens. Client-side credential (not a secret). Long-lived import tokens skip this entirely. Source: extracted from Devin CLI binary.    |
 | `WINDSURF_API_KEY`                | Windsurf / Devin (v3.8) | API key fallback used by `open-sse/executors/devin-cli.ts` when no per-connection credential is available. Optional.                                                                                                                            |
 | `CLI_DEVIN_BIN`                   | Devin CLI (v3.8)        | Custom path to the Devin CLI binary (`devin`). Resolved by `open-sse/executors/devin-cli.ts`.                                                                                                                                                   |
 | `GITLAB_DUO_OAUTH_CLIENT_ID`      | GitLab Duo (v3.8)       | OAuth client ID for GitLab Duo. Register an app at `https://gitlab.com/-/profile/applications` with redirect URI `<NEXT_PUBLIC_BASE_URL>/callback` and scopes `api, read_user, openid, profile, email`. Falls back to `GITLAB_OAUTH_CLIENT_ID`. |
@@ -752,6 +753,7 @@ The logging system writes to both stdout and rotated log files. All configuratio
 | `CHAT_LOG_ARRAY_TAIL_ITEMS`               | `128`                      | Number of array items retained from the tail when truncating chat log payloads.   |
 | `CHAT_LOG_MAX_DEPTH`                      | `6`                        | Max nesting depth before chat log payloads are truncated.                         |
 | `CHAT_LOG_MAX_OBJECT_KEYS`                | `80`                       | Max object keys retained in chat log payloads (0 = unlimited).                    |
+| `CHAT_LOG_MAX_BODY_KB`                    | `1024`                     | Whole request/response body size (KB) before it's replaced by a bare summary instead of the full clone. Raise this if long agentic conversations show a placeholder instead of the real messages in the dashboard. |
 | `CHAT_DEBUG_FILE`                         | `false`                    | When true, `serializeArtifactForStorage` skips size-based truncation. Debug only. |
 
 ---
@@ -1014,6 +1016,7 @@ changing them requires a code edit, not an env var:
 | `CURSOR_TOKEN`                   | _(unset)_           | `scripts/ad-hoc/cursor-tap.cjs`            | Direct Cursor bearer token used by developer tooling.                                        |
 | `OMNIROUTE_LOG_REQUEST_SHAPE`    | disabled (opt-in via `"1"`) | `src/app/api/v1/chat/completions/route.ts` | Log content-type/length markers for large chat payloads when `"1"` is set. Off by default to reduce log noise. |
 | `DEBUG_RESPONSES_SSE_TO_JSON`    | _(unset)_           | `open-sse/handlers/responseTranslator.ts`  | Set `true` to log Responses API SSE→JSON translation details.                                |
+| `DEBUG_CLAUDE_NONSTREAM`         | _(unset)_           | `open-sse/handlers/responseTranslator.ts`  | Set `true` to surface empty textContent chunks in the Claude response translation path (debug only). |
 | `NEXT_PUBLIC_OMNIROUTE_E2E_MODE` | _(unset)_           | E2E test harness                           | Set `true` to enable E2E test mode (relaxed auth, test hooks).                               |
 
 ---
@@ -1444,7 +1447,6 @@ These settings were introduced after the previous environment-contract snapshot.
 | `OMNIROUTE_CHAT_VIRTUAL_TTL_MS` | `60000` (60 s) | `src/shared/middleware/chatBodyAdmission.ts` | Per-connection virtual admission lanes (#9654): idle-lane eviction TTL. |
 | `OMNIROUTE_CHAT_VIRTUAL_MAX_SESSIONS` | `64` | `src/shared/middleware/chatBodyAdmission.ts` | Per-connection virtual admission lanes (#9654): max concurrent sessions (lanes). |
 | `OMNIROUTE_RUNNOW_TIMEOUT_MS` | `30000` | `src/app/api/jobs/[id]/run-now/route.ts` | Bounds how long a run-now call waits for an in-flight job before starting the queued run. |
-| `CHAT_LOG_MAX_BODY_KB` | `1024` | `src/lib/logEnv.ts` | Maximum request or response body size before log summarization, in KiB. |
 | `ADOBE_FIREFLY_BROWSER_REFRESH` | enabled | `open-sse/services/adobeFireflySession.ts` | Keeps IMS and browser-risk state fresh through account-scoped Chrome CDP sessions; set `0` to disable. |
 | `ADOBE_FIREFLY_SESSION_DISK` | enabled | `open-sse/services/adobeFireflySession.ts` | Persists repaired Adobe sessions under `DATA_DIR`; set `0` for memory-only state. |
 | `ADOBE_FIREFLY_MIN_SUBMIT_GAP_MS` | `12000` | `open-sse/services/adobeFireflySession.ts` | Minimum spacing between Adobe Firefly generate submissions. |
@@ -1473,3 +1475,15 @@ Globale Defaults für den headless Browser und den ausgehenden Tool-Tunnel. Im D
 | `CHATGPT_WEB_CODEX_TUNNEL_ID`        | _(unset)_                        | `open-sse/executors/chatgpt-web-codex.ts`        | Globale OpenAI-Tunnel-ID für lokale Codex-Tool-Runden.                      |
 | `CHATGPT_WEB_CODEX_RUNTIME_KEY`      | _(unset)_                        | `open-sse/executors/chatgpt-web-codex.ts`        | Globaler Tunnel Runtime-Key; niemals in Logs ausgeben.                      |
 | `CHATGPT_WEB_CODEX_CONNECTOR_NAME`   | _(unset)_                        | `open-sse/executors/chatgpt-web-codex.ts`        | Name des ChatGPT-Custom-Connectors für die MCP-Brücke.                      |
+---
+
+## OmniConductor Bridge
+
+Long-lived SSE consumer that mirrors OmniConductor hub tasks into the local A2A TaskManager (`src/lib/conductor/`). Opt-in — the bridge only starts when `CONDUCTOR_HUB_URL` is set. Server-side only: the hub token must never reach the browser.
+
+| Variable              | Default    | Source File                  | Description                                                                                             |
+| --------------------- | ---------- | ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `CONDUCTOR_HUB_URL`   | _(empty)_  | `src/lib/conductor/boot.ts`  | Base URL of the OmniConductor hub (e.g. `http://127.0.0.1:7910`). Unset = bridge disabled.               |
+| `CONDUCTOR_HUB_TOKEN` | _(empty)_  | `src/lib/conductor/boot.ts`  | Hub credential for the SSE feed — emit a `spokesperson`-kind peer on the hub (`POST /v1/peers`, admin).  |
+| `CONDUCTOR_ORCHESTRATOR_TOKEN` | _(empty)_ | `src/lib/conductor/hubProxy.ts` | Credential for inbound A2A→hub task delegation (`POST /v1/tasks`); falls back to `CONDUCTOR_HUB_TOKEN` when unset. |
+| `CONDUCTOR_SPOKESPERSON_URL` | `http://127.0.0.1:7920` | `src/lib/conductor/faroProxy.ts` | Base URL of the spokesperson (Faro) service behind the dashboard chat proxy (`/api/conductor/ask`). |

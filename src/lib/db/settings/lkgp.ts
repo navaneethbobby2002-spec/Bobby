@@ -49,6 +49,25 @@ export function clearAllLKGP(): void {
 }
 
 /**
+ * Delete one persisted LKGP pin after its target fails. `setLKGP` is only ever
+ * called on success — nothing previously invalidated a pin once its provider
+ * started failing, so a *separate* subsequent request kept re-selecting the
+ * same just-failed provider via `applyStrategyOrdering.ts`'s LKGP reordering
+ * (live incident: 3 consecutive requests all picked the same timed-out
+ * opencode-zen/big-pickle target instead of failing over to another combo
+ * model). Circuit breaker / model lockout deliberately don't react to this
+ * failure class (request-scoped timeouts, see comboPredicates.ts), so nothing
+ * else clears the stale pin.
+ */
+export async function clearLKGP(comboName: string, modelId: string): Promise<void> {
+  const db = getDbInstance();
+  const key = `${comboName}:${modelId}`;
+  db.prepare("DELETE FROM key_value WHERE namespace = 'lkgp' AND key = ?").run(key);
+  const { invalidateCachedLKGP } = await import("../readCache");
+  invalidateCachedLKGP(key);
+}
+
+/**
  * Delete persisted LKGP pins whose connectionId references a removed provider
  * connection. Provider-level pins and legacy/unparseable values are preserved.
  */

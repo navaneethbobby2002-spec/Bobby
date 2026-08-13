@@ -34,6 +34,7 @@ import {
   disableThinkingIfToolChoiceForced,
   enforceCacheControlLimit,
   ensureCacheControlOnLastUserMessage,
+  normalizeCacheControlTtl,
 } from "../../open-sse/services/claudeCodeConstraints.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -399,5 +400,68 @@ describe("ensureCacheControlOnLastUserMessage", () => {
   it("handles body without messages without throwing", () => {
     // chatCore always provides a valid body object — test empty but non-null object
     assert.doesNotThrow(() => ensureCacheControlOnLastUserMessage({}));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// normalizeCacheControlTtl tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("normalizeCacheControlTtl", () => {
+  it("defaults a missing ttl to 1h on the last system block", () => {
+    const body = {
+      system: [
+        { type: "text", text: "billing" },
+        { type: "text", text: "sentinel" },
+        { type: "text", text: "prompt", cache_control: { type: "ephemeral" } },
+      ],
+    };
+
+    normalizeCacheControlTtl(body);
+
+    assert.deepEqual(body.system[2].cache_control, { type: "ephemeral", ttl: "1h" });
+  });
+
+  it("does not touch a cache_control that already specifies a ttl", () => {
+    const body = {
+      system: [{ type: "text", text: "prompt", cache_control: { type: "ephemeral", ttl: "5m" } }],
+    };
+
+    normalizeCacheControlTtl(body);
+
+    assert.deepEqual(body.system[0].cache_control, { type: "ephemeral", ttl: "5m" });
+  });
+
+  it("defaults missing ttl in tools and message content blocks", () => {
+    const body = {
+      tools: [{ name: "bash", description: "run", cache_control: { type: "ephemeral" } }],
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: "hi", cache_control: { type: "ephemeral" } }],
+        },
+      ],
+    };
+
+    normalizeCacheControlTtl(body);
+
+    assert.deepEqual(body.tools[0].cache_control, { type: "ephemeral", ttl: "1h" });
+    assert.deepEqual(body.messages[0].content[0].cache_control, {
+      type: "ephemeral",
+      ttl: "1h",
+    });
+  });
+
+  it("leaves blocks without cache_control untouched", () => {
+    const body = {
+      system: [{ type: "text", text: "no cache_control here" }],
+    };
+
+    assert.doesNotThrow(() => normalizeCacheControlTtl(body));
+    assert.equal(body.system[0].cache_control, undefined);
+  });
+
+  it("handles a body with no system/tools/messages without throwing", () => {
+    assert.doesNotThrow(() => normalizeCacheControlTtl({}));
   });
 });

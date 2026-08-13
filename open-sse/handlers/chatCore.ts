@@ -1,12 +1,14 @@
 import { extractRequestToolIdentityMap } from "./chatCore/requestToolIdentity.ts";
 import { injectMemoryAndSkills } from "./chatCore/memorySkillsInjection.ts";
 import { resolveChatCoreRequestSetup } from "./chatCore/requestSetup.ts";
+import { normalizeOpenAICompatibleTools } from "./chatCore/openAICompatibleTools.ts";
 import { buildFailureUsageRecord } from "./chatCore/failureUsage.ts";
 import { estimateFinalInputTokens } from "./chatCore/contextEstimation.ts";
 import { extractSystemRoleMessages } from "./chatCore/claudeSystemRole.ts";
 export { extractSystemRoleMessages } from "./chatCore/claudeSystemRole.ts";
 import { checkIdempotencyCache } from "./chatCore/idempotency.ts";
 import { checkSemanticCache } from "./chatCore/semanticCache.ts";
+import { checkLifecycle, resolveLifecycle } from "./chatCore/modelLifecyclePolicy.ts";
 import {
   shouldDefaultAllowClassifier,
   buildDefaultAllowClaudeMessage,
@@ -121,7 +123,6 @@ import {
   getStripTypesForProviderModel,
   stripIncompatibleMessageContent,
 } from "../services/modelStrip.ts";
-import { resolveModelAlias } from "../services/modelDeprecation.ts";
 import { normalizeMimoThinking } from "../services/mimoThinking.ts";
 import {
   isOpencodeGoProvider,
@@ -222,6 +223,7 @@ import { stageTrace } from "./chatCore/stageTrace.ts";
 import { attachCompressionUsageReceiptAfterAnalytics as attachCompressionUsageReceiptAfterAnalyticsFor } from "./chatCore/compressionUsageReceipt.ts";
 import { prepareUpstreamBody } from "./chatCore/upstreamBody.ts";
 import { getQuotaScopeLabelForProvider } from "../services/antigravityQuotaFamily.ts";
+import { getKimiTemporaryRateLimitResetAt } from "./chatCore/kimiQuotaRecovery.ts";
 import {
   getCallLogPipelineCaptureStreamChunks,
   getCallLogPipelineMaxSizeBytes,
@@ -263,7 +265,10 @@ import { recordCompressionCacheStats } from "./chatCore/compressionCacheStats.ts
 import { writeCavemanOutputAnalytics } from "./chatCore/cavemanOutputAnalytics.ts";
 import { scheduleQuotaShareConsumption } from "./chatCore/quotaShareConsumption.ts";
 import { emitRequestGamificationEvent } from "./chatCore/gamificationEvent.ts";
-import { runPluginOnResponseHook } from "./chatCore/pluginOnResponse.ts";
+import {
+  runPluginOnResponseHook,
+  runPluginOnStreamCompleteHook,
+} from "./chatCore/pluginOnResponse.ts";
 import { scheduleStreamingQuotaShareConsumption } from "./chatCore/streamingQuotaShare.ts";
 import { recordStreamingUsageStats } from "./chatCore/streamingUsageStats.ts";
 import { recordStreamingCost } from "./chatCore/streamingCost.ts";
@@ -652,6 +657,9 @@ export async function handleChatCore({
     responsesInputItems
   );
 
+  const requestedLifecycleError = checkLifecycle(provider, model, log);
+  if (requestedLifecycleError) return requestedLifecycleError;
+
   // Check for bypass patterns (warmup, skip) - return fake response
   const bypassResponse = handleBypassRequest(body, model, userAgent);
   if (bypassResponse) {
@@ -716,16 +724,13 @@ export async function handleChatCore({
     });
   }
 
-  // Apply custom model aliases (Settings → Model Aliases → Pattern→Target) before routing (#315, #472)
-  // Custom aliases take priority over built-in and must be resolved here so the
-  // downstream getModelTargetFormat() lookup AND the actual provider request use
-  // the correct, aliased model ID. Without this, aliases only affect format detection.
-  const resolvedModel = resolveModelAlias(model);
-  // Use resolvedModel for all downstream operations (routing, provider requests, logging)
-  let effectiveModel = resolvedModel === model ? model : resolvedModel;
-  if (resolvedModel !== model) {
-    log?.info?.("ALIAS", `Model alias applied: ${model} → ${resolvedModel}`);
-  }
+  // Custom aliases remain explicit; lifecycle replacements are advisory and never silently routed.
+  let [resolvedModel, effectiveModel, routedLifecycleError] = resolveLifecycle(
+    provider,
+    model,
+    log
+  );
+  if (routedLifecycleError) return routedLifecycleError;
 
   // Effort-variant model ids: the Claude / Claude-Code model picker (e.g. VS Code's
   // "Effort" slider) advertises claude-...-{low,medium,high,xhigh,max}. Anthropic has
@@ -2188,26 +2193,12 @@ export async function handleChatCore({
       //   - tools without a name AND without .function → dropped (unconvertible)
       // This must happen before translateRequest, which validates and throws on unknown types.
       if (provider?.startsWith("openai-compatible-") && Array.isArray(translatedBody.tools)) {
-        const before = (translatedBody.tools as unknown[]).length;
-        translatedBody.tools = (translatedBody.tools as Record<string, unknown>[])
-          .filter((t) => !t.type || t.type === "function" || !!t.function || !!t.name)
-          .map((t) => {
-            if (!t.type || t.type === "function" || t.function) return t;
-            // Named non-function tool: normalise to function format so the translator
-            // does not throw on the unknown type.
-            return {
-              type: "function",
-              function: {
-                name: t.name,
-                ...(t.description === undefined ? {} : { description: t.description }),
-                ...(t.parameters !== undefined || t.input_schema !== undefined
-                  ? { parameters: t.parameters ?? t.input_schema ?? {} }
-                  : {}),
-                ...(t.strict === undefined ? {} : { strict: t.strict }),
-              },
-            };
-          });
-        const dropped = before - (translatedBody.tools as unknown[]).length;
+        const normalized = normalizeOpenAICompatibleTools(
+          translatedBody.tools as Record<string, unknown>[],
+          sourceFormat
+        );
+        translatedBody.tools = normalized.tools;
+        const { dropped } = normalized;
         if (dropped > 0) {
           log?.debug?.(
             "TOOLS",
@@ -3780,8 +3771,25 @@ export async function handleChatCore({
             );
           }
         } else if (errorType === PROVIDER_ERROR_TYPES.QUOTA_EXHAUSTED) {
+          // Kimi's 403 says "billing cycle" for both an exhausted subscription and a
+          // temporary request window. Read its official usage endpoint before making
+          // the connection terminal: a non-zero Weekly quota plus an empty Ratelimit
+          // window must recover automatically at the reported reset time.
+          let kimiRateLimitResetAt: string | null = null;
+          if (provider === "kimi-coding") {
+            try {
+              const { fetchAndPersistProviderLimits } = await import("@/lib/usage/providerLimits");
+              const { usage } = await fetchAndPersistProviderLimits(errorConnectionId, "manual");
+              kimiRateLimitResetAt = getKimiTemporaryRateLimitResetAt(usage);
+            } catch {
+              // Preserve the existing quota handling when Kimi's usage endpoint is unavailable.
+            }
+          }
+
           // Providers with per-model quotas — lock the model only, not the connection
-          const quotaCooldownMs = retryAfterMs || COOLDOWN_MS.rateLimit;
+          const quotaCooldownMs = kimiRateLimitResetAt
+            ? Math.max(new Date(kimiRateLimitResetAt).getTime() - Date.now(), 0)
+            : retryAfterMs || COOLDOWN_MS.rateLimit;
           const accountSemaphoreKey = resolveAccountSemaphoreKey({
             provider,
             model: currentModel,
@@ -3791,7 +3799,19 @@ export async function handleChatCore({
           if (accountSemaphoreKey) {
             markAccountSemaphoreBlocked(accountSemaphoreKey, quotaCooldownMs);
           }
-          if (isModelScope() && errorConnectionId) {
+          if (kimiRateLimitResetAt) {
+            await updateProviderConnection(errorConnectionId, {
+              testStatus: "unavailable",
+              rateLimitedUntil: kimiRateLimitResetAt,
+              backoffLevel: 0,
+              lastErrorType: PROVIDER_ERROR_TYPES.RATE_LIMITED,
+              lastError: message,
+              errorCode: statusCode,
+            });
+            console.warn(
+              `[provider] Node ${errorConnectionId} Kimi request window exhausted (${statusCode}) — retrying after ${kimiRateLimitResetAt}`
+            );
+          } else if (isModelScope() && errorConnectionId) {
             const lockFn = provider === "antigravity" ? lockExactModel : lockModel;
             lockFn(provider, errorConnectionId, model, "quota_exhausted", quotaCooldownMs);
             console.warn(
@@ -3903,8 +3923,8 @@ export async function handleChatCore({
     // Before returning a model-unavailable error upstream, try sibling models
     // from the same family. This keeps the request alive on the same account
     // instead of failing the entire combo.
-    if (isModelUnavailableError(statusCode, message)) {
-      const nextModel = getNextFamilyFallback(currentModel, triedModels);
+    if (isModelUnavailableError(statusCode, message, provider)) {
+      const nextModel = getNextFamilyFallback(currentModel, triedModels, provider);
       if (nextModel) {
         triedModels.add(nextModel);
         currentModel = nextModel;
@@ -3990,12 +4010,12 @@ export async function handleChatCore({
         );
       }
     } else if (isContextOverflowError(statusCode, message)) {
-      const familyCandidates = getModelFamily(currentModel).filter(
+      const familyCandidates = getModelFamily(currentModel, provider).filter(
         (m) => m !== currentModel && !triedModels.has(m)
       );
       const nextModel =
-        findLargerContextModel(currentModel, familyCandidates) ??
-        getNextFamilyFallback(currentModel, triedModels);
+        findLargerContextModel(currentModel, familyCandidates, provider) ??
+        getNextFamilyFallback(currentModel, triedModels, provider);
       if (nextModel) {
         triedModels.add(nextModel);
         currentModel = nextModel;
@@ -4246,7 +4266,7 @@ export async function handleChatCore({
       persistFailureUsage(HTTP_STATUS.BAD_GATEWAY, "empty_content");
 
       // Trigger non-recursive fallback for empty content
-      const nextModel = getNextFamilyFallback(currentModel, triedModels);
+      const nextModel = getNextFamilyFallback(currentModel, triedModels, provider);
       if (nextModel) {
         triedModels.add(nextModel);
         currentModel = nextModel;
@@ -4978,6 +4998,17 @@ export async function handleChatCore({
       apiKeyId: apiKeyInfo?.id ?? undefined,
       streamUsage,
       log,
+    });
+
+    // Plugin onStreamComplete hook — fire-and-forget, fail-open (#9571)
+    runPluginOnStreamCompleteHook({
+      status: normalizedStreamStatus,
+      usage: streamUsage as Record<string, unknown> | undefined,
+      ttft,
+      model,
+      provider,
+      errorCode: streamErrorCode,
+      startTime,
     });
   };
 

@@ -10,7 +10,7 @@
 ## Validation
 
 Choose the change type and focused loop from the
-[Contribution Golden Path](../docs/dev/CONTRIBUTION_GOLDEN_PATH.md). The full unit suite,
+[Contribution Golden Path](../docs/ops/CONTRIBUTION_GOLDEN_PATH.md). The full unit suite,
 Vitest, the 60% coverage gate, and the production build all run in CI on this PR (#8329):
 
 - [ ] Change type: provider / routing / UI / i18n / CLI / DB / build-deploy / other

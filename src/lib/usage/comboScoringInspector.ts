@@ -80,7 +80,10 @@ const FACTOR_KEYS: ComboScoringInspectorFactorKey[] = [
   "tierAffinity",
   "specificityMatch",
   "contextAffinity",
+  "cacheAffinity",
+  "sessionAvailability",
   "resetWindowAffinity",
+  "connectionDensity",
 ];
 
 function roundNumber(value: number, digits = 4): number {

@@ -23,7 +23,7 @@ import { QWEN_CLOUD_TEXT_MODELS } from "@omniroute/open-sse/config/providers/reg
 import { filterAlibabaFreeEligibleModels } from "@omniroute/open-sse/services/alibabaFreeTierDiscovery.ts";
 import { shouldUseLiveAlibabaFreeModelDiscovery } from "@omniroute/open-sse/services/alibabaFreeTier.ts";
 import { isDashscopeTextModelId } from "@omniroute/open-sse/services/dashscopeTextModels.ts";
-import { extractZaiToken } from "@omniroute/open-sse/executors/zai-web.ts";
+import { extractZaiToken } from "@omniroute/open-sse/services/zaiWebCredentials.ts";
 import { normalizeOpenAiLikeModelsResponse } from "./normalizers";
 
 const QWEN_CLOUD_TEXT_MODEL_IDS = new Set(QWEN_CLOUD_TEXT_MODELS.map((model) => model.id));
@@ -376,37 +376,6 @@ export const PROVIDER_MODELS_CONFIG: Record<string, ProviderModelsConfigEntry> =
     },
   },
   "qwen-cloud": QWEN_CLOUD_TEXT_MODELS_CONFIG,
-  // #7678: zai-web (chat.z.ai) had no PROVIDER_MODELS_CONFIG entry so its
-  // hardcoded 3-model registry catalog (glm-4.6/glm-4.5/glm-4.5v — one or more
-  // now 404 upstream) was the only source; wire live discovery against the
-  // undocumented chat.z.ai/api/models endpoint. Same category + shape as
-  // qwen-web above: undocumented consumer web-chat endpoint,
-  // { data: { data: [...] } } envelope with a flatter { data: [...] } fallback.
-  // Bearer token reuses the executor's own extractZaiToken() so discovery and
-  // chat parse the stored cookie identically.
-  // UNVERIFIED (per /triage-features): no live z.ai session available during
-  // research — the exact response shape and whether bare Bearer auth (vs the
-  // full Cookie header chat-completions requires) is accepted must be
-  // confirmed against a real account before merge (see plan-file Step 4).
-  "zai-web": {
-    url: "https://chat.z.ai/api/models",
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-    buildHeaders: (token) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${extractZaiToken(token)}`,
-    }),
-    parseResponse: (data) => {
-      const innerData = data?.data?.data || data?.data || [];
-      return (Array.isArray(innerData) ? innerData : [])
-        .map((item: any) => ({
-          id: item.id || item.name,
-          name: item.name || item.id,
-          owned_by: item.owned_by || "zai-web",
-        }))
-        .filter((m: any) => m.id);
-    },
-  },
   antigravity: {
     url: getAntigravityModelsDiscoveryUrls()[0],
     method: "POST",

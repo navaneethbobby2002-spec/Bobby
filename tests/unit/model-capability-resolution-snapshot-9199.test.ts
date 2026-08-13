@@ -100,7 +100,7 @@ function seedFixture() {
   assert.equal(
     capabilityOverrides.setModelCapabilityOverride(
       "parity-provider/parity-model",
-      "max_token",
+      "max_output_tokens",
       99999
     ),
     true
@@ -113,15 +113,15 @@ function seedFixture() {
         "(provider, model_id, override_key, override_value, refreshed_at) " +
         "VALUES (?, ?, ?, ?, datetime('now'))"
     )
-    .run("parity-provider", "parity-model-bad", "max_token", "not-a-number");
+    .run("parity-provider", "parity-model-bad", "max_output_tokens", "not-a-number");
 
   // Collision pairs that a delimiter-composed key would merge: (a, b\0c) vs (a\0b, c).
   assert.equal(
-    capabilityOverrides.setModelCapabilityOverride("a/b\u0000c", "max_token", 10101),
+    capabilityOverrides.setModelCapabilityOverride("a/b\u0000c", "max_output_tokens", 10101),
     true
   );
   assert.equal(
-    capabilityOverrides.setModelCapabilityOverride("a\u0000b/c", "max_token", 20202),
+    capabilityOverrides.setModelCapabilityOverride("a\u0000b/c", "max_output_tokens", 20202),
     true
   );
   assert.equal(contextOverrides.setModelContextOverride("a", "b\u0000c", 30303, "manual"), true);
@@ -134,14 +134,14 @@ function seedFixture() {
   assert.equal(aliasCanonical.model, "claude-opus-4-5-20251101");
   assert.notEqual(aliasCanonical.model, "claude-4.5-opus");
   assert.equal(
-    capabilityOverrides.setModelCapabilityOverride("github/claude-4.5-opus", "max_token", 77777),
+    capabilityOverrides.setModelCapabilityOverride("github/claude-4.5-opus", "max_output_tokens", 77777),
     true
   );
   assert.equal(
     capabilityOverrides.getModelCapabilityOverride(
       "github",
       "claude-opus-4-5-20251101",
-      "max_token"
+      "max_output_tokens"
     ),
     null,
     "override must exist only under the raw alias model id"
@@ -319,7 +319,7 @@ test("#9199 nested override maps keep delimiter-colliding pairs distinct", () =>
     capabilityOverrides.getModelCapabilityOverride(
       "a",
       "b\u0000c",
-      "max_token",
+      "max_output_tokens",
       snapshot.maxTokenOverrides
     ),
     10101
@@ -328,7 +328,7 @@ test("#9199 nested override maps keep delimiter-colliding pairs distinct", () =>
     capabilityOverrides.getModelCapabilityOverride(
       "a\u0000b",
       "c",
-      "max_token",
+      "max_output_tokens",
       snapshot.maxTokenOverrides
     ),
     20202

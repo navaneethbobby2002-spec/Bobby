@@ -139,6 +139,21 @@ export function shouldRetryError(err, opts = {}) {
   return false;
 }
 
+/**
+ * True when a non-2xx status means "this server does not serve this route"
+ * rather than "your request was wrong".
+ *
+ * Commands that keep a local SQLite fallback must not treat these as fatal:
+ * a CLI newer (or older) than the server it is talking to will hit routes that
+ * simply are not mounted, and aborting there strands the user with an
+ * unactionable `HTTP 404` even though the local path would have worked.
+ * Genuine client errors (400/401/403/409/422 …) stay fatal — retrying them
+ * locally would paper over a real problem.
+ */
+export function isRouteUnavailableStatus(status) {
+  return status === 404 || status === 405 || status === 501;
+}
+
 export function statusToExitCode(status) {
   if (status >= 200 && status < 300) return 0;
   if (status === 408) return 124;

@@ -34,7 +34,10 @@ import {
   recordReplay,
   requiresReasoningReplay,
 } from "../services/reasoningCache.ts";
-import { normalizeResponsesReasoningEffort } from "./request/openai-responses/helpers.ts";
+import {
+  normalizeResponsesReasoningEffort,
+  RESPONSES_STORE_MARKER,
+} from "./request/openai-responses/helpers.ts";
 
 bootstrapTranslatorRegistry();
 export { register } from "./registry.ts";
@@ -96,6 +99,31 @@ function normalizeOpenAIResponsesRequest(body) {
   if (!body || typeof body !== "object") return body;
 
   const normalized = promoteStrayReasoningEffort({ ...body });
+
+  // #10165 safety net: if a chat-shaped body reached Responses normalization
+  // without input, promote messages → input and map token/format fields.
+  if (normalized.input == null && Array.isArray(normalized.messages)) {
+    normalized.input = normalized.messages;
+    delete normalized.messages;
+  }
+  if (normalized.max_output_tokens == null) {
+    if (normalized.max_completion_tokens != null) {
+      normalized.max_output_tokens = normalized.max_completion_tokens;
+      delete normalized.max_completion_tokens;
+    } else if (normalized.max_tokens != null) {
+      normalized.max_output_tokens = normalized.max_tokens;
+      delete normalized.max_tokens;
+    }
+  } else {
+    delete normalized.max_tokens;
+    delete normalized.max_completion_tokens;
+  }
+  if (normalized.response_format != null && normalized.text == null) {
+    normalized.text = { format: normalized.response_format };
+    delete normalized.response_format;
+  } else if (normalized.response_format != null) {
+    delete normalized.response_format;
+  }
 
   if (typeof normalized.input === "string") {
     normalized.input = [
@@ -673,6 +701,19 @@ export function translateRequest(
         }
       }
     }
+  }
+
+  // #<store-marker-leak>: a Responses-source request stashes the client's
+  // `store` intent under this internal marker (see the Responses -> OpenAI
+  // step above) so a later OpenAI -> Responses re-conversion can restore it
+  // as `store`. When the destination stays in Chat Completions shape (no
+  // such re-conversion happens), nothing else consumes the marker, and it
+  // was leaking verbatim into the real upstream request body — e.g. OpenAI
+  // itself rejects it with "Unknown parameter: '_omnirouteResponsesStore'".
+  // Always drop it here: any handler that still needs the client's original
+  // `store` value would have already read the marker before this point.
+  if (RESPONSES_STORE_MARKER in result) {
+    delete result[RESPONSES_STORE_MARKER];
   }
 
   return result;

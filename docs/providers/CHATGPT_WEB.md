@@ -123,3 +123,99 @@ If you changed the credential contract (new storage key, new cookie name, change
 | Token missing from live request  | Request is not authenticated                  | Sign in and send a chat message first                     |
 | 401 after Test Connection passed | Expired or rotated session                    | Re-copy from a fresh live request                         |
 | Chunked token fails              | Only one chunk pasted                        | Select all `__Secure-next-auth.session-token.*` chunks    |
+
+---
+
+## ChatGPT Web (Codex)
+
+`ChatGPT Web (Codex)` is an additional provider. The existing
+`ChatGPT Web (Plus/Pro)` provider described above stays unchanged for regular
+chats, images, and its existing tool emulation.
+
+### Prerequisites
+
+- a full Cookie header from a signed-in ChatGPT session;
+- Chrome or Chromium for npm, systemd, and PM2 installs;
+- with the Docker `web` profile, the internal Chromium service from `docker-compose.yml`;
+- an OpenAI tunnel and a ChatGPT custom connector for local Codex tools.
+
+The tunnel is only needed for tool turns. `pro` is read-only and does not need a
+local tool connector.
+
+### Dashboard setup
+
+1. Open the **ChatGPT Web (Codex)** provider and add a connection.
+2. Paste the full ChatGPT cookie, the tunnel ID, the runtime key, and the name of
+   the custom connector.
+3. Start the check. OmniRoute opens a headless Temporary Chat and also detects
+   whether `pro` is available for the account.
+4. Save the connection. OmniRoute replaces the pasted cookie with the verified
+   Playwright storage state and stores it together with the runtime key through
+   the encrypted credential abstraction.
+
+The raw cookie is not retained after a successful save. When the session expires,
+open the connection, paste a fresh full cookie, and re-run the check. The doctor
+status in the edit dialog reports browser, storage state, sign-in, Temporary
+Chat, tunnel, connector, and tool round-trip separately.
+
+### Models and combos
+
+The fixed models are:
+
+- `chatgpt-web-codex/instant`
+- `chatgpt-web-codex/medium`
+- `chatgpt-web-codex/high`
+- `chatgpt-web-codex/extra-high`
+- `chatgpt-web-codex/pro`
+
+Add one of them to a combo like any other model. The Codex app sends only the
+combo name as `model` to the regular Responses endpoint `/v1/responses`. There is
+no special endpoint and no Codex-mode switch.
+
+`pro` does not run local tools. A forced tool makes that combo target
+incompatible; with optional tools the turn runs read-only and reports that
+limitation as commentary.
+
+### Security model
+
+- The native path requires a Responses request, a recognized Codex client, and
+  matching thread and turn identities.
+- Workspace, sandbox, approval policy, and the tool catalog come from the native
+  Codex shell. Free-form prompt text is not an authority for them.
+- ChatGPT receives only a short-lived capability per turn. The MCP broker accepts
+  only tools that Codex offered in exactly that turn.
+- Auto-confirming "Allow once" only returns the tool request to Codex. Codex
+  alone decides on approval and execution.
+- Before the first output, the combo may fall back to another compatible target.
+  After that, provider, model, connection, and browser turn stay pinned until the
+  turn completes.
+- Cookies, runtime keys, storage state, and capability tokens do not appear in
+  provider responses or request logs.
+
+### Headless VPS and Docker
+
+For npm, systemd, and PM2 installs, OmniRoute detects common Chrome and Chromium
+paths. Alternatively, set `CHATGPT_WEB_CODEX_CHROME_PATH`.
+
+The Docker `web` profile starts `chatgpt-web-codex-browser` on the internal
+Compose network. Its CDP port is not published on the host. The protected profile
+volume stays separate from the OmniRoute data volume, and the browser gets enough
+shared memory. The internal CDP proxy listens only on the Compose network on port
+`9223`; Chrome itself stays bound to loopback inside the sidecar.
+
+A supervisor lease under `DATA_DIR` prevents multiple OmniRoute processes from
+owning the same tunnel and broker state. A conflict shows up in the doctor.
+
+### Interactive recovery
+
+The normal path is fully headless. When ChatGPT demands an interactive sign-in or
+challenge, the existing VNC browser infrastructure can be used as a recovery
+path. Browser UI and CDP must then only be reachable over loopback, an
+authenticated management connection, or an SSH tunnel; noVNC stays disabled in
+normal operation.
+
+### WebSocket fallback
+
+When a combo contains `ChatGPT Web (Codex)`, the Responses WebSocket bridge
+requests the HTTP/SSE fallback before connecting upstream. The actual transfer
+then goes through `/v1/responses`.

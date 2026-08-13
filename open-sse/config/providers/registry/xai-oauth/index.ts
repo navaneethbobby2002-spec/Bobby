@@ -18,7 +18,16 @@ export const xai_oauthProvider: RegistryEntry = {
     tokenUrl: "https://auth.x.ai/oauth2/token",
   },
   models: [
-    { id: "grok-4.5", name: "Grok 4.5", contextLength: 500000 },
+    // SuperGrok / xAI OAuth serves grok-4.5 on native /v1/responses. Tag so
+    // chatCore translates OpenAI Chat Completions → Responses (messages→input,
+    // max_tokens→max_output_tokens). Without the tag, some 3.8.50 paths hit
+    // /v1/responses with a chat-shaped body → 422 missing `input` (#10165).
+    {
+      id: "grok-4.5",
+      name: "Grok 4.5",
+      contextLength: 500000,
+      targetFormat: "openai-responses",
+    },
     ...(xaiProvider.models || []),
   ],
 };

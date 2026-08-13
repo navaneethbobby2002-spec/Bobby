@@ -487,8 +487,15 @@ export async function DELETE(request) {
       );
     }
 
+    // A custom row and a synced row can share one id (the operator manually added
+    // a model the provider also reports). This route is addressed by id alone, so
+    // it cannot tell which of the two the operator clicked. Remove the custom row
+    // first and treat its presence as the intent: deleting the manually-added
+    // entry must leave the provider-synced sibling alone.
     const removedCustom = await removeCustomModel(provider, modelId);
-    const removedSynced = await removeSyncedAvailableModel(provider, modelId);
+    const removedSynced = removedCustom
+      ? false
+      : await removeSyncedAvailableModel(provider, modelId);
     if (removedSynced) {
       // #3199 + #3782: mark the deleted synced model with the DISTINCT `isDeleted`
       // marker so a later auto-fetch re-import does not re-add it. We also keep
@@ -496,6 +503,12 @@ export async function DELETE(request) {
       // filter keys on `isDeleted` (not `isHidden`), which is what lets an
       // eye/visibility-hidden model (`isHidden` only) survive a re-sync while a
       // deleted one stays dropped.
+      //
+      // Only reached when NO custom row owned the id. Tombstoning on a custom-row
+      // delete would permanently suppress the synced sibling: every later sync
+      // reports `added: N` while `replaceSyncedAvailableModelsForConnection`
+      // filters the id straight back out, so the model never returns to
+      // `/v1/models` and the provider looks empty despite routing fine.
       mergeModelCompatOverride(provider, modelId, { isDeleted: true, isHidden: true });
     }
     const removed = removedCustom || removedSynced;

@@ -787,6 +787,29 @@ export function createSSEStream(options: StreamOptions = {}) {
   let upstreamErrorForwarded = false;
   const providerPayloadCollector = createStructuredSSECollector({
     stage: "provider_response",
+    // #9315: compute the summary live from every pushed chunk (not just the
+    // ones that survive the storage cap below) so a long stream never shows a
+    // stale/incomplete "provider response" in the dashboard.
+    //
+    // Real bug: this was unconditionally `sourceFormat` (the CLIENT's wire
+    // format — see this function's own @param doc above). In TRANSLATE mode
+    // the chunks pushed here are the RAW PROVIDER response, whose format is
+    // `targetFormat` (@param "Provider format (for translate mode)"), not
+    // sourceFormat. Whenever a client's format differs from the provider's
+    // (e.g. a Responses-API client routed to a plain-OpenAI-chat-completions
+    // upstream — the OpenClaw/opencode-zen case that surfaced this live), the
+    // reducer picked for `sourceFormat` could never recognize the provider's
+    // actual event shape, so it never left its empty initial state — the
+    // dashboard's "Provider Response" panel permanently showed
+    // `output: []`/empty while "Client Response" (built from
+    // separately-accumulated state, unaffected by this) correctly showed full
+    // content, reading as if the two panels simply disagreed. PASSTHROUGH
+    // mode has no separate provider/client format split — nothing gets
+    // translated, so the provider's raw chunks genuinely ARE in sourceFormat
+    // (and real passthrough callers, e.g. createPassthroughStreamWithLogger,
+    // don't even pass targetFormat) — keep using sourceFormat there.
+    format: mode === STREAM_MODE.TRANSLATE ? targetFormat : sourceFormat,
+    fallbackModel: model,
   });
   const clientPayloadCollector = createStructuredSSECollector({
     stage: "client_response",
@@ -1641,7 +1664,9 @@ export function createSSEStream(options: StreamOptions = {}) {
                   // retry." with finish_reason: "stop" — clients (Goose/opencode) feed that
                   // text back as a turn and spin in a retry loop. This restores the #3400
                   // behavior that #3422 inadvertently reverted (regression #3388/#3502).
-                  if (Array.isArray(parsed.choices) && (parsed.choices.length === 0 ||
+                  if (
+                    Array.isArray(parsed.choices) &&
+                    (parsed.choices.length === 0 ||
                       (parsed.choices.length === 1 &&
                         parsed.choices[0]?.delta &&
                         typeof parsed.choices[0].delta === "object" &&
@@ -2483,7 +2508,11 @@ export function createSSEStream(options: StreamOptions = {}) {
                   // #9315 switched the summary to the accumulated responseBody to avoid
                   // stale/truncated event data — but responseBody here is synthesized in
                   // chat-completion shape, which loses the Responses API `response` object.
-                  // Keep the events-derived summary for OPENAI_RESPONSES only.
+                  // Keep the events-derived summary for OPENAI_RESPONSES only. responseBody
+                  // itself never carries an `object` marker (it's built purely for the
+                  // client, which doesn't need one) — the dashboard's Provider Response
+                  // panel does, so stamp `object: "chat.completion"` on a shallow copy
+                  // used only for this summary, leaving responseBody itself untouched.
                   providerPayload: providerPayloadCollector.build(
                     sourceFormat === FORMATS.OPENAI_RESPONSES
                       ? buildStreamSummaryFromEvents(
@@ -2491,7 +2520,7 @@ export function createSSEStream(options: StreamOptions = {}) {
                           sourceFormat,
                           model
                         )
-                      : responseBody,
+                      : { object: "chat.completion", ...responseBody },
                     { includeEvents: false }
                   ),
                   clientPayload: clientPayloadCollector.build(responseBody, {
@@ -2600,11 +2629,7 @@ export function createSSEStream(options: StreamOptions = {}) {
                   error: err.message,
                   errorCode: err.code,
                   providerPayload: providerPayloadCollector.build(
-                    buildStreamSummaryFromEvents(
-                      providerPayloadCollector.getEvents(),
-                      targetFormat,
-                      model
-                    ),
+                    providerPayloadCollector.getSummary(),
                     { includeEvents: false }
                   ),
                   clientPayload: clientPayloadCollector.build(errorBody, {
@@ -2783,7 +2808,11 @@ export function createSSEStream(options: StreamOptions = {}) {
                 usage: state?.usage,
                 responseBody,
                 // Same OPENAI_RESPONSES carve-out as the passthrough branch above —
-                // the synthesized chat-shaped responseBody drops the `response` object.
+                // the synthesized chat-shaped responseBody drops the `response` object,
+                // and (like the passthrough branch) never carries an `object` marker at
+                // all — stamp `object: "chat.completion"` on a shallow copy used only
+                // for this summary; responseBody itself (sent to the client / below)
+                // stays untouched.
                 providerPayload: providerPayloadCollector.build(
                   targetFormat === FORMATS.OPENAI_RESPONSES
                     ? buildStreamSummaryFromEvents(
@@ -2791,7 +2820,7 @@ export function createSSEStream(options: StreamOptions = {}) {
                         targetFormat,
                         model
                       )
-                    : responseBody,
+                    : { object: "chat.completion", ...responseBody },
                   { includeEvents: false }
                 ),
                 clientPayload: clientPayloadCollector.build(responseBody, {

@@ -182,7 +182,7 @@ src/
 | `compliance/`                            | Audit log + provider audit — see `docs/security/COMPLIANCE.md`                                                                                                                                                                                                                                                          |
 | `compression/`                           | Compression engine glue (engines live in `open-sse/services/compression/`)                                                                                                                                                                                                                                              |
 | `config/`                                | Runtime config helpers                                                                                                                                                                                                                                                                                                  |
-| `db/`                                    | 95+ domain DB modules + 110+ migrations (always go through here for SQLite)                                                                                                                                                                                                                                             |
+| `db/`                                    | 95+ domain DB modules + 144 migrations (always go through here for SQLite)                                                                                                                                                                                                                                             |
 | `quota/`                                 | Quota Sharing Engine: `dimensions.ts` (types/Zod), `types.ts` (QuotaStore interface), `sqliteQuotaStore.ts`, `redisQuotaStore.ts`, `storeFactory.ts`, `fairShare.ts`, `burnRate.ts`, `planResolver.ts`, `planRegistry.ts`, `saturationSignals.ts`, `enforce.ts`, `spendRecorder.ts` — see `docs/routing/QUOTA_SHARE.md` |
 | `radar/`                                 | Radar free-model catalog client: `feedSchema.ts`, `pinnedKeys.ts`, `verify.ts`, `sync.ts`, `applyFeed.ts`, `index.ts` (`getRadarCatalog()`) — see `docs/frameworks/RADAR.md`                                                                                                                                            |
 | `display/`                               | UI formatting helpers (cost, latency, etc.)                                                                                                                                                                                                                                                                             |
@@ -196,7 +196,7 @@ src/
 | `memory/vectorStore.ts`                  | sqlite-vec v0.1.9 wrapper — KNN brute-force + hybrid RRF (FTS5 + vector, k=60). Lazy-init, degrades gracefully when sqlite-vec unavailable. (plan 21)                                                                                                                                                                   |
 | `memory/reindex.ts`                      | `runReindexBatch()` — processes memories with `needs_reindex=1` in background; called by `POST /api/memory/reindex` and lazy-backfill path. (plan 21)                                                                                                                                                                   |
 | `monitoring/`                            | Health checks, metrics emission                                                                                                                                                                                                                                                                                         |
-| `oauth/`                                 | OAuth flows for 13 providers (claude, codex, antigravity, cursor, github, gemini, kimi-coding, kilocode, cline, kiro, qoder, gitlab-duo, windsurf)                                                                                                                                                                      |
+| `oauth/`                                 | OAuth/import flows for 22 provider modules (agy, antigravity, claude, cline, codebuddy-cn, codex, cursor, devin-desktop, ghe-copilot, github, gitlab-duo, grok-cli-oauth, grok-cli, kilocode, kimi-coding, kiro, qoder, raycast, trae, xai-oauth, zed-hosted, zed) |
 | `plugins/`                               | Plugin registry                                                                                                                                                                                                                                                                                                         |
 | `promptCache/`                           | Anthropic-style prompt cache breakpoints                                                                                                                                                                                                                                                                                |
 | `skills/`                                | Skills framework (built-in + marketplace + SkillsSH) — see `docs/frameworks/SKILLS.md`                                                                                                                                                                                                                                  |
@@ -209,7 +209,7 @@ src/
 | `cacheLayer.ts`, `idempotencyLayer.ts`   | Request caching + idempotency                                                                                                                                                                                                                                                                                           |
 | (~30 more top-level files)               | Specialized helpers (logEnv, modelsDevSync, piiSanitizer, etc.)                                                                                                                                                                                                                                                         |
 
-### `src/db/` — Database (94 modules + 106 migrations)
+### `src/db/` — Database (117 modules + 144 migrations)
 
 | Subdir                    | Purpose                                                                                                                                                                    |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -244,9 +244,9 @@ src/
 
 | Module                           | Purpose                                                                |
 | -------------------------------- | ---------------------------------------------------------------------- |
-| `constants/providers.ts`         | **236 providers** with Zod validation (source of truth)                |
+| `constants/providers.ts`         | **338 providers** with Zod validation (source of truth)                |
 | `constants/cliTools.ts`          | External CLI tool registry                                             |
-| `constants/routingStrategies.ts` | **17 routing strategies** with priorities                              |
+| `constants/routingStrategies.ts` | **19 routing strategies** with priorities                              |
 | `constants/publicApiRoutes.ts`   | Routes that require Bearer (vs management) auth                        |
 | `constants/upstreamHeaders.ts`   | Header denylist for upstream requests                                  |
 | `validation/schemas.ts`          | ~80 Zod schemas (single source of truth for API contracts)             |
@@ -270,7 +270,7 @@ open-sse/
 ├── translator/          # Format converters (9 request, 9 response, 9 helpers)
 ├── transformer/         # Responses API ↔ Chat Completions (TransformStream)
 ├── services/            # ~80+ service modules (combo, accountFallback, autoCombo, reasoningCache, claude code/chatgpt stealth, modelDeprecation, taskAwareRouter, workflowFSM, etc.)
-├── mcp-server/          # MCP server (99 tools, 3 transports, 32 scopes)
+├── mcp-server/          # MCP server (105 tools, 3 transports, 31 scopes)
 ├── config/              # Provider/model registries, header config, model aliases
 ├── utils/               # TLS client, proxy fetch/dispatcher, network helpers
 ├── index.ts             # Workspace entry
@@ -398,16 +398,16 @@ open-sse/
 | `COVERAGE_PLAN.md`          | Coverage goals and current state                                                      |
 | `FREE_TIERS.md`             | Curated free-tier providers (48+ free + 11 OAuth)                                     |
 | `CLI-TOOLS.md`              | External CLI integrations + Internal OmniRoute CLI                                    |
-| `I18N.md`                   | i18n architecture, adding a language, 30 locales                                      |
+| `I18N.md`                   | i18n architecture, adding a language, 43 locales                                      |
 | `UNINSTALL.md`              | Clean uninstall steps                                                                 |
-| `PROVIDER_REFERENCE.md`     | **Auto-generated** catalog of 236 providers (regen: `npm run gen:provider-reference`) |
+| `PROVIDER_REFERENCE.md`     | **Auto-generated** catalog of 338 providers (regen: `npm run gen:provider-reference`) |
 
 ### Subsystem deep-dives
 
 | Doc                        | Purpose                                                             |
 | -------------------------- | ------------------------------------------------------------------- |
-| `MCP-SERVER.md`            | MCP server: 99 tools, 3 transports, 32 scopes, REST endpoints       |
-| `A2A-SERVER.md`            | A2A v0.3: JSON-RPC, 5 skills, REST helpers, agent card              |
+| `MCP-SERVER.md`            | MCP server: 105 tools, 3 transports, 31 scopes, REST endpoints       |
+| `A2A-SERVER.md`            | A2A v0.3: JSON-RPC, 6 skills, REST helpers, agent card              |
 | `AGENT_PROTOCOLS_GUIDE.md` | Unified guide: A2A vs ACP vs Cloud Agents                           |
 | `CLOUD_AGENT.md`           | Codex Cloud / Devin / Jules orchestration                           |
 | `SKILLS.md`                | Skills framework (built-in + marketplace + SkillsSH + sandbox)      |

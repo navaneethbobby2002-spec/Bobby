@@ -164,11 +164,15 @@ test("resolveModelOrError routes Codex native compact gpt-5.5 requests to Codex"
 });
 
 test("resolveModelOrError routes bare gpt-5.5 Responses requests to Codex regardless of client user-agent", async () => {
-  // #9275: gpt-5.5 is now in CODEX_NATIVE_UNPREFIXED_MODELS — bare-id requests
-  // always route to codex, even from a non-Codex-CLI client, so the Codex CLI
-  // default is honored deterministically instead of racing other providers
-  // that also catalog the id. Prefix the model id (e.g. openai/gpt-5.5) to opt
-  // into a different provider.
+  // #9275: gpt-5.5 is in CODEX_NATIVE_UNPREFIXED_MODELS — bare-id requests
+  // route to codex even from a non-Codex-CLI client, so the Codex CLI default
+  // is honored deterministically instead of racing other providers that also
+  // catalog the id. #9447 bounded that precedence: it only PREEMPTS another
+  // provider when a codex connection is actually ACTIVE, so this case seeds
+  // one first. Prefix the model id (e.g. openai/gpt-5.5) to opt into a
+  // different provider.
+  await seedConnection("codex");
+
   const result = await resolveModelOrError(
     "gpt-5.5",
     { model: "gpt-5.5", input: "hello" },
@@ -195,12 +199,12 @@ test("resolveModelOrError routes bare gpt-5.5 to Codex medium when Codex is the 
   assert.equal(result.targetFormat, "openai-responses");
 });
 
-test("resolveModelOrError routes bare gpt-5.5 to Codex even when OpenAI is the only active account", async () => {
-  // #9275: the codex-first default for gpt-5.5 is unconditional — it does not
-  // fall back to whichever OTHER provider happens to be active. If codex has
-  // no active connection, execution surfaces a "No active credentials" error
-  // with candidate-prefix hints (see handleNoCredentials, #9275) rather than
-  // silently routing to openai here.
+test("resolveModelOrError keeps bare gpt-5.5 on OpenAI when OpenAI is the only active account", async () => {
+  // #9447 bounded the #9275 codex-first default: the Codex-native preference
+  // may only PREEMPT another provider when a codex connection is ACTIVE. An
+  // OpenAI-only install must not have bare gpt-5.5 sent to codex only to fail
+  // with "no active credentials for provider: codex" on a model OpenAI
+  // serves — it routes to the provider that can actually serve it.
   await seedConnection("openai");
 
   const result = await resolveModelOrError(
@@ -210,7 +214,7 @@ test("resolveModelOrError routes bare gpt-5.5 to Codex even when OpenAI is the o
     { "user-agent": "OpenAI/Node" }
   );
 
-  assert.equal(result.provider, "codex");
+  assert.equal(result.provider, "openai");
   assert.equal(result.model, "gpt-5.5");
 });
 

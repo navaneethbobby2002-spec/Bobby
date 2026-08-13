@@ -827,7 +827,10 @@ export function shouldSwitchToVisibleFilter(opts: {
 // ---------------------------------------------------------------------------
 // Error-type label map — shared by ConnectionRow and EditConnectionModal
 // ---------------------------------------------------------------------------
-export const ERROR_TYPE_LABELS: Record<string, { labelKey: string; variant: string }> = {
+export const ERROR_TYPE_LABELS: Record<
+  string,
+  { labelKey: string; variant: "error" | "default" | "warning" | "success" | "info" | "primary" }
+> = {
   runtime_error: { labelKey: "errorTypeRuntime", variant: "warning" },
   upstream_auth_error: { labelKey: "errorTypeUpstreamAuth", variant: "error" },
   account_deactivated: { labelKey: "Account Deactivated", variant: "error" },

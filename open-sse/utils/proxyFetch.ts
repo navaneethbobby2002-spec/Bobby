@@ -318,6 +318,20 @@ function isWreqProxySupported(proxyUrl: string): boolean {
   }
 }
 
+/**
+ * Redact proxy URLs (and any bare `user:pass@host` credential tokens) from an
+ * upstream transport-error message before it is surfaced. #10032 keeps the
+ * underlying failure reason in the propagated error for diagnosability, but
+ * the raw message can embed the full proxy URL — including userinfo
+ * credentials — which must never bubble into response bodies (#9837, Hard
+ * Rule #12).
+ */
+function redactProxyDetailsInMessage(message: string): string {
+  return message
+    .replace(/\b(?:https?|socks[45][ah]?|socks):\/\/\S+/gi, "[redacted-proxy]")
+    .replace(/\b[^\s:@/]+:[^\s@/]*@\S+/g, "[redacted-proxy]");
+}
+
 function sanitizeTransportError(
   error: unknown,
   message: string,
@@ -1106,7 +1120,12 @@ async function patchedFetch(
         continue;
       }
       tagProxyUnreachable(error);
-      const originalMsg = error instanceof Error ? error.message : String(error);
+      // #10032: keep the underlying reason for diagnosability, but redact any
+      // proxy URL / credential tokens first — this error can bubble into
+      // response bodies (#9837, Hard Rule #12).
+      const originalMsg = redactProxyDetailsInMessage(
+        error instanceof Error ? error.message : String(error)
+      );
       const sanitized = sanitizeTransportError(
         error,
         originalMsg

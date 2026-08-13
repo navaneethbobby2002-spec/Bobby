@@ -23,6 +23,8 @@ test("XaiExecutor is registered under the 'xai' key and set as the registry exec
 test("XaiExecutor can target the separate xAI OAuth provider config", () => {
   const executor = new XaiExecutor("xai-oauth");
   assert.equal(executor.getProvider(), "xai-oauth");
+  // #10170 declares grok-4.5 as a native Responses model in xai-oauth's own
+  // catalog, so provider-scoped target-format resolution must select that URL.
   assert.equal(executor.buildUrl("grok-4.5", false), "https://api.x.ai/v1/responses");
 });
 
@@ -84,7 +86,7 @@ test("strips reasoning_effort for the explicit -non-reasoning variant (already e
   assert.equal(out.reasoning_effort, undefined);
 });
 
-test("leaves a plain, unlisted model id and body unchanged (no suffix, not allow/deny listed)", () => {
+test("converts a Responses-tagged model while leaving its unclassified reasoning state alone", () => {
   const executor = new XaiExecutor();
   const body = { model: "grok-4.20-multi-agent-0309", messages: [{ role: "user", content: "hi" }] };
   const out = executor.transformRequest(
@@ -96,7 +98,13 @@ test("leaves a plain, unlisted model id and body unchanged (no suffix, not allow
 
   assert.equal(out.model, "grok-4.20-multi-agent-0309");
   assert.equal(out.reasoning_effort, undefined);
-  assert.deepEqual(out.messages, body.messages);
+  assert.equal(out.messages, undefined);
+  assert.deepEqual(out.input, [
+    {
+      role: "user",
+      content: [{ type: "input_text", text: "hi" }],
+    },
+  ]);
 });
 
 // Port of decolua/9router#2439 (author: @ryanngit): xAI ships a native

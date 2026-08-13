@@ -861,7 +861,10 @@ test("chatCore preserves Opus 5 mid-conversation system cache breakpoints", asyn
     call.body.messages.map((message: { role: string }) => message.role),
     ["user", "assistant", "system", "user"]
   );
-  assert.deepEqual(call.body.messages[2].content[0].cache_control, { type: "ephemeral" });
+  assert.deepEqual(call.body.messages[2].content[0].cache_control, {
+    type: "ephemeral",
+    ttl: "1h",
+  });
   assert.equal(
     call.body.system.some((block: { text?: string }) => block.text === "compact continuation"),
     false
@@ -1037,7 +1040,10 @@ test("chatCore preserves cache_control automatically for Claude Code single-mode
   assert.equal(hasCacheControl(call.body), true);
   // system[0] and system[1] are now the billing line and sentinel injected by base.ts for Claude Code
   assert.deepEqual(call.body.system[2].cache_control, { type: "ephemeral", ttl: "5m" });
-  assert.deepEqual(call.body.messages[0].content[0].cache_control, { type: "ephemeral" });
+  assert.deepEqual(call.body.messages[0].content[0].cache_control, {
+    type: "ephemeral",
+    ttl: "1h",
+  });
   // base.ts executor explicitly strips cache_control from tools for Claude Code clients
   assert.equal(call.body.tools[0].cache_control, undefined);
 });
@@ -1083,7 +1089,10 @@ test("chatCore supplements a missing message cache breakpoint for native Claude 
     responseFormat: "claude",
   });
 
-  assert.deepEqual(call.body.messages[2].content[0].cache_control, { type: "ephemeral" });
+  assert.deepEqual(call.body.messages[2].content[0].cache_control, {
+    type: "ephemeral",
+    ttl: "1h",
+  });
   assert.equal(call.body.tools[0].cache_control, undefined);
 });
 test("chatCore auto cache policy becomes false for nondeterministic combos", async () => {
@@ -1171,7 +1180,10 @@ test("chatCore disables raw Claude passthrough when cache preservation is off an
     true
   );
   // Cache preservation is on for native Claude, so cache markers are intact
-  assert.deepEqual(call.body.messages[0].content[0].cache_control, { type: "ephemeral" });
+  assert.deepEqual(call.body.messages[0].content[0].cache_control, {
+    type: "ephemeral",
+    ttl: "1h",
+  });
   // Tools disable flag is applied
   assert.equal("_disableToolPrefix" in call.body, false);
 });
@@ -1314,7 +1326,7 @@ test("chatCore strips unsupported reasoning params and caps provider token field
   assert.equal(call.body.max_tokens, undefined);
   assert.equal(call.body.max_completion_tokens, 16384);
 });
-test("chatCore preserves reasoning_effort for assistant-prefill OpenAI-compatible requests", async () => {
+test("chatCore downgrades unsupported xhigh effort for assistant-prefill OpenAI-compatible requests", async () => {
   const { call, result } = await invokeChatCore({
     provider: "openai-compatible-aio",
     model: "glm-5.1",
@@ -1333,7 +1345,7 @@ test("chatCore preserves reasoning_effort for assistant-prefill OpenAI-compatibl
 
   assert.equal(result.success, true);
   assert.equal(call.body.model, "glm-5.1");
-  assert.equal(call.body.reasoning_effort, "xhigh");
+  assert.equal(call.body.reasoning_effort, "high");
 });
 test("chatCore logs chat completions endpoint as OpenAI protocol", async () => {
   const { call, result } = await invokeChatCore({
@@ -2031,7 +2043,7 @@ test("chatCore 429 lets account fallback apply the configured resilience cooldow
   assert.equal((afterFallback as any).testStatus, "unavailable");
   assert.ok(cooldownRemaining > 0 && cooldownRemaining <= 2_000);
 });
-test("chatCore falls back to the next family model when the requested model is unavailable", async () => {
+test("chatCore does not substitute an OpenAI model after model-unavailable", async () => {
   const { calls, result } = await invokeChatCore({
     provider: "openai",
     model: "gpt-5.1",
@@ -2047,17 +2059,15 @@ test("chatCore falls back to the next family model when the requested model is u
           headers: { "Content-Type": "application/json" },
         });
       }
-      return buildOpenAIResponse(false, "family fallback ok");
+      return buildOpenAIResponse(false, "unexpected fallback");
     },
   });
 
-  const payload = (await result.response.json()) as any;
-  assert.equal(result.success, true);
-  assert.equal(calls.length, 2);
-  assert.equal(calls[1].body.model, "gpt-5.1-mini");
-  assert.equal(payload.choices[0].message.content, "family fallback ok");
+  assert.equal(result.success, false);
+  assert.equal(result.status, 404);
+  assert.equal(calls.length, 1);
 });
-test("chatCore falls back to a larger-context sibling when the request overflows context", async () => {
+test("chatCore does not substitute an OpenAI model after context overflow", async () => {
   saveModelsDevCapabilities({
     unknown: {
       "gpt-5": capabilityEntry(128_000),
@@ -2081,15 +2091,13 @@ test("chatCore falls back to a larger-context sibling when the request overflows
           headers: { "Content-Type": "application/json" },
         });
       }
-      return buildOpenAIResponse(false, "larger context fallback");
+      return buildOpenAIResponse(false, "unexpected fallback");
     },
   });
 
-  const payload = (await result.response.json()) as any;
-  assert.equal(result.success, true);
-  assert.equal(calls.length, 2);
-  assert.equal(calls[1].body.model, "gpt-4o");
-  assert.equal(payload.choices[0].message.content, "larger context fallback");
+  assert.equal(result.success, false);
+  assert.equal(result.status, 400);
+  assert.equal(calls.length, 1);
 });
 test("chatCore parses upstream SSE payloads for non-streaming requests", async () => {
   const { result } = await invokeChatCore({
@@ -2151,7 +2159,7 @@ test("chatCore rejects malformed non-streaming JSON payloads", async () => {
   assert.equal(result.status, 502);
   assert.equal(result.error, "Invalid JSON response from provider");
 });
-test("chatCore falls back after an empty-content success response", async () => {
+test("chatCore does not substitute an OpenAI model after empty content", async () => {
   const { calls, result } = await invokeChatCore({
     provider: "openai",
     model: "gpt-5.1",
@@ -2181,17 +2189,15 @@ test("chatCore falls back after an empty-content success response", async () => 
           }
         );
       }
-      return buildOpenAIResponse(false, "empty-content fallback ok");
+      return buildOpenAIResponse(false, "unexpected fallback");
     },
   });
 
-  const payload = (await result.response.json()) as any;
-  assert.equal(result.success, true);
-  assert.equal(calls.length, 2);
-  assert.equal(calls[1].body.model, "gpt-5.1-mini");
-  assert.equal(payload.choices[0].message.content, "empty-content fallback ok");
+  assert.equal(result.success, false);
+  assert.equal(result.status, 502);
+  assert.equal(calls.length, 1);
 });
-test("chatCore returns a gateway error when the empty-content fallback responds with invalid JSON", async () => {
+test("chatCore returns a gateway error without probing another OpenAI model", async () => {
   const { result, calls } = await invokeChatCore({
     provider: "openai",
     model: "gpt-5.1",
@@ -2232,8 +2238,7 @@ test("chatCore returns a gateway error when the empty-content fallback responds 
   assert.equal(result.success, false);
   assert.equal(result.status, 502);
   assert.equal(result.error, "Provider returned empty content");
-  assert.equal(calls.length, 2);
-  assert.equal(calls[1].body.model, "gpt-5.1-mini");
+  assert.equal(calls.length, 1);
 });
 test("chatCore records Claude prompt cache and cache usage metadata in call logs", async () => {
   await settingsDb.updateSettings({ alwaysPreserveClientCache: "always" });

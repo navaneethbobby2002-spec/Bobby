@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, it, mock } from "node:test";
+import assert from "node:assert/strict";
 import {
   CREDITS_EXHAUSTED_STATUS,
   isCreditsExhaustedReprobeCandidate,
@@ -17,7 +18,7 @@ describe("connectionRecovery — credits_exhausted reprobe", () => {
       testStatus: CREDITS_EXHAUSTED_STATUS,
       rateLimitedUntil: new Date(nowMs - 5000).toISOString(),
     };
-    expect(isRecoverableCooldownConnection(conn, nowMs)).toBe(false);
+    assert.equal(isRecoverableCooldownConnection(conn, nowMs), false);
   });
 
   it("should reprobe credits_exhausted when >30m has elapsed since lastErrorAt", () => {
@@ -27,7 +28,7 @@ describe("connectionRecovery — credits_exhausted reprobe", () => {
       testStatus: CREDITS_EXHAUSTED_STATUS,
       lastErrorAt: thirtyOneMinAgo,
     };
-    expect(isCreditsExhaustedReprobeCandidate(conn, nowMs)).toBe(true);
+    assert.equal(isCreditsExhaustedReprobeCandidate(conn, nowMs), true);
   });
 
   it("should NOT reprobe credits_exhausted when <30m has elapsed since lastErrorAt", () => {
@@ -37,7 +38,7 @@ describe("connectionRecovery — credits_exhausted reprobe", () => {
       testStatus: CREDITS_EXHAUSTED_STATUS,
       lastErrorAt: tenMinAgo,
     };
-    expect(isCreditsExhaustedReprobeCandidate(conn, nowMs)).toBe(false);
+    assert.equal(isCreditsExhaustedReprobeCandidate(conn, nowMs), false);
   });
 
   it("should reprobe credits_exhausted if no timestamp is present (first tick after startup)", () => {
@@ -45,7 +46,7 @@ describe("connectionRecovery — credits_exhausted reprobe", () => {
       id: "conn-1",
       testStatus: CREDITS_EXHAUSTED_STATUS,
     };
-    expect(isCreditsExhaustedReprobeCandidate(conn, nowMs)).toBe(true);
+    assert.equal(isCreditsExhaustedReprobeCandidate(conn, nowMs), true);
   });
 
   it("selectRecoverableConnections includes both transient cooldowns and expired credits_exhausted", () => {
@@ -69,18 +70,18 @@ describe("connectionRecovery — credits_exhausted reprobe", () => {
       [activeTransient, expiredCredits, freshCredits],
       nowMs
     );
-    expect(selected.map((c) => c.id)).toEqual(["t-1", "c-1"]);
+    assert.deepEqual(selected.map((c) => c.id), ["t-1", "c-1"]);
   });
 
   it("runConnectionRecoveryTick calls clearConnectionError for reprobe candidates", async () => {
-    const loadConnections = vi.fn().mockResolvedValue([
+    const loadConnections = mock.fn(async () => [
       {
         id: "c-1",
         testStatus: CREDITS_EXHAUSTED_STATUS,
         lastErrorAt: new Date(nowMs - thirtyMinMs - 1000).toISOString(),
       },
     ]);
-    const clearConnectionError = vi.fn().mockResolvedValue(undefined);
+    const clearConnectionError = mock.fn(async () => undefined);
 
     const res = await runConnectionRecoveryTick({
       nowMs,
@@ -88,8 +89,10 @@ describe("connectionRecovery — credits_exhausted reprobe", () => {
       clearConnectionError,
     });
 
-    expect(res.recovered).toBe(1);
-    expect(res.recoveredIds).toEqual(["c-1"]);
-    expect(clearConnectionError).toHaveBeenCalledWith("c-1", expect.anything());
+    assert.equal(res.recovered, 1);
+    assert.deepEqual(res.recoveredIds, ["c-1"]);
+    assert.equal(clearConnectionError.mock.callCount(), 1);
+    assert.equal(clearConnectionError.mock.calls[0].arguments[0], "c-1");
+    assert.notEqual(clearConnectionError.mock.calls[0].arguments[1], undefined);
   });
 });

@@ -556,6 +556,17 @@ function buildModelOptions(
   return modelMap;
 }
 
+function rewriteQualifiedModelPrefix(
+  modelMap: Map<string, ComboBuilderModelOption>,
+  providerId: string,
+  routingPrefix: string
+): void {
+  if (routingPrefix === providerId) return;
+  for (const option of modelMap.values()) {
+    option.qualifiedModel = `${routingPrefix}/${option.id}`;
+  }
+}
+
 /**
  * #6957: some providers' own catalogs assign the identical display `name` to
  * several distinct model ids (e.g. Mistral's "codestral-latest" alias renders
@@ -684,6 +695,12 @@ export async function getComboBuilderOptions(): Promise<ComboBuilderOptionsPaylo
       customModels
     );
 
+    // #2901 follow-up: a configured OpenCode connection shadows the no-auth
+    // entry below, so it must receive the same `oc/` routing prefix. The raw
+    // `opencode/` prefix is reserved by model parsing for the api-key tier.
+    const routingPrefix = providerId === "opencode" ? providerVisual.alias : providerId;
+    rewriteQualifiedModelPrefix(modelMap, providerId, routingPrefix);
+
     const normalizedConnections =
       expandConnectionOptions(providerConnections).sort(compareConnections);
 
@@ -749,11 +766,7 @@ export async function getComboBuilderOptions(): Promise<ComboBuilderOptionsPaylo
     // (manual ALIAS_TO_PROVIDER_ID override), while "oc/<model>" resolves to the
     // no-auth "opencode" provider. Rewrite qualifiedModel to the alias prefix.
     const routingPrefix = noAuthProvider.alias || providerId;
-    if (routingPrefix !== providerId) {
-      for (const opt of modelMap.values()) {
-        opt.qualifiedModel = `${routingPrefix}/${opt.id}`;
-      }
-    }
+    rewriteQualifiedModelPrefix(modelMap, providerId, routingPrefix);
 
     const displayName = (providerEntryName(providerId) ||
       getProviderDisplayName(providerId, null) ||

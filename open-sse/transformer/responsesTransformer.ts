@@ -209,6 +209,12 @@ export function createResponsesApiTransformStream(
     funcItemTypes: {},
     funcArgsDone: {},
     funcItemDone: {},
+    // Cached at first computation (see toolCallOutputIndexBase) so every
+    // added/delta/done event for a given tool call — including ones emitted
+    // later from the finish_reason handler or flush(), where the reasoning/
+    // message state used to derive the base is no longer meaningful to
+    // recompute — shares exactly the same output_index.
+    funcOutputIndex: {} as Record<string, number>,
     completedOutputItems: [] as Array<{
       output_index: number;
       item: Record<string, unknown>;
@@ -380,6 +386,27 @@ export function createResponsesApiTransformStream(
     }
   };
 
+  // Tool calls sit after reasoning (if any) AND after a text message (if one
+  // was actually emitted this turn). The provider's own tool_calls[].index is
+  // scoped only to the tool_calls array and legitimately restarts at 0 — using
+  // it directly as the Responses API output_index collides with whatever
+  // reasoning/message item already claimed that slot, and a client that
+  // tracks response items by output_index silently drops the tool call.
+  //
+  // Computed once per tcIdx (from the chunk's own choice index, `chunkIdx`)
+  // and cached in state.funcOutputIndex so every added/delta/done event for
+  // that call — including ones emitted later from the finish_reason handler
+  // or flush(), which have no fresh chunk/reasoning/message state to
+  // recompute from — shares exactly the same output_index.
+  const computeToolCallOutputIndex = (chunkIdx, tcIdx) => {
+    if (state.funcOutputIndex[tcIdx] === undefined) {
+      const msgIdx = state.reasoningId ? state.reasoningIndex + 1 : chunkIdx;
+      const base = state.msgItemAdded[msgIdx] ? msgIdx + 1 : msgIdx;
+      state.funcOutputIndex[tcIdx] = base + normalizeOutputIndex(tcIdx);
+    }
+    return state.funcOutputIndex[tcIdx];
+  };
+
   const emitToolCallAdded = (controller, idx) => {
     if (state.funcItemAdded[idx] || !state.funcCallIds[idx]) return false;
 
@@ -390,7 +417,7 @@ export function createResponsesApiTransformStream(
 
     emit(controller, "response.output_item.added", {
       type: "response.output_item.added",
-      output_index: idx,
+      output_index: state.funcOutputIndex[idx],
       item: {
         id: `fc_${state.funcCallIds[idx]}`,
         type: itemType,
@@ -406,7 +433,7 @@ export function createResponsesApiTransformStream(
   const closeToolCall = (controller, idx, recordAsCompleted = true) => {
     const callId = state.funcCallIds[idx];
     if (callId && !state.funcItemDone[idx]) {
-      const normalizedIndex = normalizeOutputIndex(idx);
+      const normalizedIndex = state.funcOutputIndex[idx];
       let args = state.funcArgsBuf[idx] || "{}";
       const toolName = state.funcNames[idx] || "";
       emitToolCallAdded(controller, idx);
@@ -750,6 +777,7 @@ export function createResponsesApiTransformStream(
 
             for (const tc of delta.tool_calls) {
               const tcIdx = tc.index ?? 0;
+              const outputIndex = computeToolCallOutputIndex(idx, tcIdx);
               const newCallId = tc.id;
               const funcName = tc.function?.name;
 
@@ -765,6 +793,10 @@ export function createResponsesApiTransformStream(
                 delete state.funcItemTypes[tcIdx];
                 delete state.funcArgsDone[tcIdx];
                 delete state.funcItemDone[tcIdx];
+                // Deliberately keep funcOutputIndex[tcIdx]: the replacement call
+                // reuses the same positional slot, so it should keep the same
+                // output_index rather than recomputing (which could drift if
+                // msgItemAdded state shifted mid-turn).
               }
 
               if (funcName) state.funcNames[tcIdx] = funcName;
@@ -786,7 +818,7 @@ export function createResponsesApiTransformStream(
                   emit(controller, "response.function_call_arguments.delta", {
                     type: "response.function_call_arguments.delta",
                     item_id: `fc_${state.funcCallIds[tcIdx]}`,
-                    output_index: tcIdx,
+                    output_index: outputIndex,
                     delta: state.funcArgsBuf[tcIdx],
                   });
                 }
@@ -825,7 +857,7 @@ export function createResponsesApiTransformStream(
                   emit(controller, "response.function_call_arguments.delta", {
                     type: "response.function_call_arguments.delta",
                     item_id: `fc_${refCallId}`,
-                    output_index: tcIdx,
+                    output_index: outputIndex,
                     delta: emittedDelta,
                   });
                 }

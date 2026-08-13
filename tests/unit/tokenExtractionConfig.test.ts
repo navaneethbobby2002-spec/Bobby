@@ -106,6 +106,12 @@ describe("tokenExtractionConfig", () => {
     assert.doesNotMatch(cfg?.instructions || "", /RPSCAuth/i);
   });
 
+  it("extracts zai-web auth from localStorage rather than a cookie", () => {
+    const cfg = getExtractionConfig("zai-web");
+    assert.deepEqual(cfg?.tokenSources, [{ type: "localStorage", key: "token" }]);
+    assert.match(cfg?.instructions ?? "", /CAPTCHA/);
+  });
+
   it("listExtractionConfigs returns all configs as an array", () => {
     const all = listExtractionConfigs();
     assert.ok(Array.isArray(all));

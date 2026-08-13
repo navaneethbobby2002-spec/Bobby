@@ -175,12 +175,18 @@ test("#6593 withRateLimit: default maxQueueDepth=0 preserves unbounded-queue beh
   assert.deepEqual(results, ["job1", "job2", "job3", "job4"]);
 });
 
-// --- Default maxWaitMs lowered 120000 -> 15000 ----------------------------
+// --- Default maxWaitMs ----------------------------------------------------
 
 test("#6593 DEFAULT_REQUEST_QUEUE_MAX_WAIT_MS is 15s absent RATE_LIMIT_MAX_WAIT_MS", () => {
   assert.equal(process.env.RATE_LIMIT_MAX_WAIT_MS, undefined);
   assert.equal(resilienceSettings.DEFAULT_REQUEST_QUEUE_MAX_WAIT_MS, 15000);
   assert.equal(resilienceSettings.DEFAULT_RESILIENCE_SETTINGS.requestQueue.maxWaitMs, 15000);
+});
+
+test("#6593 zai-web receives a provider-scoped 60s scheduling budget", () => {
+  assert.equal(rateLimitManager.resolveRequestQueueMaxWaitMs("openai", 15_000), 15_000);
+  assert.equal(rateLimitManager.resolveRequestQueueMaxWaitMs("zai-web", 15_000), 60_000);
+  assert.equal(rateLimitManager.resolveRequestQueueMaxWaitMs("ZAI-WEB", 90_000), 90_000);
 });
 
 test("#6593 DEFAULT_REQUEST_QUEUE_MAX_DEPTH defaults to 0 (disabled) absent an env override", () => {

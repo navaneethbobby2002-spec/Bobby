@@ -108,7 +108,11 @@ export function stripEmptyOptionalToolArgs(value, toolName, schema) {
   if (typeof value === "string") {
     // JSON-string cleanup runs for allowlisted tools, or for any tool once a schema is
     // supplied (schema-aware normalization is not restricted to the allowlist).
-    if (!hasUsableSchema(schema) && !STRIPPABLE_EMPTY_ARG_TOOLS.has(toolName)) return value;
+    // "Agent" also passes without a schema: isDroppableNullEntry drops its null
+    // omission sentinels even when the strict schema snapshot is unavailable (#9423).
+    if (!hasUsableSchema(schema) && !STRIPPABLE_EMPTY_ARG_TOOLS.has(toolName) && toolName !== "Agent") {
+      return value;
+    }
     try {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed) || typeof parsed !== "object" || parsed === null) return value;

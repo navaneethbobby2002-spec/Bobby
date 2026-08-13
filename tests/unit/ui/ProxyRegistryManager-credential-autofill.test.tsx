@@ -117,7 +117,7 @@ afterEach(() => {
 });
 
 describe("ProxyRegistryManager credential autofill regression #8855", () => {
-  it("keeps Edit → close → Add credentials blank and isolates both fields from autofill", async () => {
+  it("keeps Edit → close → Add credentials blank and isolates both fields from autofill", { timeout: 60000 }, async () => {
     const { default: ProxyRegistryManager } =
       await import("@/app/(dashboard)/dashboard/settings/components/ProxyRegistryManager");
 

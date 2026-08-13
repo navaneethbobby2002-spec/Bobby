@@ -842,11 +842,12 @@ test("AntigravityExecutor.execute bounds a persistent short-retry 429 instead of
   const calls: string[] = [];
   seedAntigravityIdeVersionCache("2.1.1");
 
-  // "rate limited" classifies as rate_limited → decide429 returns 60s
-  // (≤ LONG_RETRY_THRESHOLD_MS), i.e. the short-retry branch. A persistent 429
-  // must NOT loop forever on one endpoint — it must exhaust MAX_AUTO_RETRIES per
-  // endpoint, advance through every base URL, then return the 429 so the
-  // account-fallback layer can switch accounts.
+  // "rate limited" with no parseable retry hint classifies as rate_limited →
+  // decide429 returns short_cooldown_switch_auth (60s default). Since #9351 the
+  // switchAuth signal is propagated to the retry guard, which declines the
+  // same-URL sleep branch entirely: one attempt per base URL, then the 429 is
+  // returned so the account-fallback layer can switch accounts immediately
+  // instead of sleeping 60s × MAX_AUTO_RETRIES against a rate-limited account.
   globalThis.fetch = async (url) => {
     calls.push(String(url));
     return new Response(JSON.stringify({ error: { message: "rate limited" } }), {
@@ -871,8 +872,9 @@ test("AntigravityExecutor.execute bounds a persistent short-retry 429 instead of
     // Returns the 429 rather than hanging.
     assert.equal(result.response.status, 429);
 
-    // Bounded: 2 live runtime endpoints × (1 initial + MAX_AUTO_RETRIES=3) = 8 attempts total.
-    assert.equal(calls.length, 8);
+    // Bounded: switchAuth declines same-URL retries → 2 live runtime endpoints
+    // × 1 attempt each = 2 attempts total (#9351).
+    assert.equal(calls.length, 2);
 
     // Tried every distinct live runtime base URL before giving up.
     const distinctHosts = new Set(calls.map((u) => new URL(u).host));

@@ -1468,14 +1468,14 @@ export async function isModelAllowedForKey(
   }
 
   // Only explicit allow-all permits an empty list; restricted + [] is deny-all.
-  if (!allowedModels || allowedModels.length === 0) {
-    return modelAccessMode !== "restricted";
-  }
+  // No early return here: group deny rules (checked below) must still apply to
+  // keys with an empty per-key allow-list (#8817 regression guard — groups only
+  // AND-deny, so restricted+[] stays deny-all).
   // Support exact match and prefix match (e.g., "openai/*" allows all OpenAI models)
   let allowed =
-    !allowedModels ||
-    allowedModels.length === 0 ||
-    allowedModels.some((pattern) => modelPatternMatches(pattern, modelPermissionCandidates));
+    !allowedModels || allowedModels.length === 0
+      ? modelAccessMode !== "restricted"
+      : allowedModels.some((pattern) => modelPatternMatches(pattern, modelPermissionCandidates));
 
   // Extract model target and optional provider prefix if present (e.g. "openai/gpt-4" -> modelTarget: "gpt-4", provider: "openai")
   const hasProviderPrefix = modelId?.includes("/");

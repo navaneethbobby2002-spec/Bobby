@@ -7,6 +7,7 @@
  * 2. Disable thinking when tool_choice forces a specific tool
  * 3. Enforce max 4 cache_control breakpoints
  * 4. Normalize cache_control TTL ordering
+ * 5. Default missing cache_control.ttl to "1h" on the native Claude OAuth path
  */
 
 /**
@@ -153,6 +154,49 @@ export function ensureCacheControlOnLastUserMessage(body: Record<string, unknown
         }
       }
       break;
+    }
+  }
+}
+
+/**
+ * Real Claude Code (and CC-protocol-compatible clients) commonly send
+ * `cache_control: { type: "ephemeral" }` with no `ttl`. On the native Claude
+ * OAuth path the outbound anthropic-beta set always includes
+ * extended-cache-ttl-2025-04-11 (see ANTHROPIC_BETA_BASE /
+ * ANTHROPIC_BETA_CLAUDE_OAUTH in anthropicHeaders.ts), so requesting the 1h
+ * TTL is always valid here — but Anthropic only honors it when `ttl` is
+ * explicitly set; an absent `ttl` silently falls back to the platform
+ * default of 5 minutes even though the 1h beta was negotiated. Any pause
+ * longer than 5 minutes between turns then forces a full prefix rewrite
+ * instead of a cache hit. Default the ttl to "1h" wherever it's missing;
+ * never touch a cache_control that already specifies one (explicit client
+ * choice is preserved).
+ */
+export function normalizeCacheControlTtl(body: Record<string, unknown>): void {
+  const defaultMissingTtl = (block: Record<string, unknown> | null | undefined) => {
+    const cc = block?.cache_control as Record<string, unknown> | undefined;
+    if (cc && cc.type === "ephemeral" && cc.ttl === undefined) {
+      cc.ttl = "1h";
+    }
+  };
+
+  const system = body.system as Array<Record<string, unknown>> | undefined;
+  if (Array.isArray(system)) {
+    for (const block of system) defaultMissingTtl(block);
+  }
+
+  const tools = body.tools as Array<Record<string, unknown>> | undefined;
+  if (Array.isArray(tools)) {
+    for (const tool of tools) defaultMissingTtl(tool);
+  }
+
+  const messages = body.messages as Array<Record<string, unknown>> | undefined;
+  if (Array.isArray(messages)) {
+    for (const message of messages) {
+      const content = message.content as Array<Record<string, unknown>> | undefined;
+      if (Array.isArray(content)) {
+        for (const block of content) defaultMissingTtl(block);
+      }
     }
   }
 }

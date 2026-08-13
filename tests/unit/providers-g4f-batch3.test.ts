@@ -49,8 +49,10 @@ const PROVIDERS: Record<string, { id: string; authType: string; baseUrl: string;
   chatanywhere: {
     id: "chatanywhere",
     authType: "apikey",
-    baseUrl: "https://api.chatanywhere.tech/v1/chat/completions",
-    website: "https://api.chatanywhere.tech",
+    // #9584 (wave4 gateway audit): moved to the international api.chatanywhere.org
+    // endpoint; metadata website is the product page https://chatanywhere.tech.
+    baseUrl: "https://api.chatanywhere.org/v1/chat/completions",
+    website: "https://chatanywhere.tech",
   },
 };
 

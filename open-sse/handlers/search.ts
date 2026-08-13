@@ -304,7 +304,7 @@ function buildSerperRequest(
     url: `${config.baseUrl}${endpoint}`,
     init: {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-API-Key": params.token },
+      headers: { "Content-Type": "application/json", ...(params.token ? { "X-API-Key": params.token } : {}) },
       body: JSON.stringify(body),
     },
   };
@@ -322,7 +322,7 @@ function buildBraveRequest(
     url: `${config.baseUrl}${endpoint}?${qp}`,
     init: {
       method: "GET",
-      headers: { Accept: "application/json", "X-Subscription-Token": params.token },
+      headers: { Accept: "application/json", ...(params.token ? { "X-Subscription-Token": params.token } : {}) },
     },
   };
 }
@@ -348,7 +348,7 @@ function buildExaRequest(
     url: config.baseUrl,
     init: {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": params.token },
+      headers: { "Content-Type": "application/json", ...(params.token ? { "x-api-key": params.token } : {}) },
       body: JSON.stringify(body),
     },
   };

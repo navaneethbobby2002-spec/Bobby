@@ -201,7 +201,7 @@ Round-robin cycles through providers in order. Auto-combo **scores each provider
 
 - **[Connect a Provider](./PROVIDERS-GUIDE.md)** — Add your first AI provider
 - **[Free Tiers Guide](./FREE-TIERS-GUIDE.md)** — Get free AI with no credit card
-- **[Troubleshooting](./TROUBLESHOOTING.md)** — Fix common issues
+- **[Troubleshooting](../guides/TROUBLESHOOTING.md)** — Fix common issues
 - **[Technical Reference](../routing/AUTO-COMBO.md)** — Deep dive into the scoring algorithm
 
 ---
@@ -209,7 +209,7 @@ Round-robin cycles through providers in order. Auto-combo **scores each provider
 ## Learn More
 
 For developers and contributors, see the [Auto-Combo Technical Reference](../routing/AUTO-COMBO.md) for:
-- Full 12-factor scoring algorithm
+- Full 13-factor scoring algorithm
 - Mode pack weight tables
 - Implementation file paths
 - API endpoints
