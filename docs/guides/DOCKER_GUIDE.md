@@ -270,7 +270,22 @@ prefix). Traefik should route `PathPrefix(`/omniroute`)` to the container withou
 `/omniroute/_next/...`.
 
 The Docker healthcheck probes `/api/monitoring/health` prefixed with the active
-`OMNIROUTE_BASE_PATH`.
+`OMNIROUTE_BASE_PATH`. That path is a **deep** check (DB + monitoring summary). It is
+appropriate for Docker’s infrequent `HEALTHCHECK`, but **not** for Kubernetes
+`livenessProbe` intervals.
+
+For orchestrators (Kubernetes, Nomad, etc.):
+
+| Probe | Prefer | Avoid |
+| --- | --- | --- |
+| Liveness | TCP on the main port (`PORT`, default `20128`), or soft HTTP `/healthz` | `/api/monitoring/health` as liveness |
+| Readiness | HTTP `GET /healthz` | Tight timeouts that treat event-loop busy as dead |
+| Deep / blackbox | `/api/monitoring/health` | — |
+
+`/healthz` only reports process lifecycle (`ok` / `starting` / `stopping`). It still
+runs on the same Node event loop as request handling, so CPU-bound catalog or
+compression work can delay it — busy ≠ dead. Full probe guidance:
+[Monitoring guide — Kubernetes probe recommendations](../ops/MONITORING_GUIDE.md#kubernetes-probe-recommendations).
 
 ## Docker Compose with Caddy (HTTPS Auto-TLS)
 
