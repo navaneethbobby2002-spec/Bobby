@@ -15,6 +15,7 @@ Complete reference for all OmniRoute API endpoints.
 ## Table of Contents
 
 - [Chat Completions](#chat-completions)
+- [Exclusive Managed Session Leases](#exclusive-managed-session-leases)
 - [Embeddings](#embeddings)
 - [Image Generation](#image-generation)
 - [List Models](#list-models)
@@ -85,6 +86,64 @@ Content-Type: application/json
 > **Cost telemetry headers:** non-streaming success responses also carry the `X-OmniRoute-*` cost-telemetry set — `X-OmniRoute-Response-Cost` (USD, fixed 10 decimals; `0.0000000000` for free/unpriced), `X-OmniRoute-Tokens-In` / `X-OmniRoute-Tokens-Out`, `X-OmniRoute-Model`, `X-OmniRoute-Provider`, `X-OmniRoute-Latency-Ms`, `X-OmniRoute-Cache-Hit`, and `X-OmniRoute-Fallback-Attempts` (only when > 0), plus `X-OmniRoute-Request-Id` and `X-OmniRoute-Version`. These are emitted by chat completions, `/v1/responses`, `/v1/messages`, **and the media endpoints** — `/v1/embeddings`, `/v1/images/generations`, `/v1/audio/speech`, `/v1/audio/transcriptions`, `/v1/rerank`, `/v1/videos/generations`, `/v1/music/generations`, and `/v1/moderations` (always cost `0`). Media cost is computed per modality (per-image, per-second, per-character, per search-unit) when pricing is available, otherwise `0` (fail-open).
 
 > **Cache-hit cost semantics:** on a semantic-cache HIT (`X-OmniRoute-Cache-Hit: true`) no upstream call is made, so `X-OmniRoute-Response-Cost` is `0.0000000000` (the **incremental** cost of serving the hit). The original/would-have-been cost is reported separately in `X-OmniRoute-Cost-Saved`. Billing consumers should sum `X-OmniRoute-Response-Cost` (hits cost nothing); cache analytics can aggregate `X-OmniRoute-Cost-Saved`.
+
+## Exclusive Managed Session Leases
+
+Exclusive managed session leasing is an opt-in, client-neutral routing contract: one active owner
+holds one eligible OmniRoute connection. It does not lease a model, require OAuth, identify a
+particular client, or require a particular provider.
+
+The authenticating API key must have scope `lease:exclusive` and an explicit non-empty
+`allowedConnections` list. The database mutation boundary enforces both fields together on key
+creation and partial updates.
+
+```http
+POST /api/v1/session-leases
+Authorization: Bearer <managed-api-key>
+Content-Type: application/json
+X-OmniRoute-Lease-Owner: vlo_<43-base64url-characters>
+
+{"action":"acquire","model":"glm/glm-4.6"}
+```
+
+Successful lifecycle responses expose timestamps, `state`, and the exact positive `generation`,
+but never the selected connection or credentials. Renew and release supply the generation in the
+JSON body:
+
+```json
+{ "action": "renew", "generation": 1 }
+```
+
+```json
+{ "action": "release", "generation": 1, "reason": "OWNER_EXIT" }
+```
+
+Every managed inference request then supplies both control headers:
+
+```http
+X-OmniRoute-Lease-Owner: vlo_<43-base64url-characters>
+X-OmniRoute-Lease-Generation: 1
+```
+
+The exact owner, generation, active connection, and authenticated API key are fenced immediately
+before each supported upstream attempt. Replaying owner and generation with another key fails even
+when that key permits the same connection. Raw owners are not persisted, logged, retained in the
+request snapshot, or forwarded upstream.
+
+Temporary contention returns HTTP `429` with `Retry-After` and:
+
+```json
+{
+  "state": "WAITING_FOR_CAPACITY",
+  "error": { "type": "lease_error", "code": "LEASE_CAPACITY_UNAVAILABLE" },
+  "reason": "NO_FREE_ELIGIBLE_CONNECTION",
+  "retryAfter": 30
+}
+```
+
+This response only means that the ordinary eligible set was non-empty and every free candidate was
+held by a foreign active lease. Unsupported models/providers, policy mismatch, cooldown, quota,
+health, and other ordinary eligibility failures retain their existing OmniRoute responses.
 
 ### `x-omniroute-compression`
 
@@ -489,7 +548,7 @@ call**, so the reported `X-OmniRoute-Response-Latency` is near-zero
 (benchmarking, p50/p99 monitoring) should check the
 `X-OmniRoute-Cache-Latency` response header:
 
-| Value | Meaning |
+| Value       | Meaning                                                       |
 |-------|---------|
 | `synthetic` | Response served from cache; latency is not real upstream time |
 | *(absent)* | Response from real upstream call |
@@ -498,9 +557,9 @@ call**, so the reported `X-OmniRoute-Response-Latency` is near-zero
 
 API keys can opt out of semantic cache reads via `cacheDefaultMode`:
 
-| Value | Behavior |
+| Value    | Behavior                                        |
 |-------|----------|
-| `legacy` | Normal cache behavior (default) |
+| `legacy` | Normal cache behavior (default)                 |
 | `bypass` | Skip cache lookup entirely; always hit upstream |
 
 Set at key creation (`POST /api/keys`) or update (`PATCH /api/keys/[id]`):
@@ -603,13 +662,13 @@ X-OmniRoute-No-Cache: true
 
 ### Monitoring
 
-| Endpoint                 | Method     | Description                                                                                          |
+| Endpoint                     | Method     | Description                                                                                                                                   |
 | ------------------------ | ---------- | ---------------------------------------------------------------------------------------------------- |
-| `/api/sessions`          | GET        | Active session tracking                                                                              |
-| `/api/rate-limits`       | GET        | Per-account rate limits                                                                              |
-| `/api/monitoring/health` | GET        | Health check + provider summary (`catalogCount`, `configuredCount`, `activeCount`, `monitoredCount`) |
-| `/api/cache/stats`       | GET/DELETE | Cache stats / clear                                                                                  |
-| `/api/modality-bridge/stats` | GET    | In-memory Modality Bridge telemetry — per-modality `bridged`/`cacheHits`/`failures`/`lastUsedAt` counters (reset on restart; management auth) |
+| `/api/sessions`              | GET        | Active session tracking                                                                                                                       |
+| `/api/rate-limits`           | GET        | Per-account rate limits                                                                                                                       |
+| `/api/monitoring/health`     | GET        | Health check + provider summary (`catalogCount`, `configuredCount`, `activeCount`, `monitoredCount`)                                          |
+| `/api/cache/stats`           | GET/DELETE | Cache stats / clear                                                                                                                           |
+| `/api/modality-bridge/stats` | GET        | In-memory Modality Bridge telemetry — per-modality `bridged`/`cacheHits`/`failures`/`lastUsedAt` counters (reset on restart; management auth) |
 
 ### Backup & Export/Import
 
