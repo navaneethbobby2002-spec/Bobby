@@ -5,24 +5,23 @@ import test from "node:test";
 
 const ROOT = join(import.meta.dirname, "..", "..");
 
-test("electron build copies standalone runtime dependencies into resources/app/node_modules", () => {
+test("electron build copies the standalone runtime into resources/app exactly once", () => {
   const electronPackage = JSON.parse(readFileSync(join(ROOT, "electron", "package.json"), "utf8"));
 
   const extraResources = electronPackage.build?.extraResources;
   assert.ok(Array.isArray(extraResources), "electron build.extraResources must be an array");
 
-  assert.deepEqual(
-    extraResources.find(
-      (resource) =>
-        resource?.from === "../.build/electron-standalone/node_modules" &&
-        resource?.to === "app/node_modules"
-    ),
-    {
-      from: "../.build/electron-standalone/node_modules",
-      to: "app/node_modules",
-      filter: ["**/*"],
-    }
+  const appResources = extraResources.filter(
+    (resource) => resource?.to === "app" || resource?.to?.startsWith("app/")
   );
+
+  assert.deepEqual(appResources, [
+    {
+      from: "../.build/electron-standalone",
+      to: "app",
+      filter: ["**/*"],
+    },
+  ]);
 });
 
 test("electron standalone assembly normalizes Turbopack hashed external imports", () => {
