@@ -319,6 +319,34 @@ export const DEFAULT_PRICING_OAUTH = {
     // downstream cost and quota calculations silently fall back to $0.
     // Pricing: $1.50 input / $7.50 output / $0.15 cached per MTok. Thinking tokens
     // billed at output rate.
+    "gemini-3.7-flash-low": {
+      input: 1.5,
+      output: 7.5,
+      cached: 0.15,
+      reasoning: 7.5,
+      cache_creation: 1.5,
+    },
+    "gemini-3.7-flash-medium": {
+      input: 1.5,
+      output: 7.5,
+      cached: 0.15,
+      reasoning: 7.5,
+      cache_creation: 1.5,
+    },
+    "gemini-3.7-flash-high": {
+      input: 1.5,
+      output: 7.5,
+      cached: 0.15,
+      reasoning: 7.5,
+      cache_creation: 1.5,
+    },
+    "gemini-3.7-flash": {
+      input: 1.5,
+      output: 7.5,
+      cached: 0.15,
+      reasoning: 7.5,
+      cache_creation: 1.5,
+    },
     "gemini-3.6-flash-low": {
       input: 1.5,
       output: 7.5,

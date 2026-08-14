@@ -1,4 +1,40 @@
 export const ANTIGRAVITY_PUBLIC_MODELS = Object.freeze([
+  {
+    id: "gemini-3.7-flash-high",
+    name: "Gemini 3.7 Flash (High)",
+    contextLength: 1048576,
+    maxOutputTokens: 65536,
+    supportsReasoning: true,
+    supportsVision: true,
+    toolCalling: true,
+  },
+  {
+    id: "gemini-3.7-flash-medium",
+    name: "Gemini 3.7 Flash (Medium)",
+    contextLength: 1048576,
+    maxOutputTokens: 65536,
+    supportsReasoning: true,
+    supportsVision: true,
+    toolCalling: true,
+  },
+  {
+    id: "gemini-3.7-flash-low",
+    name: "Gemini 3.7 Flash (Low)",
+    contextLength: 1048576,
+    maxOutputTokens: 65536,
+    supportsReasoning: true,
+    supportsVision: true,
+    toolCalling: true,
+  },
+  {
+    id: "gemini-3.7-flash",
+    name: "Gemini 3.7 Flash",
+    contextLength: 1048576,
+    maxOutputTokens: 65536,
+    supportsReasoning: true,
+    supportsVision: true,
+    toolCalling: true,
+  },
   // Gemini 3.6 Flash tiers returned by the live model selector for both the IDE 2.1.1
   // and CLI 1.1.x client identities. High is the current defaultAgentModelId.
   {
@@ -143,6 +179,14 @@ export const ANTIGRAVITY_PUBLIC_MODELS = Object.freeze([
 ]);
 
 export const ANTIGRAVITY_MODEL_ALIASES = Object.freeze({
+  // Gemini 3.7 Flash: the live catalog (fetchAvailableModels on daily-cloudcode-pa)
+  // exposes a single upstream id `gemini-3.7-flash-tiered`; the agy CLI maps all
+  // display tiers (high/medium/low) to it. Verified 200 OK with thinking_level and
+  // thinkingBudget configs. The suffixed ids 404 upstream ("Requested entity was not found").
+  "gemini-3.7-flash": "gemini-3.7-flash-tiered",
+  "gemini-3.7-flash-high": "gemini-3.7-flash-tiered",
+  "gemini-3.7-flash-medium": "gemini-3.7-flash-tiered",
+  "gemini-3.7-flash-low": "gemini-3.7-flash-tiered",
   // gemini-3.1-pro-low is not aliased: the upstream accepts it verbatim.
   // gemini-3.1-pro-high: the discovery slot returns HTTP 400 on v1internal;
   // the live upstream id is gemini-pro-agent (see ANTIGRAVITY_PUBLIC_MODELS).

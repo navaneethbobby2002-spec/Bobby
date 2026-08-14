@@ -220,6 +220,10 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
     acpSpawnable: false,
     baseUrlSupport: "none",
     modelAliases: [
+      "gemini-3.7-flash-high",
+      "gemini-3.7-flash-medium",
+      "gemini-3.7-flash-low",
+      "gemini-3.7-flash",
       "gemini-3.6-flash-high",
       "gemini-3.6-flash-medium",
       "gemini-3.6-flash-low",
@@ -233,6 +237,10 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
       "gpt-oss-120b-medium",
     ],
     defaultModels: [
+      createCliModel("gemini-3.7-flash-high", "Gemini 3.7 Flash High"),
+      createCliModel("gemini-3.7-flash-medium", "Gemini 3.7 Flash Medium"),
+      createCliModel("gemini-3.7-flash-low", "Gemini 3.7 Flash Low"),
+      createCliModel("gemini-3.7-flash", "Gemini 3.7 Flash"),
       createCliModel("gemini-3.6-flash-high", "Gemini 3.6 Flash High"),
       createCliModel("gemini-3.6-flash-medium", "Gemini 3.6 Flash Medium"),
       createCliModel("gemini-3.6-flash-low", "Gemini 3.6 Flash Low"),

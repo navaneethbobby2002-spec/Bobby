@@ -173,6 +173,32 @@ export const MODEL_SPECS: Record<string, ModelSpec> = {
     thinkingBudgetCap: 0,
   },
 
+  // ── Gemini 3.7 Flash (Antigravity tiers) ───────────────────────
+  "gemini-3.7-flash-high": {
+    ...GEMINI_35_FLASH_MODEL_SPEC,
+    defaultThinkingBudget: 32768,
+    thinkingBudgetCap: 65536,
+    supportsThinking: true,
+  },
+  "gemini-3.7-flash-medium": {
+    ...GEMINI_35_FLASH_MODEL_SPEC,
+    defaultThinkingBudget: 8192,
+    thinkingBudgetCap: 32768,
+    supportsThinking: true,
+  },
+  "gemini-3.7-flash-low": {
+    ...GEMINI_35_FLASH_MODEL_SPEC,
+    defaultThinkingBudget: 1024,
+    thinkingBudgetCap: 8192,
+    supportsThinking: true,
+  },
+  "gemini-3.7-flash": {
+    ...GEMINI_35_FLASH_MODEL_SPEC,
+    defaultThinkingBudget: 8192,
+    thinkingBudgetCap: 65536,
+    supportsThinking: true,
+  },
+
   // ── Gemini 3.6 Flash (Antigravity live tiers) ───────────────────
   // The model id itself selects the upstream 10k/4k/1k reasoning tier. Antigravity
   // still rejects client-supplied thinking parameters, so keep the explicit-parameter

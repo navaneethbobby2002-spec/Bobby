@@ -476,6 +476,17 @@ export class AntigravityExecutor extends BaseExecutor {
     super("antigravity", PROVIDERS.antigravity);
   }
 
+  override shouldRetry(status: number, urlIndex: number): boolean {
+    return (
+      (status === HTTP_STATUS.RATE_LIMITED ||
+        status === HTTP_STATUS.NOT_FOUND ||
+        status === HTTP_STATUS.BAD_GATEWAY ||
+        status === HTTP_STATUS.SERVICE_UNAVAILABLE ||
+        status === HTTP_STATUS.GATEWAY_TIMEOUT) &&
+      urlIndex + 1 < this.getFallbackCount()
+    );
+  }
+
   buildUrl(model: string, _stream: boolean, urlIndex = 0): string {
     void model;
     const baseUrls = this.getBaseUrls();

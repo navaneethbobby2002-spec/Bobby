@@ -12,6 +12,42 @@
 // they are not chat-callable.
 
 export const AGY_PUBLIC_MODELS = Object.freeze([
+  {
+    id: "gemini-3.7-flash-high",
+    name: "Gemini 3.7 Flash (High)",
+    contextLength: 1048576,
+    maxOutputTokens: 65536,
+    supportsReasoning: true,
+    supportsVision: true,
+    toolCalling: true,
+  },
+  {
+    id: "gemini-3.7-flash-medium",
+    name: "Gemini 3.7 Flash (Medium)",
+    contextLength: 1048576,
+    maxOutputTokens: 65536,
+    supportsReasoning: true,
+    supportsVision: true,
+    toolCalling: true,
+  },
+  {
+    id: "gemini-3.7-flash-low",
+    name: "Gemini 3.7 Flash (Low)",
+    contextLength: 1048576,
+    maxOutputTokens: 65536,
+    supportsReasoning: true,
+    supportsVision: true,
+    toolCalling: true,
+  },
+  {
+    id: "gemini-3.7-flash",
+    name: "Gemini 3.7 Flash",
+    contextLength: 1048576,
+    maxOutputTokens: 65536,
+    supportsReasoning: true,
+    supportsVision: true,
+    toolCalling: true,
+  },
   // Gemini 3.6 Flash tiers. The live endpoint selects High by default and advertises
   // all three ids to both the IDE 2.1.1 and CLI 1.1.x clients.
   {
