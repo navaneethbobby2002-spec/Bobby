@@ -112,7 +112,32 @@ function resolveNodeExecutable(env = process.env) {
   return process.execPath;
 }
 
-function resolveServerNodePath(env = process.env) {
+// Stage 7 (issue #10321): optional runtime packs are installed under
+// `${DATA_DIR}/packs/<name>/node_modules` (see open-sse/utils/optionalPacks.ts —
+// this is the plain-JS mirror; keep semantics identical). Prepending their
+// node_modules to NODE_PATH lets the server's dynamic imports (playwright, the
+// LLMLingua closure) resolve pack members while the default bundle stays slim.
+function resolvePackNodePaths(dataDir) {
+  const packsRoot = path.join(dataDir, "packs");
+  let names;
+  try {
+    names = fs.readdirSync(packsRoot);
+  } catch {
+    return []; // No packs dir yet — nothing installed.
+  }
+  const dirs = [];
+  for (const name of names) {
+    const candidate = path.join(packsRoot, name, "node_modules");
+    try {
+      if (fs.statSync(candidate).isDirectory()) dirs.push(candidate);
+    } catch {
+      // Unreadable entry — treat as not installed.
+    }
+  }
+  return dirs;
+}
+
+function resolveServerNodePath(env = process.env, extraDirs = []) {
   const seen = new Set();
   const entries = [];
 
@@ -132,6 +157,12 @@ function resolveServerNodePath(env = process.env) {
 
   for (const existing of (env.NODE_PATH || "").split(path.delimiter)) {
     addEntry(existing);
+  }
+
+  // Optional packs take precedence over bundle-resident copies so an installed
+  // pack can never be shadowed by a stale bundled duplicate.
+  for (const packDir of extraDirs) {
+    addEntry(packDir);
   }
 
   // Electron-builder installs native modules like better-sqlite3 under
@@ -770,7 +801,7 @@ function startNextServer() {
       PORT: String(serverPort),
       NODE_ENV: "production",
       ELECTRON_RUN_AS_NODE: "1",
-      NODE_PATH: resolveServerNodePath(serverEnv),
+      NODE_PATH: resolveServerNodePath(serverEnv, resolvePackNodePaths(dataDir)),
       NODE_OPTIONS: serverNodeOptions,
     },
     stdio: "pipe",
