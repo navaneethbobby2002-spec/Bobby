@@ -2082,8 +2082,8 @@
       }
     },
     "url": {
-      "nonStream": "https://freeaiapikey.com/v1/chat/completions",
-      "stream": "https://freeaiapikey.com/v1/chat/completions"
+      "nonStream": "https://api.freeaiapikey.com/v1/chat/completions",
+      "stream": "https://api.freeaiapikey.com/v1/chat/completions"
     }
   },
   "freeinference": {
