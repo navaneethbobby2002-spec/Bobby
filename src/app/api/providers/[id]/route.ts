@@ -338,6 +338,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 }
 
+// PATCH /api/providers/[id] - Update connection (partial)
+// The OpenAPI spec and the CLI (`omniroute providers rotate`, generated
+// api-commands) both use PATCH, but only PUT was implemented — PATCH requests
+// 405'd. PATCH and PUT share the same update semantics here (the schema only
+// applies provided fields), so delegate to the PUT handler.
+export async function PATCH(request: Request, ctx: { params: Promise<{ id: string }> }) {
+  return PUT(request, ctx);
+}
+
 // DELETE /api/providers/[id] - Delete connection
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const authError = await requireManagementAuth(request);
