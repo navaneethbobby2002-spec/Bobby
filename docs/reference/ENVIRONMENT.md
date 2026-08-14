@@ -1479,6 +1479,7 @@ These settings were introduced after the previous environment-contract snapshot.
 | `TELEGRAM_DEFAULT_MODEL` | `auto/chat` | `src/lib/telegram/chatProxy.ts` | Model used for Telegram chat replies. |
 | `TELEGRAM_BOT_API_BASE` | `https://api.telegram.org` | `src/lib/telegram/config.ts` | Bot API base URL override for proxies or self-hosted Bot API servers. |
 | `TELEGRAM_WEBHOOK_TIMEOUT_MS` | `60000` | `src/lib/telegram/config.ts` | Timeout in milliseconds for outbound Bot API calls. |
+| `OMNIROUTE_OPTIONAL_PACK_TAR` | `1` (enabled) | `scripts/build/optionalPackStaging.mjs` | Set `0` to skip emitting `.tar.gz` tarballs while staging optional ML/browser packs for the Electron standalone tree (pack directories and `optional-packs.index.json` are still produced). Used by the desktop release workflow to trim artifact upload size. |
 ### ChatGPT Web (Codex)
 
 Globale Defaults für den headless Browser und den ausgehenden Tool-Tunnel. Im Dashboard gesetzte Connection-Werte haben Vorrang.
