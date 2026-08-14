@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Dopytovanie zastavené: server odmietol požiadavku (404/403).",
     "pollErrorTransient": "Chyba pri načítaní dát: automatické opakovanie.",
     "degraded": "Čiastočné dáta: nedostupné zdroje: {sources}",
-    "degraded.source.database": "Databáza",
-    "degraded.source.circuitBreaker": "Istič",
-    "degraded.source.modelLockouts": "Uzamknutia Modelu",
-    "degraded.source.count": "Počet Pripojení"
+    "degradedSource": {
+      "database": "Databáza",
+      "circuitBreaker": "Istič",
+      "modelLockouts": "Uzamknutia Modelu",
+      "count": "Počet Pripojení"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Zamietnuť požiadavky pred odoslaním, keď cieľový model postráda požadované schopnosti (vízia, nástroje, štruktúrovaný výstup, kontextové okno). Chráni priamu požiadavku od jedného poskytovateľa, ktorá obchádza filter kompatibility kombinovanej vrstvy.",
-  "capabilityFilter.visionMismatch": "Poskytovateľ nepodporuje víziu pre tento požiadavku na obrázok",
-  "capabilityFilter.toolsMismatch": "Poskytovateľ nepodporuje volanie nástroja",
-  "capabilityFilter.structuredOutputMismatch": "Poskytovateľ nepodporuje štruktúrovaný výstup",
-  "capabilityFilter.contextWindowMismatch": "Žiadosť presahuje kontextové okno poskytovateľa",
+  "capabilityFilter": {
+    "visionMismatch": "Poskytovateľ nepodporuje víziu pre tento požiadavku na obrázok",
+    "toolsMismatch": "Poskytovateľ nepodporuje volanie nástroja",
+    "structuredOutputMismatch": "Poskytovateľ nepodporuje štruktúrovaný výstup",
+    "contextWindowMismatch": "Žiadosť presahuje kontextové okno poskytovateľa"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Stránka nenájdená",

@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Запитването е спряно: сървърът отхвърли заявката (404/403).",
     "pollErrorTransient": "Грешка при извличане на данни: автоматичен повторен опит.",
     "degraded": "Частични данни: недостъпни източници: {sources}",
-    "degraded.source.database": "База Данни",
-    "degraded.source.circuitBreaker": "Прекъсвач",
-    "degraded.source.modelLockouts": "Заключвания на Модел",
-    "degraded.source.count": "Брой Връзки"
+    "degradedSource": {
+      "database": "База Данни",
+      "circuitBreaker": "Прекъсвач",
+      "modelLockouts": "Заключвания на Модел",
+      "count": "Брой Връзки"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Отхвърлете заявките преди изпращане, когато целевият модел няма необходимите възможности (визия, инструменти, структурирани изходи, контекстен прозорец). Защитава директните заявки от един доставчик, които заобикалят филтъра за съвместимост на комбинирания слой.",
-  "capabilityFilter.visionMismatch": "Доставчикът не поддържа визуализация за тази заявка за изображение",
-  "capabilityFilter.toolsMismatch": "Доставчикът не поддържа извикване на инструменти",
-  "capabilityFilter.structuredOutputMismatch": "Доставчикът не поддържа структурирано изходно съдържание",
-  "capabilityFilter.contextWindowMismatch": "Заявката надвишава контекстния прозорец на доставчика",
+  "capabilityFilter": {
+    "visionMismatch": "Доставчикът не поддържа визуализация за тази заявка за изображение",
+    "toolsMismatch": "Доставчикът не поддържа извикване на инструменти",
+    "structuredOutputMismatch": "Доставчикът не поддържа структурирано изходно съдържание",
+    "contextWindowMismatch": "Заявката надвишава контекстния прозорец на доставчика"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Страницата не е намерена",

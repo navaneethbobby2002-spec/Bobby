@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Pollning stoppad: servern avvisade förfrågan (404/403).",
     "pollErrorTransient": "Fel vid hämtning av data: försöker automatiskt igen.",
     "degraded": "Partiell data: otillgängliga källor: {sources}",
-    "degraded.source.database": "Databas",
-    "degraded.source.circuitBreaker": "Kretsbrytare",
-    "degraded.source.modelLockouts": "Modellåsningar",
-    "degraded.source.count": "Antal Anslutningar"
+    "degradedSource": {
+      "database": "Databas",
+      "circuitBreaker": "Kretsbrytare",
+      "modelLockouts": "Modellåsningar",
+      "count": "Antal Anslutningar"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Avvisa förfrågningar innan de skickas när målmodellen saknar nödvändiga funktioner (vision, verktyg, strukturerad utdata, kontextfönster). Skyddar direkta förfrågningar från en enda leverantör som kringgår kompatibilitetsfiltret för kombinationslager.",
-  "capabilityFilter.visionMismatch": "Leverantören stöder inte vision för denna bildförfrågan",
-  "capabilityFilter.toolsMismatch": "Leverantören stöder inte verktygsanrop.",
-  "capabilityFilter.structuredOutputMismatch": "Leverantören stöder inte strukturerad utdata",
-  "capabilityFilter.contextWindowMismatch": "Begäran överskrider leverantörens kontextfönster",
+  "capabilityFilter": {
+    "visionMismatch": "Leverantören stöder inte vision för denna bildförfrågan",
+    "toolsMismatch": "Leverantören stöder inte verktygsanrop.",
+    "structuredOutputMismatch": "Leverantören stöder inte strukturerad utdata",
+    "contextWindowMismatch": "Begäran överskrider leverantörens kontextfönster"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Sidan kunde inte hittas",

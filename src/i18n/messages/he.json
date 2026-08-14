@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "הסקר הופסק: השרת דחה את הבקשה (404/403).",
     "pollErrorTransient": "שגיאה באחזור נתונים: ניסיון חוזר אוטומטי.",
     "degraded": "נתונים חלקיים: מקורות לא זמינים: {sources}",
-    "degraded.source.database": "מסד נתונים",
-    "degraded.source.circuitBreaker": "נתיק מעגל",
-    "degraded.source.modelLockouts": "נעילות מודל",
-    "degraded.source.count": "מספר חיבורים"
+    "degradedSource": {
+      "database": "מסד נתונים",
+      "circuitBreaker": "נתיק מעגל",
+      "modelLockouts": "נעילות מודל",
+      "count": "מספר חיבורים"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "דחה בקשות לפני שליחה כאשר המודל המטרה חסר יכולות נדרשות (חזון, כלים, פלט מובנה, חלון הקשר). מגן על בקשות ישירות מספק אחד שעוקפות את מסנן ההתאמה של שכבת הקומבו.",
-  "capabilityFilter.visionMismatch": "הספק אינו תומך בראייה עבור בקשה זו של תמונה",
-  "capabilityFilter.toolsMismatch": "הספק אינו תומך בקריאת כלים",
-  "capabilityFilter.structuredOutputMismatch": "הספק אינו תומך בפלט מובנה",
-  "capabilityFilter.contextWindowMismatch": "הבקשה חורגת מגבול ההקשר של הספק",
+  "capabilityFilter": {
+    "visionMismatch": "הספק אינו תומך בראייה עבור בקשה זו של תמונה",
+    "toolsMismatch": "הספק אינו תומך בקריאת כלים",
+    "structuredOutputMismatch": "הספק אינו תומך בפלט מובנה",
+    "contextWindowMismatch": "הבקשה חורגת מגבול ההקשר של הספק"
+  },
   "publicSystem": {
     "notFound": {
       "title": "העמוד לא נמצא",

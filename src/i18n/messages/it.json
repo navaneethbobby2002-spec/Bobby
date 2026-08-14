@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Sondaggio interrotto: il server ha rifiutato la richiesta (404/403).",
     "pollErrorTransient": "Errore nel recupero dei dati: nuovo tentativo automatico.",
     "degraded": "Dati parziali: fonti non disponibili: {sources}",
-    "degraded.source.database": "Database",
-    "degraded.source.circuitBreaker": "Interruttore",
-    "degraded.source.modelLockouts": "Blocchi Modello",
-    "degraded.source.count": "Conteggio Connessioni"
+    "degradedSource": {
+      "database": "Database",
+      "circuitBreaker": "Interruttore",
+      "modelLockouts": "Blocchi Modello",
+      "count": "Conteggio Connessioni"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Rifiuta le richieste prima della spedizione quando il modello di destinazione manca delle capacità richieste (visione, strumenti, output strutturato, finestra di contesto). Protegge le richieste dirette a singolo fornitore che bypassano il filtro di compatibilità del livello combinato.",
-  "capabilityFilter.visionMismatch": "Il fornitore non supporta la visione per questa richiesta di immagine",
-  "capabilityFilter.toolsMismatch": "Il provider non supporta la chiamata degli strumenti",
-  "capabilityFilter.structuredOutputMismatch": "Il provider non supporta l'output strutturato",
-  "capabilityFilter.contextWindowMismatch": "La richiesta supera la finestra di contesto del fornitore",
+  "capabilityFilter": {
+    "visionMismatch": "Il fornitore non supporta la visione per questa richiesta di immagine",
+    "toolsMismatch": "Il provider non supporta la chiamata degli strumenti",
+    "structuredOutputMismatch": "Il provider non supporta l'output strutturato",
+    "contextWindowMismatch": "La richiesta supera la finestra di contesto del fornitore"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Pagina non trovata",

@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Lekérdezés leállítva: a szerver elutasította a kérést (404/403).",
     "pollErrorTransient": "Hiba az adatok lekérésekor: automatikus újrapróbálkozás.",
     "degraded": "Részleges adatok: nem elérhető források: {sources}",
-    "degraded.source.database": "Adatbázis",
-    "degraded.source.circuitBreaker": "Megszakító",
-    "degraded.source.modelLockouts": "Modell Zárolások",
-    "degraded.source.count": "Kapcsolatok Száma"
+    "degradedSource": {
+      "database": "Adatbázis",
+      "circuitBreaker": "Megszakító",
+      "modelLockouts": "Modell Zárolások",
+      "count": "Kapcsolatok Száma"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Elutasítja a kéréseket a kiszállítás előtt, amikor a célmodell hiányzik a szükséges képességekből (látás, eszközök, strukturált kimenet, kontextusablak). Védi a közvetlen, egy szolgáltatótól érkező kéréseket, amelyek megkerülik a kombinált réteg kompatibilitási szűrőt.",
-  "capabilityFilter.visionMismatch": "A szolgáltató nem támogatja a látást ehhez a képkéréshez",
-  "capabilityFilter.toolsMismatch": "A szolgáltató nem támogatja az eszközhívást",
-  "capabilityFilter.structuredOutputMismatch": "A szolgáltató nem támogatja a strukturált kimenetet",
-  "capabilityFilter.contextWindowMismatch": "A kérés meghaladja a szolgáltató kontextusablakát",
+  "capabilityFilter": {
+    "visionMismatch": "A szolgáltató nem támogatja a látást ehhez a képkéréshez",
+    "toolsMismatch": "A szolgáltató nem támogatja az eszközhívást",
+    "structuredOutputMismatch": "A szolgáltató nem támogatja a strukturált kimenetet",
+    "contextWindowMismatch": "A kérés meghaladja a szolgáltató kontextusablakát"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Az oldal nem található",

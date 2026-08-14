@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Polling dihentikan: server menolak permintaan (404/403).",
     "pollErrorTransient": "Kesalahan mengambil data: mencoba lagi secara otomatis.",
     "degraded": "Data sebagian: sumber tidak tersedia: {sources}",
-    "degraded.source.database": "Basis Data",
-    "degraded.source.circuitBreaker": "Circuit Breaker",
-    "degraded.source.modelLockouts": "Penguncian Model",
-    "degraded.source.count": "Jumlah Koneksi"
+    "degradedSource": {
+      "database": "Basis Data",
+      "circuitBreaker": "Circuit Breaker",
+      "modelLockouts": "Penguncian Model",
+      "count": "Jumlah Koneksi"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Tolak permintaan sebelum pengiriman ketika model target tidak memiliki kemampuan yang diperlukan (visi, alat, output terstruktur, jendela konteks). Melindungi permintaan penyedia tunggal langsung yang melewati filter kompatibilitas lapisan kombinasi.",
-  "capabilityFilter.visionMismatch": "Penyedia tidak mendukung visi untuk permintaan gambar ini",
-  "capabilityFilter.toolsMismatch": "Penyedia tidak mendukung pemanggilan alat",
-  "capabilityFilter.structuredOutputMismatch": "Penyedia tidak mendukung keluaran terstruktur",
-  "capabilityFilter.contextWindowMismatch": "Permintaan melebihi jendela konteks penyedia",
+  "capabilityFilter": {
+    "visionMismatch": "Penyedia tidak mendukung visi untuk permintaan gambar ini",
+    "toolsMismatch": "Penyedia tidak mendukung pemanggilan alat",
+    "structuredOutputMismatch": "Penyedia tidak mendukung keluaran terstruktur",
+    "contextWindowMismatch": "Permintaan melebihi jendela konteks penyedia"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Halaman tidak ditemukan",

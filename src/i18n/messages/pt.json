@@ -13247,16 +13247,20 @@
         "count": "Contagem de Ligações"
       }
     },
-    "degraded.source.database": "Database",
-    "degraded.source.circuitBreaker": "Circuit Breaker",
-    "degraded.source.modelLockouts": "Model Lockouts",
-    "degraded.source.count": "Connection Count"
+    "degradedSource": {
+      "database": "Database",
+      "circuitBreaker": "Circuit Breaker",
+      "modelLockouts": "Model Lockouts",
+      "count": "Connection Count"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Rejeitar pedidos antes do envio quando o modelo de destino não tiver as capacidades necessárias (visão, ferramentas, saída estruturada, janela de contexto). Protege pedidos diretos de um único fornecedor que contornam o filtro de compatibilidade da camada combinada.",
-  "capabilityFilter.visionMismatch": "Provider does not support vision for this image request",
-  "capabilityFilter.toolsMismatch": "Provider does not support tool calling",
-  "capabilityFilter.structuredOutputMismatch": "Provider does not support structured output",
-  "capabilityFilter.contextWindowMismatch": "Request exceeds provider context window",
+  "capabilityFilter": {
+    "visionMismatch": "O fornecedor não suporta visão para este pedido de imagem",
+    "toolsMismatch": "O fornecedor não suporta a chamada de ferramentas",
+    "structuredOutputMismatch": "O fornecedor não suporta saída estruturada",
+    "contextWindowMismatch": "A solicitação excede a janela de contexto do fornecedor"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Página não encontrada",

@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "ポーリング停止:サーバーがリクエストを拒否しました(404/403)。",
     "pollErrorTransient": "データ取得エラー:自動的に再試行します。",
     "degraded": "部分データ:利用できないソース: {sources}",
-    "degraded.source.database": "データベース",
-    "degraded.source.circuitBreaker": "サーキットブレーカー",
-    "degraded.source.modelLockouts": "モデルロックアウト",
-    "degraded.source.count": "接続数"
+    "degradedSource": {
+      "database": "データベース",
+      "circuitBreaker": "サーキットブレーカー",
+      "modelLockouts": "モデルロックアウト",
+      "count": "接続数"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "ディスパッチ前にリクエストを拒否します。ターゲットモデルに必要な機能（ビジョン、ツール、構造化出力、コンテキストウィンドウ）が欠けている場合。コンボレイヤーの互換性フィルターをバイパスする直接の単一プロバイダーリクエストを保護します。",
-  "capabilityFilter.visionMismatch": "プロバイダーはこの画像リクエストのビジョンをサポートしていません",
-  "capabilityFilter.toolsMismatch": "プロバイダーはツール呼び出しをサポートしていません",
-  "capabilityFilter.structuredOutputMismatch": "プロバイダーは構造化出力をサポートしていません",
-  "capabilityFilter.contextWindowMismatch": "リクエストがプロバイダーのコンテキストウィンドウを超えています",
+  "capabilityFilter": {
+    "visionMismatch": "プロバイダーはこの画像リクエストのビジョンをサポートしていません",
+    "toolsMismatch": "プロバイダーはツール呼び出しをサポートしていません",
+    "structuredOutputMismatch": "プロバイダーは構造化出力をサポートしていません",
+    "contextWindowMismatch": "リクエストがプロバイダーのコンテキストウィンドウを超えています"
+  },
   "publicSystem": {
     "notFound": {
       "title": "ページが見つかりません",

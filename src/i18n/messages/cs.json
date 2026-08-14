@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Dotazování zastaveno: server odmítl požadavek (404/403).",
     "pollErrorTransient": "Chyba při načítání dat: automatické opakování.",
     "degraded": "Částečná data: nedostupné zdroje: {sources}",
-    "degraded.source.database": "Databáze",
-    "degraded.source.circuitBreaker": "Jistič",
-    "degraded.source.modelLockouts": "Uzamčení Modelu",
-    "degraded.source.count": "Počet Připojení"
+    "degradedSource": {
+      "database": "Databáze",
+      "circuitBreaker": "Jistič",
+      "modelLockouts": "Uzamčení Modelu",
+      "count": "Počet Připojení"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Odmítnout požadavky před odesláním, když cílový model postrádá požadované schopnosti (vidění, nástroje, strukturovaný výstup, kontextové okno). Chrání přímé požadavky od jednotlivých poskytovatelů, které obcházejí filtr kompatibility kombinované vrstvy.",
-  "capabilityFilter.visionMismatch": "Poskytovatel nepodporuje zobrazení pro tento požadavek na obrázek",
-  "capabilityFilter.toolsMismatch": "Poskytovatel nepodporuje volání nástroje",
-  "capabilityFilter.structuredOutputMismatch": "Poskytovatel nepodporuje strukturovaný výstup",
-  "capabilityFilter.contextWindowMismatch": "Žádost překračuje kontextové okno poskytovatele",
+  "capabilityFilter": {
+    "visionMismatch": "Poskytovatel nepodporuje zobrazení pro tento požadavek na obrázek",
+    "toolsMismatch": "Poskytovatel nepodporuje volání nástroje",
+    "structuredOutputMismatch": "Poskytovatel nepodporuje strukturovaný výstup",
+    "contextWindowMismatch": "Žádost překračuje kontextové okno poskytovatele"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Stránka nebyla nalezena",

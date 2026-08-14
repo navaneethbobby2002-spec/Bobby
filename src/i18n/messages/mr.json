@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "पोलिंग थांबले: सर्व्हरने विनंती नाकारली (404/403).",
     "pollErrorTransient": "डेटा आणण्यात त्रुटी: आपोआप पुन्हा प्रयत्न करत आहे.",
     "degraded": "आंशिक डेटा: अनुपलब्ध स्रोत: {sources}",
-    "degraded.source.database": "डेटाबेस",
-    "degraded.source.circuitBreaker": "सर्किट ब्रेकर",
-    "degraded.source.modelLockouts": "मॉडेल लॉकआउट",
-    "degraded.source.count": "कनेक्शन संख्या"
+    "degradedSource": {
+      "database": "डेटाबेस",
+      "circuitBreaker": "सर्किट ब्रेकर",
+      "modelLockouts": "मॉडेल लॉकआउट",
+      "count": "कनेक्शन संख्या"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "डिस्पॅच करण्यापूर्वी विनंत्या नाकारल्या जातात जेव्हा लक्ष्य मॉडेल आवश्यक क्षमतांचा अभाव असतो (दृष्टी, साधने, संरचित आउटपुट, संदर्भ विंडो). कॉम्बो-लेयर सुसंगतता फिल्टरला बायपास करणाऱ्या थेट एकल-प्रदात्याच्या विनंत्यांचे संरक्षण करते.",
-  "capabilityFilter.visionMismatch": "या प्रतिमेच्या विनंतीसाठी प्रदाता दृश्याचे समर्थन करत नाही",
-  "capabilityFilter.toolsMismatch": "प्रदायक साधन कॉलिंगला समर्थन करत नाही",
-  "capabilityFilter.structuredOutputMismatch": "प्रदायक संरचित आउटपुटला समर्थन करत नाही",
-  "capabilityFilter.contextWindowMismatch": "विनंती प्रदाता संदर्भ विंडो ओलांडते",
+  "capabilityFilter": {
+    "visionMismatch": "या प्रतिमेच्या विनंतीसाठी प्रदाता दृश्याचे समर्थन करत नाही",
+    "toolsMismatch": "प्रदायक साधन कॉलिंगला समर्थन करत नाही",
+    "structuredOutputMismatch": "प्रदायक संरचित आउटपुटला समर्थन करत नाही",
+    "contextWindowMismatch": "विनंती प्रदाता संदर्भ विंडो ओलांडते"
+  },
   "publicSystem": {
     "notFound": {
       "title": "पृष्ठ सापडले नाही",

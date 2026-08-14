@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Polling gestopt: de server heeft het verzoek geweigerd (404/403).",
     "pollErrorTransient": "Fout bij ophalen van gegevens: automatisch opnieuw proberen.",
     "degraded": "Gedeeltelijke gegevens: niet-beschikbare bronnen: {sources}",
-    "degraded.source.database": "Database",
-    "degraded.source.circuitBreaker": "Circuit Breaker",
-    "degraded.source.modelLockouts": "Modelvergrendelingen",
-    "degraded.source.count": "Aantal Verbindingen"
+    "degradedSource": {
+      "database": "Database",
+      "circuitBreaker": "Circuit Breaker",
+      "modelLockouts": "Modelvergrendelingen",
+      "count": "Aantal Verbindingen"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Weiger verzoeken vóór verzending wanneer het doellmodel ontbrekende vereiste mogelijkheden heeft (zicht, tools, gestructureerde output, contextvenster). Beschermt directe verzoeken van een enkele aanbieder die de compatibiliteitsfilter van de comb-laag omzeilen.",
-  "capabilityFilter.visionMismatch": "Provider ondersteunt geen visie voor dit afbeeldingsverzoek",
-  "capabilityFilter.toolsMismatch": "Provider ondersteunt het aanroepen van tools niet",
-  "capabilityFilter.structuredOutputMismatch": "Provider ondersteunt geen gestructureerde uitvoer",
-  "capabilityFilter.contextWindowMismatch": "Verzoek overschrijdt de contextvenster van de provider",
+  "capabilityFilter": {
+    "visionMismatch": "Provider ondersteunt geen visie voor dit afbeeldingsverzoek",
+    "toolsMismatch": "Provider ondersteunt het aanroepen van tools niet",
+    "structuredOutputMismatch": "Provider ondersteunt geen gestructureerde uitvoer",
+    "contextWindowMismatch": "Verzoek overschrijdt de contextvenster van de provider"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Pagina niet gevonden",
