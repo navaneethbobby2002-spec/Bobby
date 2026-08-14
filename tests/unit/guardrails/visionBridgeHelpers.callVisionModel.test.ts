@@ -277,7 +277,7 @@ test("callVisionModel uses correct request body format", async () => {
     };
     assert.strictEqual(imagePart.type, "image_url");
     assert.strictEqual(imagePart.image_url.url, imageUri);
-    assert.strictEqual(imagePart.image_url.detail, "low");
+    assert.strictEqual(imagePart.image_url.detail, "high");
 
     // Second content is text prompt
     const textPart = message.content[1] as { type: string; text: string };

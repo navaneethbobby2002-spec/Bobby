@@ -87,6 +87,71 @@ function truncateToolList(
   return bodyToSend;
 }
 
+// OpenCode's AI SDK file-part serializer omits `image_url.detail`, which makes
+// wide, text-dense screenshots fall back to low-detail vision sampling upstream.
+function defaultImageDetail(bodyToSend: Body): Body {
+  let nextBody = bodyToSend;
+
+  if (Array.isArray(bodyToSend.messages)) {
+    const messages = bodyToSend.messages.map((message) => {
+      if (!message || typeof message !== "object" || Array.isArray(message)) return message;
+      const messageRecord = message as Record<string, unknown>;
+      if (!Array.isArray(messageRecord.content)) return message;
+
+      let changed = false;
+      const content = messageRecord.content.map((part) => {
+        if (!part || typeof part !== "object" || Array.isArray(part)) return part;
+        const partRecord = part as Record<string, unknown>;
+        const imageUrl = partRecord.image_url;
+        if (
+          partRecord.type !== "image_url" ||
+          !imageUrl ||
+          typeof imageUrl !== "object" ||
+          Array.isArray(imageUrl)
+        ) {
+          return part;
+        }
+
+        const imageUrlRecord = imageUrl as Record<string, unknown>;
+        if (imageUrlRecord.detail !== undefined) return part;
+        changed = true;
+        return { ...partRecord, image_url: { ...imageUrlRecord, detail: "high" } };
+      });
+
+      return changed ? { ...messageRecord, content } : message;
+    });
+
+    if (messages.some((message, index) => message !== bodyToSend.messages?.[index])) {
+      nextBody = { ...nextBody, messages };
+    }
+  }
+
+  if (Array.isArray(bodyToSend.input)) {
+    const input = bodyToSend.input.map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return item;
+      const itemRecord = item as Record<string, unknown>;
+      if (!Array.isArray(itemRecord.content)) return item;
+
+      let changed = false;
+      const content = itemRecord.content.map((part) => {
+        if (!part || typeof part !== "object" || Array.isArray(part)) return part;
+        const partRecord = part as Record<string, unknown>;
+        if (partRecord.type !== "input_image" || partRecord.detail !== undefined) return part;
+        changed = true;
+        return { ...partRecord, detail: "high" };
+      });
+
+      return changed ? { ...itemRecord, content } : item;
+    });
+
+    if (input.some((item, index) => item !== bodyToSend.input?.[index])) {
+      nextBody = { ...nextBody, input };
+    }
+  }
+
+  return nextBody;
+}
+
 // Inject prompt_cache_key only for providers that support it.
 async function injectPromptCacheKey(
   bodyToSend: Body,
@@ -157,6 +222,7 @@ export async function prepareUpstreamBody(opts: {
     model: payloadRuleModel,
     log,
   });
+  bodyToSend = defaultImageDetail(bodyToSend);
   bodyToSend = truncateToolList(bodyToSend, provider, bypassDefaultToolLimit ?? false, log);
   const connectionCacheOverride = resolveConnectionCacheOverride(credentials?.providerSpecificData);
   bodyToSend = await injectPromptCacheKey(

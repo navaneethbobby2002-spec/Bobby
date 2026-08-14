@@ -50,6 +50,58 @@ test("leaves the model untouched when it already matches", async () => {
   assert.equal(out.model, "model-a");
 });
 
+test("defaults OpenAI image inputs to high detail without overriding explicit detail", async () => {
+  const out = await prepareUpstreamBody({
+    translatedBody: {
+      model: "model-a",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Read this screenshot" },
+            { type: "image_url", image_url: { url: "data:image/png;base64,test" } },
+            {
+              type: "image_url",
+              image_url: { url: "data:image/png;base64,test", detail: "low" },
+            },
+          ],
+        },
+      ],
+    },
+    modelToCall: "model-a",
+    provider: "opencode-zen",
+    targetFormat: FORMATS.OPENAI,
+    credentials: null,
+  });
+
+  const content = (
+    out.messages as Array<{ content: Array<{ image_url?: { detail?: string } }> }>
+  )[0].content;
+  assert.equal(content[1].image_url?.detail, "high");
+  assert.equal(content[2].image_url?.detail, "low");
+});
+
+test("defaults Responses input images to high detail", async () => {
+  const out = await prepareUpstreamBody({
+    translatedBody: {
+      model: "model-a",
+      input: [
+        {
+          role: "user",
+          content: [{ type: "input_image", image_url: "data:image/png;base64,test" }],
+        },
+      ],
+    },
+    modelToCall: "model-a",
+    provider: "opencode-zen",
+    targetFormat: FORMATS.OPENAI_RESPONSES,
+    credentials: null,
+  });
+
+  const content = (out.input as Array<{ content: Array<{ detail?: string }> }>)[0].content;
+  assert.equal(content[0].detail, "high");
+});
+
 test("strips Codex GPT-5 verbosity after routing resolves to opencode-go/GLM", async () => {
   const translatedBody = {
     model: "glm-5.2",
