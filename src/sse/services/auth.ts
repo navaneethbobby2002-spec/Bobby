@@ -360,6 +360,7 @@ function resolveTerminalConnectionStatus(
   if (result.creditsExhausted || status === 402) return "credits_exhausted";
   if (
     providerErrorType === PROVIDER_ERROR_TYPES.PROJECT_ROUTE_ERROR ||
+    providerErrorType === PROVIDER_ERROR_TYPES.GEO_BLOCKED ||
     providerErrorType === PROVIDER_ERROR_TYPES.OAUTH_INVALID_TOKEN ||
     // #1010: Cloudflare fingerprint rejection is the CDN refusing the CLIENT's
     // signature, not the account's credentials — never a terminal account state.

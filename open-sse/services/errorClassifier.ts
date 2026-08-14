@@ -79,6 +79,7 @@ export const PROVIDER_ERROR_TYPES = {
   EMPTY_CONTENT: "empty_content",
   MODEL_NOT_FOUND: "model_not_found",
   FINGERPRINT_REJECTION: "fingerprint_rejection",
+  GEO_BLOCKED: "geo_blocked",
 };
 
 export const CONTEXT_OVERFLOW_SIGNALS = [
@@ -112,6 +113,30 @@ const MODEL_NAMED_UNSUPPORTED_REGEX = /\bmodel\b[^\n]{0,80}\bis not supported\b/
 
 export function containsModelUnavailableMessage(errorMessage: string): boolean {
   return MODEL_NAMED_UNSUPPORTED_REGEX.test(String(errorMessage || "").toLowerCase());
+}
+
+// Google regional-availability rejection: the Cloud Code / Gemini Code Assist
+// API is not offered from every country, and the upstream answers with a 400
+// FAILED_PRECONDITION like "User location is not supported for the API use."
+// This is an ACCOUNT-INDEPENDENT, location-scoped refusal: every account on
+// this server egresses from the same region, so retrying another credential
+// cannot help — but routing egress through a proxy in a supported region can.
+// Detected here so routing treats it as a non-terminal, cached-per-connection
+// exclusion instead of a generic 400 (which would keep re-selecting the same
+// account and surface a cryptic "upstream error (400)").
+const GEO_BLOCK_SIGNALS = [
+  "user location is not supported",
+  "location is not supported",
+  "not supported for the api use",
+  "region is not supported",
+  "unsupported location",
+  "not available in your location",
+  "not available in your region",
+];
+
+export function isGeoBlockedError(errorMessage: string): boolean {
+  const lower = String(errorMessage || "").toLowerCase();
+  return GEO_BLOCK_SIGNALS.some((signal) => lower.includes(signal));
 }
 
 // Cloudflare 1010 "Access denied ... blocked based on your browser's signature" —
@@ -242,6 +267,18 @@ export function classifyProviderError(
   }
 
   if (statusCode === 402) return PROVIDER_ERROR_TYPES.QUOTA_EXHAUSTED;
+
+  // Google regional-availability refusal (400 FAILED_PRECONDITION "... location
+  // is not supported ..."). Account-independent: every credential egresses from
+  // the same server region, so fallback to another account cannot succeed — but
+  // the connection must be cached as excluded so routing does not re-select it
+  // on every request and surface a cryptic generic 400. Non-terminal, like
+  // PROJECT_ROUTE_ERROR: the account becomes usable again once egress is routed
+  // through a supported-region proxy.
+  if ((statusCode === 400 || statusCode === 403) && isGeoBlockedError(bodyStr)) {
+    return PROVIDER_ERROR_TYPES.GEO_BLOCKED;
+  }
+
   if (statusCode === 403 && isCloudflareFingerprintRejection(bodyStr)) {
     // Cloudflare 1010 / error_name "browser_signature_banned": the CDN in front of the
     // upstream (e.g. opencode.ai/zen/v1) rejected the CLIENT's TLS/UA signature, not the
