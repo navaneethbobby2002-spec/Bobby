@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { assembleStandalone } from "./assembleStandalone.mjs";
 import { buildRebuildSpawnPlan } from "./electronRebuildPlan.mjs";
+import { pruneElectronRuntimeDocs } from "./electronRuntimeDocs.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -204,6 +205,14 @@ assembleStandalone({
   // app they would point at the build machine's absolute paths and break on install.
   materializeSymlinks: true,
 });
+
+const docsPrune = pruneElectronRuntimeDocs(ELECTRON_STANDALONE_DIR);
+if (docsPrune.removedFiles > 0) {
+  console.log(
+    `[electron] pruned ${docsPrune.removedFiles} authoring doc file(s) ` +
+      `(${docsPrune.removedBytes} bytes) from the staging bundle`
+  );
+}
 
 // Electron-UNIQUE post-assembly steps
 removeGeneratedElectronArtifacts();
