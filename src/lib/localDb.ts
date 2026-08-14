@@ -96,6 +96,7 @@ export * from "./db/compressionContextBudget";
 export * from "./db/compressionRunTelemetry";
 export * from "./db/jobRegistryDb";
 export * from "./db/modelContextOverrides";
+export * from "./db/responsesContinuationStore";
 
 export {
   getApiKeys,
