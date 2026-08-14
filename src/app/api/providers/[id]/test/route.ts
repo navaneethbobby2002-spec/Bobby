@@ -23,6 +23,7 @@ import { isGitLabDirectAccessDisabled } from "@/lib/oauth/gitlab";
 import { providerAllowsOptionalApiKey } from "@/shared/constants/providers";
 import { removeConnectionHealth } from "@omniroute/open-sse/services/apiKeyRotator.ts";
 import { classifyAmbiguousOrAuthError, type ClassifyFailureArgs } from "./mistralAmbiguousAuth";
+import { buildApiKeyConnectionTestResult } from "./apiKeyTestResult";
 import { OAUTH_TEST_CONFIG } from "./oauthTestConfig";
 
 // Bound the OAuth probe so a hung upstream can't block the connection-test queue
@@ -614,15 +615,7 @@ async function testApiKeyConnection(connection: any) {
     ? makeDiagnosis("ok", "upstream", null, null)
     : classifyFailure({ error, statusCode: result.statusCode, provider: connection.provider });
 
-  return {
-    valid: !!result.valid,
-    error,
-    warning: result.warning || null,
-    diagnosis,
-    ...(Array.isArray((result as any).deployments)
-      ? { deployments: (result as any).deployments }
-      : {}),
-  };
+  return buildApiKeyConnectionTestResult(result, error, diagnosis);
 }
 
 /**
@@ -709,7 +702,8 @@ export async function testSingleConnection(connectionId: string, validationModel
   // failures a short cooldown so the lazy-recovery path retries them.
   const terminalTestStatuses = new Set(["banned", "expired", "credits_exhausted"]);
   const isTerminalFailure =
-    !result.valid && terminalTestStatuses.has(String(diagnosis.code ?? diagnosis.type ?? "").toLowerCase());
+    !result.valid &&
+    terminalTestStatuses.has(String(diagnosis.code ?? diagnosis.type ?? "").toLowerCase());
   const testFailureCooldownMs = result.valid ? 0 : 30_000; // 30s retry window
 
   const updateData: Record<string, any> = {
