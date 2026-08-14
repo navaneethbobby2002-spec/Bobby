@@ -370,7 +370,7 @@ Controls how OmniRoute discovers and launches CLI sidecars (Claude Code, Codex, 
 | ------------------------- | ----------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `CLI_MODE`                | `auto`      | `src/shared/services/cliRuntime.ts`                 | `auto` = search system PATH; `manual` = use explicit paths only.                                                                                                               |
 | `CLI_EXTRA_PATHS`         | _(unset)_   | `src/shared/services/cliRuntime.ts`                 | Additional PATH entries for CLI binary discovery (colon-separated).                                                                                                            |
-| `CLI_CONFIG_HOME`         | _(unset)_   | `src/shared/services/cliRuntime.ts`                 | Override home directory for reading CLI configs (`~/.claude`, `~/.codex`).                                                                                                     |
+| `CLI_CONFIG_HOME`         | _(unset)_   | `src/shared/services/cliRuntime.ts`                 | Override home directory for reading CLI configs (`~/.claude`, `~/.codex`). Must be absolute and inside the process home — **or**, in a container, a bind-mounted path (that is how `/host-home` works). Anything else falls back to the home dir. |
 | `CLI_ALLOW_CONFIG_WRITES` | `false`     | `src/shared/services/cliRuntime.ts`                 | Allow OmniRoute to write CLI config files (token refresh, session data).                                                                                                       |
 | `CLI_CLAUDE_BIN`          | `claude`    | `src/shared/services/cliRuntime.ts`                 | Custom path to Claude CLI binary.                                                                                                                                              |
 | `CLI_CODEX_BIN`           | `codex`     | `src/shared/services/cliRuntime.ts`                 | Custom path to Codex CLI binary.                                                                                                                                               |
@@ -411,10 +411,24 @@ the CLI Code dashboard.
 ```bash
 # Mount host binaries into the container and tell OmniRoute where they are:
 CLI_EXTRA_PATHS=/host-cli/bin
-CLI_CONFIG_HOME=/root
+CLI_CONFIG_HOME=/host-home
 CLI_ALLOW_CONFIG_WRITES=true
 CLI_CLAUDE_BIN=/host-cli/bin/claude
 ```
+
+`CLI_CONFIG_HOME` only takes effect when the path is actually bind-mounted from
+the host — pair it with mounts like `~/.codex:/host-home/.codex:rw` (see the
+`host` profile in `docker-compose.yml`). A path that is neither inside the
+container user's home nor a bind mount is ignored, because writing there would
+be discarded when the container is recreated.
+
+The image runs as `USER node`, so an unmounted `/root` is **not** a valid
+override.
+
+| Variable                                 | Default | Source File                          | Description                                                                                                                                    |
+| ---------------------------------------- | ------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OMNIROUTE_CONTAINER`                    | _(auto)_ | `src/shared/utils/containerEnv.ts`  | Force container detection on (`1`/`true`) or off (`0`/`false`). Only needed on runtimes the auto-detection misses.                             |
+| `OMNIROUTE_ALLOW_CONTAINER_CONFIG_WRITE` | `false` | `src/shared/services/cliRuntime.ts`  | Allow CLI-tool config writes into an unmounted container path anyway. The CLI equivalent is `--allow-container-write`.                         |
 
 ### CLI Binary (`omniroute`) helpers
 

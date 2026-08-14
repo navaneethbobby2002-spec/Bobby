@@ -9,6 +9,13 @@ import { withSettingsFallback } from "./cliInstallFallback";
 import { GROK_BUILD_RUNTIME_ENTRY, AMP_RUNTIME_ENTRY } from "./cliRuntimeGrokBuild";
 import { isLocationTrusted, findKnownPathMatch } from "./cliRuntimeKnownPath";
 import { buildHealthcheckPath } from "./cliRuntimeHealthcheckPath";
+import {
+  describeContainerTarget,
+  hasBindMountAt,
+  isRunningInContainer,
+  type ContainerEnvDeps,
+} from "../utils/containerEnv";
+import { buildContainerWriteRefusal } from "../utils/containerConfigGuard";
 const VALID_RUNTIME_MODES = new Set(["auto", "host", "container"]);
 const FALSE_VALUES = new Set(["0", "false", "no", "off"]);
 
@@ -941,12 +948,32 @@ const checkRunnable = async (
 export const isCliConfigWriteAllowed = () =>
   parseBoolean(process.env.CLI_ALLOW_CONFIG_WRITES, true);
 
-export const ensureCliConfigWriteAllowed = () => {
-  if (isCliConfigWriteAllowed()) return null;
-  return "CLI config writes are disabled (CLI_ALLOW_CONFIG_WRITES=false)";
+/**
+ * Gate for every CLI-tool config write.
+ *
+ * Pass `targetPath` whenever the caller knows it: inside a container, a path
+ * that is not bind-mounted from the host is thrown away when the container is
+ * recreated, and the host CLI never sees it. Refusing beats writing a file the
+ * operator will never find. Callers that omit the path keep the historical
+ * flag-only behavior.
+ */
+export const ensureCliConfigWriteAllowed = (
+  targetPath?: string,
+  options: { containerDeps?: ContainerEnvDeps; toolLabel?: string; hostCommand?: string } = {}
+) => {
+  if (!isCliConfigWriteAllowed()) {
+    return "CLI config writes are disabled (CLI_ALLOW_CONFIG_WRITES=false)";
+  }
+  if (!targetPath) return null;
+  if (parseBoolean(process.env.OMNIROUTE_ALLOW_CONTAINER_CONFIG_WRITE, false)) return null;
+  if (!describeContainerTarget(targetPath, options.containerDeps).ephemeral) return null;
+  return buildContainerWriteRefusal(targetPath, {
+    toolLabel: options.toolLabel,
+    hostCommand: options.hostCommand,
+  });
 };
 
-export const getCliConfigHome = () => {
+export const getCliConfigHome = (containerDeps?: ContainerEnvDeps) => {
   const override = String(process.env.CLI_CONFIG_HOME || "").trim();
   if (!override) return os.homedir();
 
@@ -959,10 +986,18 @@ export const getCliConfigHome = () => {
   // Must not contain path traversal
   if (path.normalize(override).includes("..")) return os.homedir();
 
-  // Must be within user's home directory (prevent reading from system dirs)
+  // Must be within user's home directory (prevent reading from system dirs).
+  //
+  // Exception for containers: the compose `host` profile deliberately mounts the
+  // operator's real config dirs at /host-home, which is outside the container
+  // user's home (/home/node). A bind mount is proof the operator wired that path
+  // in on purpose, so it is honoured; an arbitrary unmounted system dir is not.
   const home = os.homedir();
   const normalized = path.normalize(override);
   if (!isPathWithin(normalized, home)) {
+    if (isRunningInContainer(containerDeps) && hasBindMountAt(normalized, containerDeps)) {
+      return normalized;
+    }
     return home; // Silently fall back to home
   }
 

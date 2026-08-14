@@ -14,6 +14,7 @@ lastUpdated: 2026-06-28
 - [With Environment File](#with-environment-file)
 - [Docker Compose](#docker-compose)
 - [Available Profiles](#available-profiles)
+- [Configuring host CLI tools when OmniRoute runs in Docker](#configuring-host-cli-tools-when-omniroute-runs-in-docker)
 - [Redis Sidecar](#redis-sidecar)
 - [Production Compose](#production-compose)
 - [Dockerfile Stages](#dockerfile-stages)
@@ -81,6 +82,61 @@ OmniRoute ships four Compose profiles. Pick the one that matches your environmen
 | `cliproxyapi`    | `cliproxyapi`    | Run the [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) sidecar on port `8317` for upstream CLI proxying              | `docker compose --profile cliproxyapi up -d` |
 
 > Multiple profiles can be combined: `docker compose --profile cli --profile cliproxyapi up -d`.
+
+## Configuring host CLI tools when OmniRoute runs in Docker
+
+`omniroute setup-codex`, `setup-claude`, `config set <tool>` and the dashboard's
+**Save config** button all write files like `~/.codex/*.config.toml`. Those paths
+only mean something on the machine where the CLI actually runs. Run them inside
+the container and the write lands in the container's own home (`/home/node` —
+the image runs `USER node`), where no host CLI will ever read it and where it is
+discarded the moment the container is recreated.
+
+OmniRoute detects this and refuses the write with instructions instead of
+reporting a success you cannot use: the CLI exits `2`, and the API answers `422`
+with `containerEphemeralTarget: true`.
+
+### Recommended: run the CLI on the host, OmniRoute in Docker
+
+The container serves the API; the CLI configures your host tools.
+
+```bash
+docker compose --profile base up -d
+
+npm install -g omniroute
+omniroute connect http://localhost:20128   # point the CLI at the container
+omniroute setup-codex                      # writes the real ~/.codex on your host
+```
+
+This is the right choice when Codex, Claude Code, Cursor or similar run on your
+laptop — which is the usual setup.
+
+### Alternative: bind-mount the host config dirs (`host` profile)
+
+If you want the container itself to write your host config, mount the
+directories in and point `CLI_CONFIG_HOME` at the mount root. The `host` profile
+already does this:
+
+```yaml
+environment:
+  - CLI_CONFIG_HOME=/host-home
+  - CLI_ALLOW_CONFIG_WRITES=true
+volumes:
+  - ~/.codex:/host-home/.codex:rw
+  - ~/.claude:/host-home/.claude:rw
+```
+
+A bind mount is what makes the path trustworthy: OmniRoute reads
+`/proc/self/mountinfo` and allows writes to mounted paths (and to directories
+whose children are mounts, which is exactly the `/host-home` shape above) while
+still refusing unmounted ones.
+
+### Escape hatch: configure the container's own CLIs
+
+When the CLIs genuinely live inside the container (the `cli` profile), the write
+is intentional. Pass `--allow-container-write` to any `setup-*` command, or set
+`OMNIROUTE_ALLOW_CONTAINER_CONFIG_WRITE=true` for the server. The write proceeds
+with a warning that it will not survive the container.
 
 ## Redis Sidecar
 

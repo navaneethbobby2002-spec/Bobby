@@ -14,6 +14,7 @@ import { join } from "node:path";
 import os from "node:os";
 import { printHeading, printInfo, printSuccess, printError } from "../io.mjs";
 import { resolveActiveContext } from "../contexts.mjs";
+import { guardHostConfigTarget } from "../utils/config-home-guard.mjs";
 
 const ENV_KEY_REF = "{env:OMNIROUTE_API_KEY}";
 
@@ -29,7 +30,8 @@ export function resolveOpencodeTarget(opts = {}) {
     } catch {
       /* no context */
     }
-    if (!baseUrl) baseUrl = `http://localhost:${Number(opts.port ?? process.env.PORT ?? 20128) || 20128}`;
+    if (!baseUrl)
+      baseUrl = `http://localhost:${Number(opts.port ?? process.env.PORT ?? 20128) || 20128}`;
   }
 
   let apiKey = opts.apiKey ?? opts["api-key"];
@@ -73,19 +75,39 @@ export function postProcessOpencodeConfig(rawJson, opts = {}) {
 export async function runSetupOpencodeCommand(opts = {}) {
   const { baseUrl, apiKey } = resolveOpencodeTarget(opts);
   const dryRun = Boolean(opts.dryRun ?? opts["dry-run"]);
-  const only = opts.only ? opts.only.split(",").map((s) => s.trim()).filter(Boolean) : null;
+  const only = opts.only
+    ? opts.only
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : null;
+
+  const configDir = join(os.homedir(), ".config", "opencode");
+  const configPath = join(configDir, "opencode.json");
 
   printHeading("OmniRoute → OpenCode provider (openai-compatible)");
   printInfo(`Connecting to ${baseUrl} …`);
+
+  const guard = await guardHostConfigTarget(configPath, {
+    toolLabel: "OpenCode",
+    hostCommand: "omniroute setup-opencode",
+    allowContainerWrite: Boolean(opts.allowContainerWrite ?? opts["allow-container-write"]),
+    dryRun,
+  });
+  if (guard !== 0) return guard;
 
   // Deferred import: opencode.ts is TypeScript; tsx is registered by
   // bin/omniroute.mjs before any command runs, so importing here is safe.
   let raw;
   try {
-    const { generateOpencodeConfig } = await import(
-      "../../../src/lib/cli-helper/config-generator/opencode.ts"
-    );
-    raw = await generateOpencodeConfig({ baseUrl, apiKey, model: opts.model, providerId: "omniroute" });
+    const { generateOpencodeConfig } =
+      await import("../../../src/lib/cli-helper/config-generator/opencode.ts");
+    raw = await generateOpencodeConfig({
+      baseUrl,
+      apiKey,
+      model: opts.model,
+      providerId: "omniroute",
+    });
   } catch (err) {
     printError(`Failed to generate opencode.json: ${err?.message || err}`);
     printInfo("Make sure OmniRoute is running and --remote/--api-key are correct.");
@@ -93,8 +115,6 @@ export async function runSetupOpencodeCommand(opts = {}) {
   }
 
   const { json, modelCount } = postProcessOpencodeConfig(raw, { only });
-  const configDir = join(os.homedir(), ".config", "opencode");
-  const configPath = join(configDir, "opencode.json");
 
   if (dryRun) {
     console.log(json.length > 4000 ? json.slice(0, 4000) + "\n… (truncated)" : json);
@@ -122,6 +142,10 @@ export function registerSetupOpencode(program) {
     .option("--model <id>", "Set the default top-level model (omniroute/<id>)")
     .option("--only <patterns>", "Comma-separated substrings — keep only matching model IDs")
     .option("--dry-run", "Print what would be written without touching the filesystem")
+    .option(
+      "--allow-container-write",
+      "Write even when the target is inside a container and not mounted from the host"
+    )
     .action(async (opts) => {
       const code = await runSetupOpencodeCommand(opts);
       if (code !== 0) process.exit(code);
