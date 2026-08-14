@@ -542,6 +542,7 @@ export async function getUsageDb(sinceIso?: string | null, limit?: number, curso
       connectionId: toStringOrNull(r.connection_id),
       apiKeyId: toStringOrNull(r.api_key_id),
       apiKeyName: toStringOrNull(r.api_key_name),
+      billingTeamId: toStringOrNull(r.billing_team_id),
       serviceTier: normalizeServiceTier(r.service_tier),
       tokens: {
         input: toNumber(r.tokens_input),
@@ -599,6 +600,8 @@ export interface UsageEntry {
   connectionId?: string | null;
   apiKeyId?: string | null;
   apiKeyName?: string | null;
+  /** Immutable row-level billing owner snapshot, resolved from apiKeyId and timestamp at write time. */
+  billingTeamId?: string | null;
   serviceTier?: string | null;
   /** @deprecated legacy snake_case fallback, read only if `serviceTier` is unset. */
   service_tier?: string | null;
@@ -618,6 +621,24 @@ export async function saveRequestUsage(entry: UsageEntry) {
     const db = getDbInstance();
     const timestamp = entry.timestamp || new Date().toISOString();
     const serviceTier = normalizeServiceTier(entry.serviceTier ?? entry.service_tier);
+    const billingTeamId =
+      entry.billingTeamId !== undefined
+        ? entry.billingTeamId || null
+        : entry.apiKeyId
+          ? ((
+              db
+                .prepare(
+                  `SELECT team_id
+                 FROM api_key_billing_team_history
+                 WHERE api_key_id = ?
+                   AND valid_from <= ?
+                   AND (valid_to IS NULL OR valid_to > ?)
+                 ORDER BY valid_from DESC
+                 LIMIT 1`
+                )
+                .get(entry.apiKeyId, timestamp, timestamp) as { team_id?: string } | undefined
+            )?.team_id ?? null)
+          : null;
 
     const tokensInput = getLoggedInputTokens(entry.tokens);
     const tokensOutput = getLoggedOutputTokens(entry.tokens);
@@ -675,10 +696,11 @@ export async function saveRequestUsage(entry: UsageEntry) {
       db.prepare(
         `
         INSERT INTO usage_history (provider, model, connection_id, account_key, account_label,
-          account_label_priority, api_key_id, api_key_name, tokens_input, tokens_output,
-          tokens_cache_read, tokens_cache_creation, tokens_reasoning, service_tier, status, success,
-          latency_ms, ttft_ms, error_code, combo_strategy, endpoint, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          account_label_priority, api_key_id, api_key_name, billing_team_id,
+          tokens_input, tokens_output, tokens_cache_read, tokens_cache_creation, tokens_reasoning,
+          service_tier, status, success, latency_ms, ttft_ms, error_code, combo_strategy, endpoint,
+          timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
       ).run(
         entry.provider || null,
@@ -689,6 +711,7 @@ export async function saveRequestUsage(entry: UsageEntry) {
         accountIdentity.accountLabelPriority,
         entry.apiKeyId || null,
         entry.apiKeyName || null,
+        billingTeamId,
         tokensInput,
         tokensOutput,
         getPromptCacheReadTokens(entry.tokens),
@@ -772,6 +795,7 @@ export async function getUsageHistory(filter: UsageHistoryFilter = {}) {
       connectionId: toStringOrNull(r.connection_id),
       apiKeyId: toStringOrNull(r.api_key_id),
       apiKeyName: toStringOrNull(r.api_key_name),
+      billingTeamId: toStringOrNull(r.billing_team_id),
       serviceTier: normalizeServiceTier(r.service_tier),
       tokens: {
         input: toNumber(r.tokens_input),

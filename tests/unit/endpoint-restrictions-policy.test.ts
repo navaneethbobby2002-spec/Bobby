@@ -58,6 +58,17 @@ async function createKeyWithEndpoints(allowedEndpoints: string[]) {
   return created;
 }
 
+test("Team budget evaluation happens only after endpoint authorization", () => {
+  const policySource = fs.readFileSync(
+    path.join(process.cwd(), "src/shared/utils/apiKeyPolicy.ts"),
+    "utf8"
+  );
+  assert.ok(
+    policySource.indexOf("validateEndpointAccess(context)") <
+      policySource.indexOf("validateTeamUsage(context)")
+  );
+});
+
 function makeRequest(url: string, apiKey?: string) {
   return new Request(url, {
     method: "POST",
@@ -137,10 +148,7 @@ test("chat-only key blocks /v1/embeddings", async () => {
   assert.ok(result.rejection, "Should reject the request");
   assert.equal(result.rejection.status, 403);
   const msg = await readErrorMessage(result.rejection);
-  assert.ok(
-    msg.includes("embeddings"),
-    `Error message should mention 'embeddings', got: ${msg}`
-  );
+  assert.ok(msg.includes("embeddings"), `Error message should mention 'embeddings', got: ${msg}`);
 });
 
 test("search-only key blocks /v1/images/generations", async () => {

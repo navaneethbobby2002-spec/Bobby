@@ -9,12 +9,8 @@
  */
 
 import { extractApiKey } from "@/sse/services/auth";
-import {
-  getApiKeyMetadata,
-  getComboByName,
-  isModelAllowedForKey,
-  getApiKeyById,
-} from "@/lib/localDb";
+import { getApiKeyById, getApiKeyMetadata, isModelAllowedForKey } from "@/lib/db/apiKeys";
+import { getComboByName } from "@/lib/db/combos";
 import { isDashboardSessionAuthenticated } from "./apiAuth";
 import { resolveComboForModel } from "@/lib/db/modelComboMappings";
 import { checkBudget } from "@/domain/costRules";
@@ -31,6 +27,7 @@ import { resolveEndpointCategory } from "@/shared/constants/endpointCategories";
 import { resolveQuotaKeyScope } from "@/lib/quota/quotaKey";
 import { isQuotaModelName, parseQuotaModelName } from "@/lib/quota/quotaModelNaming";
 import { buildApiKeyUsageLimitPolicyRejection } from "@/lib/usage/apiKeyUsageLimits";
+import { buildTeamUsageLimitPolicyRejection } from "@/lib/usage/teamUsageLimits";
 
 // Default to no per-key request cap. API keys can still opt into explicit
 // limits via Settings/API Keys, while provider/account quota controls remain
@@ -455,19 +452,30 @@ async function validateKeyScheduleAndUsage(context: PolicyContext): Promise<Resp
       `Access denied outside allowed hours (${from}–${until} ${tz})`
     );
   }
-  if (apiKeyInfo.usageLimitEnabled !== true) return null;
+  if (apiKeyInfo.usageLimitEnabled === true) {
+    try {
+      const rejection = await buildApiKeyUsageLimitPolicyRejection(request, {
+        id: apiKeyInfo.id,
+        usageLimitEnabled: apiKeyInfo.usageLimitEnabled,
+        dailyUsageLimitUsd: apiKeyInfo.dailyUsageLimitUsd,
+        weeklyUsageLimitUsd: apiKeyInfo.weeklyUsageLimitUsd,
+      });
+      if (rejection) return rejection;
+    } catch (error) {
+      log.error("API_POLICY", "API key USD usage limit check failed. Request blocked.", { error });
+      return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, "API key usage limit unavailable");
+    }
+  }
+  return null;
+}
 
+async function validateTeamUsage(context: PolicyContext): Promise<Response | null> {
+  const { request, apiKeyInfo } = context;
   try {
-    const rejection = await buildApiKeyUsageLimitPolicyRejection(request, {
-      id: apiKeyInfo.id,
-      usageLimitEnabled: apiKeyInfo.usageLimitEnabled,
-      dailyUsageLimitUsd: apiKeyInfo.dailyUsageLimitUsd,
-      weeklyUsageLimitUsd: apiKeyInfo.weeklyUsageLimitUsd,
-    });
-    return rejection;
+    return await buildTeamUsageLimitPolicyRejection(request, apiKeyInfo.id);
   } catch (error) {
-    log.error("API_POLICY", "API key USD usage limit check failed. Request blocked.", { error });
-    return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, "API key usage limit unavailable");
+    log.error("API_POLICY", "Team shared usage limit check failed. Request blocked.", { error });
+    return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, "Team usage limit unavailable");
   }
 }
 
@@ -682,6 +690,9 @@ export async function enforceApiKeyPolicy(
   if (scheduleRejection) return { apiKey, apiKeyInfo, rejection: scheduleRejection };
   const endpointRejection = validateEndpointAccess(context);
   if (endpointRejection) return { apiKey, apiKeyInfo, rejection: endpointRejection };
+
+  const teamUsageRejection = await validateTeamUsage(context);
+  if (teamUsageRejection) return { apiKey, apiKeyInfo, rejection: teamUsageRejection };
 
   const quotaRejection = await validateQuotaAccess(context);
   if (quotaRejection) return { apiKey, apiKeyInfo, rejection: quotaRejection };
