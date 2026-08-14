@@ -101,6 +101,13 @@ export const APIKEY_PROVIDERS_FRONTIER = {
     textIcon: "XA",
     website: "https://x.ai",
     serviceKinds: ["llm", "imageToText"],
+    subscriptionRisk: true,
+    riskNoticeVariant: "oauth",
+    authHint:
+      "Use an official xAI API key, or sign in with xAI OAuth. Grok Build JWT sessions remain a separate provider.",
+    // The dashboard presents xAI as one dual-auth provider while preserving
+    // the separate backend OAuth provider ID for token refresh and quota flow.
+    oauthProviderId: "xai-oauth",
   },
   mistral: {
     id: "mistral",
