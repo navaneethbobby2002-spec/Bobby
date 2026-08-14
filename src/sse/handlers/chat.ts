@@ -1,4 +1,6 @@
 import { randomUUID } from "crypto";
+import { releaseAntigravityLease } from "../services/antigravityRoutingState";
+import { holdAntigravityLeaseThroughResponse, isStreamingAntigravityResponse, releaseAntigravityLeaseOnPreDispatchError } from "../services/antigravityLeaseLifecycle";
 import { resolveChatRequestBody } from "./requestBody";
 import * as chatAdmission from "./chatAdmission.ts";
 import { buildClientRawRequest, resolveDispatchClientRawRequest } from "./chat/clientRawRequest.ts";
@@ -23,7 +25,7 @@ import {
 import { getCombo, getComboForModel, getModelInfo } from "../services/model";
 import { stripContextWindowSuffix } from "@omniroute/open-sse/services/model.ts";
 import { resolveBareModelToConnectionDefault } from "@omniroute/open-sse/services/model.ts";
-import { errorResponse } from "@omniroute/open-sse/utils/error.ts";
+import { buildErrorBody, errorResponse } from "@omniroute/open-sse/utils/error.ts";
 import { getImageModelEntry } from "@omniroute/open-sse/config/imageRegistry.ts";
 import { acceptHeaderForcesStream } from "@omniroute/open-sse/utils/aiSdkCompat.ts";
 import { applyNoThinkingAlias } from "@omniroute/open-sse/utils/noThinkingAlias.ts";
@@ -244,6 +246,17 @@ function intersectAllowedConnectionIds(primary: unknown, secondary: unknown): st
 }
 
 const comboPromoteDeps = { updateCombo, info: log.info, warn: log.warn };
+
+/** Local lease saturation is not provider quota/cooldown or a breaker failure. */
+export function buildAntigravityPoolBusyResponse(earliestLeaseExpiryMs: number): Response {
+  const retryAfter = Math.max(1, Math.ceil((earliestLeaseExpiryMs - Date.now()) / 1000));
+  return new Response(JSON.stringify(buildErrorBody(HTTP_STATUS.SERVICE_UNAVAILABLE,
+    "All eligible Antigravity accounts are currently handling an exact-model request", undefined,
+    { type: "server_error", code: "POOL_BUSY" })), {
+    status: HTTP_STATUS.SERVICE_UNAVAILABLE,
+    headers: { "Content-Type": "application/json", "Retry-After": String(retryAfter) },
+  });
+}
 
 export { shouldTripProviderBreakerForResult } from "./chatPredicates";
 
@@ -1288,12 +1301,15 @@ async function handleSingleModelChat(
   // re-attempt to exactly one for the whole request. Declared outside both retry
   // loops so it can never reset and loop.
   let streamEarlyEofRetries = 0;
+  const attemptedConnectionIds = new Set<string>();
+  let earliestLeaseExpiryMs: number | null = null;
+  const routingRequestId = runtimeOptions.correlationId ?? randomUUID();
   const occupancySessionKey =
     runtimeOptions.sessionAffinityKey ?? runtimeOptions.sessionId ?? `request:${randomUUID()}`;
   let initialPreselectedCredentials = runtimeOptions.preselectedCredentials;
 
   requestAttemptLoop: while (true) {
-    const excludedConnectionIds = new Set<string>();
+    const excludedConnectionIds = new Set<string>(attemptedConnectionIds);
     let lastError = requestRetryLastError;
     let lastStatus = requestRetryLastStatus;
     let lastCooldownMs = requestRetryLastCooldownMs;
@@ -1302,7 +1318,7 @@ async function handleSingleModelChat(
 
     while (true) {
       const credentials =
-        preselectedCredentials && excludedConnectionIds.size === 0
+        preselectedCredentials && excludedConnectionIds.size === 0 && provider !== "antigravity"
           ? preselectedCredentials
           : await getProviderCredentialsWithQuotaPreflight(
               provider,
@@ -1313,6 +1329,8 @@ async function handleSingleModelChat(
                 sessionKey: occupancySessionKey,
                 reserveOAuthSession: true,
                 excludeConnectionIds: Array.from(excludedConnectionIds),
+                routingRequestId,
+                reserveAntigravityLease: provider === "antigravity",
                 ...(runtimeOptions.allowRateLimitedConnection
                   ? { allowRateLimitedConnections: true }
                   : {}),
@@ -1341,6 +1359,16 @@ async function handleSingleModelChat(
               }
             );
       preselectedCredentials = null;
+      if (credentials && "leaseUnavailable" in credentials && credentials.leaseUnavailable) {
+        const expiry = credentials.earliestLeaseExpiryMs;
+        if (Number.isFinite(expiry) && (earliestLeaseExpiryMs === null || expiry < earliestLeaseExpiryMs)) earliestLeaseExpiryMs = expiry;
+        if (credentials.selectedConnectionId) {
+          if (hasForcedConnection) return buildAntigravityPoolBusyResponse(earliestLeaseExpiryMs ?? Date.now() + 30_000);
+          attemptedConnectionIds.add(credentials.selectedConnectionId);
+          excludedConnectionIds.add(credentials.selectedConnectionId);
+          continue;
+        }
+      }
 
       // #9467: also treat the auth layer's allExpired verdict as a no-credentials
       // outcome (auth.ts produces it; without this check an all-expired pool fell
@@ -1351,6 +1379,7 @@ async function handleSingleModelChat(
         "allExpired" in credentials ||
         !credentials.connectionId
       ) {
+        if (!credentials?.allRateLimited && earliestLeaseExpiryMs !== null) return buildAntigravityPoolBusyResponse(earliestLeaseExpiryMs);
         if (credentials?.allRateLimited) {
           const retryDecision = getCooldownAwareRetryDecision({
             retryAfter: credentials.retryAfter,
@@ -1429,6 +1458,7 @@ async function handleSingleModelChat(
       }
 
       const accountId = credentials.connectionId.slice(0, 8);
+      if (provider === "antigravity") attemptedConnectionIds.add(credentials.connectionId);
       const releaseOAuthSession = credentials.releaseOAuthSession ?? (() => {});
       log.info("AUTH", `Using ${provider} account: ${accountId}...`);
       // #474: when the request used a bare model name (no "/" — e.g. an alias
@@ -1441,7 +1471,7 @@ async function handleSingleModelChat(
       let requestBody =
         effectiveModel !== model ? { ...body, model: `${provider}/${effectiveModel}` } : body;
       if (!runtimeOptions.reasoningDecision && runtimeOptions.reasoningIntent) {
-        const connectionRouting = await applyConnectionReasoningRule({
+        const connectionRouting = await releaseAntigravityLeaseOnPreDispatchError(credentials.routing?.leaseId, () => applyConnectionReasoningRule({
           requestBody,
           provider,
           effectiveModel,
@@ -1450,8 +1480,9 @@ async function handleSingleModelChat(
           reasoningIntent: runtimeOptions.reasoningIntent,
           reasoningDecision: runtimeOptions.reasoningDecision,
           requestRoutingTags: runtimeOptions.reasoningRequestTags,
-        });
+        }));
         if (connectionRouting.response) {
+          releaseAntigravityLease(credentials.routing?.leaseId);
           releaseOAuthSession();
           return connectionRouting.response;
         }
@@ -1481,7 +1512,10 @@ async function handleSingleModelChat(
       }
       let refreshedCredentials;
       try {
-        refreshedCredentials = await checkAndRefreshToken(provider, credentials);
+        refreshedCredentials = await releaseAntigravityLeaseOnPreDispatchError(
+          credentials.routing?.leaseId,
+          () => checkAndRefreshToken(provider, credentials)
+        );
       } catch (error) {
         releaseOAuthSession();
         throw error;
@@ -1517,7 +1551,10 @@ async function handleSingleModelChat(
       }
       let proxyInfo;
       try {
-        proxyInfo = await safeResolveProxy(credentials.connectionId, apiKeyInfo?.id, provider);
+        proxyInfo = await releaseAntigravityLeaseOnPreDispatchError(
+          credentials.routing?.leaseId,
+          () => safeResolveProxy(credentials.connectionId, apiKeyInfo?.id, provider)
+        );
       } catch (error) {
         releaseOAuthSession();
         throw error;
@@ -1565,14 +1602,22 @@ async function handleSingleModelChat(
           sessionAffinityKey: runtimeOptions.sessionAffinityKey ?? null,
         });
       } catch (error) {
+        releaseAntigravityLease(credentials.routing?.leaseId);
         releaseOAuthSession();
         throw error;
       }
       if (telemetry) telemetry.endPhase();
       if ("localResourcePressureResult" in execution) {
+        releaseAntigravityLease(credentials.routing?.leaseId);
+        releaseOAuthSession();
         return execution.localResourcePressureResult.response;
       }
       const { result, tlsFingerprintUsed } = execution;
+      if (result.success && isStreamingAntigravityResponse(result.response)) {
+        result.response = holdAntigravityLeaseThroughResponse(result.response, credentials.routing?.leaseId, dispatchClientRawRequest?.signal);
+      } else {
+        releaseAntigravityLease(credentials.routing?.leaseId);
+      }
       if (!result.success) releaseOAuthSession();
 
       const proxyLatency = Date.now() - proxyStartTime;
