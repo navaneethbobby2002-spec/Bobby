@@ -3,7 +3,6 @@ import { unorouterProvider } from "./registry/unorouter/index.ts";
 
 import { aimlapiProvider } from "./registry/aimlapi/index.ts";
 import { byteplusProvider } from "./registry/byteplus/index.ts";
-import { mimocodeProvider } from "./registry/mimocode/index.ts";
 import { ollama_cloudProvider } from "./registry/ollama-cloud/index.ts";
 import { syntheticProvider } from "./registry/synthetic/index.ts";
 import { ideogramProvider } from "./registry/ideogram/index.ts";
@@ -467,7 +466,6 @@ export const REGISTRY: Record<string, RegistryEntry> = {
   venice: veniceProvider,
   kiro: kiroProvider,
   byteplus: byteplusProvider,
-  mimocode: mimocodeProvider,
   wafer: waferProvider,
   openadapter: openadapterProvider,
   dit: ditProvider,
