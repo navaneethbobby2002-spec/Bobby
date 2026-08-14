@@ -361,16 +361,18 @@ export class OpencodeExecutor extends BaseExecutor {
       headers["Accept"] = "text/event-stream";
     }
 
-    // Opt-in (#5997): synthesize OpenCode CLI identity headers the client did not send.
-    // Cloudflare in front of opencode.ai/zen/go 403s server-side (VPS) requests lacking
-    // CLI identity, but the forward-only default is deliberate — fabricating a WRONG
-    // value risks upstream rejection (#5720 regressed with "opencode/local"), and this
-    // is deployment-specific. So it stays OFF by default and the VPS operator enables it
-    // with OPENCODE_SYNTHESIZE_CLI_HEADERS=true (values env-overridable). Client-supplied
-    // headers take precedence, EXCEPT User-Agent: a non-CLI client UA (curl/SDK) is
-    // replaced with the synthesized CLI UA because opencode.ai's free tier rejects
-    // generic client UAs from datacenter IPs (FreeUsageLimitError 429).
-    const synthesizeCli = /^(1|true|yes|on)$/i.test(
+    // Synthesize OpenCode CLI identity headers the client did not send. ON by
+    // default: opencode.ai's free tier 429s (FreeUsageLimitError) server-side
+    // (VPS) requests lacking CLI identity, and sending the official CLI
+    // fingerprint headers (dynamic session/request ids, project, CLI User-Agent)
+    // turns the 429 into a 200. Opt out with OPENCODE_SYNTHESIZE_CLI_HEADERS=false.
+    // Client-supplied headers take precedence, EXCEPT User-Agent: a non-CLI client
+    // UA (curl/SDK) is replaced with the synthesized CLI UA because opencode.ai's
+    // free tier rejects generic client UAs from datacenter IPs (FreeUsageLimitError 429).
+    // Values are env-overridable (OPENCODE_USER_AGENT / OPENCODE_CLIENT /
+    // OPENCODE_PROJECT, or <PROVIDER>_USER_AGENT); the defaults below are the
+    // live-verified set that resolves the 429.
+    const synthesizeCli = !/^(0|false|no|off)$/i.test(
       process.env.OPENCODE_SYNTHESIZE_CLI_HEADERS?.trim() ?? ""
     );
     const cliDefaults = synthesizeCli
@@ -381,9 +383,9 @@ export class OpencodeExecutor extends BaseExecutor {
             userAgent:
               process.env[envUAKey]?.trim() ||
               process.env.OPENCODE_USER_AGENT?.trim() ||
-              "opencode-cli/1.0.0",
-            client: process.env.OPENCODE_CLIENT?.trim() || "cli",
-            project: process.env.OPENCODE_PROJECT?.trim() || "default",
+              "opencode/latest/1.18.18/cli",
+            client: process.env.OPENCODE_CLIENT?.trim() || "desktop",
+            project: process.env.OPENCODE_PROJECT?.trim() || "/opencode",
           };
         })()
       : undefined;
