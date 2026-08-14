@@ -11,18 +11,17 @@ import assert from "node:assert/strict";
  * Status matching accepts both the raw upstream 403 AND the restated 429
  * (upstreamStatusRestatement.ts rewrites 403→429 before classification).
  *
- * IMPORTANT — `scope` above is what the rule DECLARES, not what production
- * enforces: `ProviderErrorRuleMatch.scope` is not consumed by
- * checkFallbackError/combo.ts today (only `reason`/`cooldownMs` are). For
- * agentrouter (passthroughModels: true → hasPerModelQuota() true), the
- * quota_exhausted match actually resolves to a PER-MODEL lockout in
- * production, not a connection-wide lock — other models on the same account
- * keep being tried by combo routing until they lock out individually. And
- * the "无权访问模型" rule never reaches production traffic at all today: it
- * only matches raw `status === 403`, but checkFallbackError's apikey
- * FORBIDDEN branch returns early for a plain 403 before any provider rule is
- * consulted (see A7). See `docs/architecture/RESILIENCE_GUIDE.md` §7 for the
- * full writeup and the tracked follow-up to honor `scope`.
+ * #10334 — `ProviderErrorRuleMatch.scope` is now CONSUMED for agentrouter:
+ * `checkFallbackError` surfaces it as `ruleScope` on its return value (see
+ * A11/A12 below), and a raw 403 is no longer an early-return dead end for
+ * this provider — `honorsRuleLockScope("agentrouter")` gates a dedicated
+ * pre-check that consults the provider rules BEFORE the generic apikey
+ * FORBIDDEN branch (see A7/A12). This is an EXCLUSIVE allowlist
+ * (`honorsRuleLockScope`, A14): every other provider's `scope` stays
+ * declared-but-unconsumed exactly as before (A13). See
+ * `docs/architecture/RESILIENCE_GUIDE.md` §7 for the full writeup — Tasks 2/3
+ * of #10334 wire the surfaced `ruleScope` into the persistence layer
+ * (markAccountUnavailable / combo target exhaustion).
  */
 
 const { providerRuleRegistry, getProviderErrorRuleMatch } = await import(
@@ -53,7 +52,7 @@ test("A3: quota body also matches the raw (pre-restatement) 403", () => {
   assert.equal(match.reason, "quota_exhausted");
 });
 
-test("A4: 无权访问模型 → auth_error scope model, at the RULE layer only (getProviderErrorRuleMatch directly) — this rule never receives production traffic (see A7): checkFallbackError's apikey FORBIDDEN branch returns early for a plain 403 before reaching this rule", () => {
+test("A4: 无权访问模型 → auth_error scope model, at the RULE layer (getProviderErrorRuleMatch directly) — since #10334 this rule DOES receive production traffic for agentrouter via the honorsRuleLockScope pre-check in checkFallbackError (see A12)", () => {
   const match = getProviderErrorRuleMatch("agentrouter", 403, {}, {
     error: { message: "无权访问模型 claude-sonnet-4" },
   });
@@ -86,14 +85,15 @@ test("A6: guard — restated quota error is retryable, never terminal, and now a
 });
 
 test("A7: guard — raw 403 quota (hook bypassed) is still not account-deactivation", () => {
-  // A raw (pre-restatement) 403 never actually reaches the agentrouter provider
-  // rules in production: checkFallbackError's apikey-category FORBIDDEN branch
-  // (status === 403 && getProviderCategory(provider) === "apikey") returns
-  // EARLY via resolveApiKeyForbiddenFallback before the provider-rule lookup
-  // is ever consulted. In the real pipeline, chatCore's upstreamStatusRestatement
-  // hook (Task 2) already converts 403→429 before checkFallbackError ever sees
-  // it, so this early-return path is what a hook-bypassed raw 403 hits — and it
-  // must still not be misclassified as permanent account deactivation.
+  // Since #10334, a raw (pre-restatement) 403 for agentrouter DOES reach the
+  // provider rules: checkFallbackError's honorsRuleLockScope pre-check runs
+  // BEFORE the generic apikey-category FORBIDDEN branch and matches the
+  // "额度不足" rule here (reason quota_exhausted, scope connection — see A11).
+  // In the real pipeline, chatCore's upstreamStatusRestatement hook (Task 2)
+  // still converts 403→429 before checkFallbackError sees it, so this raw-403
+  // path is what a hook-bypassed request hits — and it must still not be
+  // misclassified as permanent account deactivation, regardless of which
+  // branch (pre-check or the old apikey-FORBIDDEN fallback) ultimately fires.
   const result = checkFallbackError(403, "用户额度不足", 0, null, "agentrouter", null);
   assert.equal(result.shouldFallback, true);
   assert.ok(!result.permanent);
@@ -138,4 +138,40 @@ test("A10: other providers' checkFallbackError behavior is unchanged (exclusivit
   assert.ok(result.shouldFallback);
   assert.equal(result.reason, "rate_limit_exceeded");
   assert.equal(result.cooldownMs, 3000);
+});
+
+test("A11: checkFallbackError surfaces ruleScope=connection for agentrouter quota", () => {
+  const result = checkFallbackError(429, "用户额度不足", 0, null, "agentrouter", null);
+  assert.equal(result.ruleScope, "connection");
+  assert.equal(result.reason, "quota_exhausted");
+  assert.ok(!result.permanent);
+});
+
+test("A12: checkFallbackError 403 无权访问模型 carries the rule's scope + cooldown", () => {
+  const result = checkFallbackError(403, "无权访问模型 claude-opus-5", 0, null, "agentrouter", null);
+  assert.equal(result.ruleScope, "model");
+  assert.equal(result.reason, "auth_error");
+  assert.equal(result.baseCooldownMs, 6 * 60 * 60 * 1000);
+});
+
+test("A13: exclusivity — ruleScope stays undefined for other providers", () => {
+  const opencode = checkFallbackError(
+    429,
+    '{"error":{"message":"organization_quota_exceeded"}}',
+    0,
+    null,
+    "opencode",
+    null
+  );
+  assert.equal(opencode.ruleScope, undefined);
+  const openrouter = checkFallbackError(402, "credits exhausted", 0, null, "openrouter", null);
+  assert.equal(openrouter.ruleScope, undefined);
+});
+
+test("A14: honorsRuleLockScope allowlist is agentrouter-only", async () => {
+  const { honorsRuleLockScope } = await import("../../open-sse/config/providerErrorRules.ts");
+  assert.equal(honorsRuleLockScope("agentrouter"), true);
+  assert.equal(honorsRuleLockScope("AgentRouter"), true);
+  assert.equal(honorsRuleLockScope("opencode"), false);
+  assert.equal(honorsRuleLockScope(null), false);
 });

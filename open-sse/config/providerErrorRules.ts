@@ -30,13 +30,15 @@ export type ProviderErrorRule = {
 export type ProviderErrorRuleMatch = {
   reason: ConfiguredErrorReason;
   /**
-   * Intended lock scope. NOTE: this field is currently INFORMATIONAL — no
-   * consumer of `getProviderErrorRuleMatch` (checkFallbackError, combo.ts)
-   * reads `scope` today; only `reason` and `cooldownMs` are consulted. The
-   * actual lock scope applied at runtime is decided independently by each
-   * call site (e.g. `hasPerModelQuota()` deciding model- vs connection-level
-   * lockout). Honoring this field end-to-end is tracked as a follow-up —
-   * see `docs/architecture/RESILIENCE_GUIDE.md` §7.
+   * Intended lock scope. #10334: this field is CONSUMED end-to-end only for
+   * providers in `HONORS_RULE_LOCK_SCOPE_PROVIDERS` (agentrouter-exclusive
+   * today, gated by `honorsRuleLockScope()`) — for those, `checkFallbackError`
+   * surfaces it as `ruleScope` on its return value for the persistence layer
+   * to honor instead of re-deriving scope from `hasPerModelQuota()`. For
+   * every other provider it remains INFORMATIONAL: `getProviderErrorRuleMatch`
+   * callers still read only `reason`/`cooldownMs`, and the actual lock scope
+   * is decided independently by each call site. Widening the allowlist is
+   * tracked as a follow-up — see `docs/architecture/RESILIENCE_GUIDE.md` §7.
    */
   scope: "model" | "provider" | "connection";
   /** Optional explicit cooldown; falls back to the existing per-reason defaults. */
@@ -188,31 +190,29 @@ function buildOpenrouterRules(): ProviderErrorRule[] {
 // agentrouter.org misstates temporary quota exhaustion as 403/400 with a
 // Chinese body. upstreamStatusRestatement.ts rewrites the status to 429
 // BEFORE classification, so rules here accept both the raw 403/400 and the
-// restated 429 (text is the real discriminator either way). In production,
-// the raw 403 path is what actually matters here: checkFallbackError's
-// apikey-category FORBIDDEN branch (~line 1699) returns EARLY for a plain
-// 403, before these rules are ever consulted — these rules fire on the
-// RESTATED 429 (chatCore's upstreamStatusRestatement hook runs first) via
-// resolveRuleMatchBody, which is the only path in checkFallbackError that
-// hands these rules the full error text instead of just {code, type}.
+// restated 429 (text is the real discriminator either way). Both the raw 403
+// path AND the restated 429 path reach these rules in production:
+// checkFallbackError's `honorsRuleLockScope("agentrouter")` pre-check
+// (#10334) consults these rules BEFORE the generic apikey-category FORBIDDEN
+// branch, and the restated 429 reaches them via the existing provider-rule
+// lookup in the configured-rule branch. Both paths use resolveRuleMatchBody,
+// the only mechanism in checkFallbackError that hands agentrouter's rules the
+// full error text instead of just {code, type}.
 //  - "额度不足": account-wide temporary quota → quota_exhausted, scope
 //    "connection" (mirror of the Opencode account-wide rationale above).
-//    NOTE: `scope` on ProviderErrorRuleMatch is currently informational —
-//    checkFallbackError/combo.ts only consume `reason` and `cooldownMs`, not
-//    `scope`. For agentrouter specifically (passthroughModels: true →
-//    hasPerModelQuota() is true), this quota_exhausted match actually
-//    resolves to a PER-MODEL lockout (recordModelLockoutFailure), not a
-//    connection-wide lock — other models on the same account keep being
-//    tried by combo routing (each burning one call) until they lock out
-//    individually. Honoring `scope` end-to-end is tracked as a follow-up.
+//    `scope` on ProviderErrorRuleMatch is CONSUMED for agentrouter (#10334,
+//    exclusive allowlist via `honorsRuleLockScope`): checkFallbackError
+//    surfaces it as `ruleScope` on its return value. Whether the persistence
+//    layer (markAccountUnavailable / combo target exhaustion) actually
+//    switches from `hasPerModelQuota()`-derived scope to honoring `ruleScope`
+//    is Tasks 2/3 of #10334 — this task only surfaces the field.
 //  - "无权访问模型": declares auth_error/scope "model" (intent: lock only the
 //    model so the connection keeps serving the rest — Model Lockout tier).
-//    This rule does NOT fire on the production path today: it only matches
-//    `status === 403`, but checkFallbackError's apikey FORBIDDEN branch
-//    returns early for a plain 403 before this rule is ever consulted (see
-//    the note above). A live `无权访问模型` 403 is handled like the base
-//    apikey-provider 403 today. Wiring this rule into that path is tracked
-//    as a follow-up.
+//    This rule now fires on the production 403 path (#10334): the
+//    `honorsRuleLockScope` pre-check matches it and returns its declared
+//    reason/cooldown/scope before the generic apikey-FORBIDDEN early-return
+//    ever runs. A live `无权访问模型` 403 therefore no longer falls through to
+//    the base apikey-provider 403 handling.
 function buildAgentrouterRules(): ProviderErrorRule[] {
   const AGENTROUTER_ERROR_STATUSES = new Set([400, 403, 429]);
   return [
@@ -231,8 +231,15 @@ function buildAgentrouterRules(): ProviderErrorRule[] {
         if (status !== 403) return null;
         const text = JSON.stringify(body ?? "").toLowerCase();
         if (!text.includes("无权访问模型")) return null;
-        // 6h: effectively "until the operator fixes the key's model grants",
-        // without being an unrecoverable terminal state.
+        // Declares a 6h cooldown, but the effective cooldown is NOT 6h: the
+        // model-lockout persistence layer (recordModelLockoutFailure, called from
+        // markAccountUnavailable) clamps every base cooldown — this one included —
+        // to the configured model-lockout maxCooldownMs, which defaults to
+        // 1_800_000ms / 30min (src/lib/resilience/modelLockoutSettings.ts,
+        // DEFAULT_MODEL_LOCKOUT_SETTINGS.maxCooldownMs). So in practice this is
+        // "locked for ~30min by default (up to 6h if an operator raises the model-
+        // lockout cap in settings)", not "until the operator fixes the key's model
+        // grants" — it is a recoverable window, not a real fix-driven unlock.
         return { reason: "auth_error", scope: "model", cooldownMs: 6 * 60 * 60 * 1000 };
       },
     },
@@ -254,6 +261,21 @@ export const providerRuleRegistry = new Map<string, ProviderErrorRule[]>([
   ["openrouter", buildOpenrouterRules()],
   ["agentrouter", buildAgentrouterRules()],
 ]);
+
+/**
+ * Providers whose ProviderErrorRuleMatch.scope is actually CONSUMED at the
+ * persistence layer (markAccountUnavailable / combo target exhaustion) to pick
+ * connection-vs-model lock scope. EXCLUSIVE allowlist by owner decision
+ * (2026-08-14, issue #10334) — deliberately SEPARATE from
+ * FULL_TEXT_RULE_PROVIDERS: that set controls what body a rule matches against
+ * (input), this one controls whether the matched scope changes caller behavior
+ * (output). A provider could need one without the other.
+ */
+const HONORS_RULE_LOCK_SCOPE_PROVIDERS = new Set(["agentrouter"]);
+
+export function honorsRuleLockScope(provider: string | null | undefined): boolean {
+  return !!provider && HONORS_RULE_LOCK_SCOPE_PROVIDERS.has(provider.toLowerCase());
+}
 
 /**
  * Providers whose rules match on the FULL upstream error text.
