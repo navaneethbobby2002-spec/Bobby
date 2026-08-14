@@ -1290,7 +1290,9 @@
       "open": "otvorené",
       "close": "zatvoriť"
     },
-    "noResults": "Žiadne výsledky"
+    "noResults": "Žiadne výsledky",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "Webhooky",
@@ -11033,7 +11035,8 @@
       "compressed": "Kompresia",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

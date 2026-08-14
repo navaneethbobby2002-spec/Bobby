@@ -1290,7 +1290,9 @@
       "open": "打开",
       "close": "关闭"
     },
-    "noResults": "没有结果"
+    "noResults": "没有结果",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "Webhook",
@@ -11033,7 +11035,8 @@
       "compressed": "压缩",
       "tps": "TPS",
       "duration": "时长",
-      "time": "时间"
+      "time": "时间",
+      "conversation": "Conversation"
     },
     "loadingLogs": "正在加载日志...",
     "noLogs": "暂无日志记录。进行一些API调用以在此处查看它们。",

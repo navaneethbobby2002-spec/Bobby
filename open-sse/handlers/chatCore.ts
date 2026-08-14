@@ -248,7 +248,10 @@ import {
   normalizeOpenAIToolFinishReasons,
   restoreNonStreamingToolNames,
 } from "./chatCore/passthroughToolNames.ts";
-import { createDisabledCompressionConfig, resolveCompressionSettings } from "./chatCore/compressionSettings.ts";
+import {
+  createDisabledCompressionConfig,
+  resolveCompressionSettings,
+} from "./chatCore/compressionSettings.ts";
 import type { EnforceDecision } from "@/lib/quota/types";
 import { isCompressionExcluded } from "../services/compression/exclusions.ts";
 import {
@@ -448,6 +451,7 @@ export async function handleChatCore({
   skipUpstreamRetry = false,
   createPiiTransform = null,
   correlationId = null,
+  conversationId = null,
   modelPinned = false,
   skipResourcePressureGuard = false,
 }) {
@@ -807,6 +811,7 @@ export async function handleChatCore({
       providerRequest: initialProviderRequest,
       stage: "registered",
       correlationId,
+      sessionTag: conversationId || null,
     }) || generateRequestId();
 
   // Initialize rate limit settings from persisted DB (once, lazy)
@@ -936,7 +941,11 @@ export async function handleChatCore({
       noLogEnabled,
       correlationId,
       modelPinned,
-      sessionTag: explicitSessionIdHeader,
+      // Resolved conversationId (open-sse/services/conversationTracker.ts) wins when
+      // present — it's populated for every request now, not just ones where the
+      // client explicitly sent x-omniroute-session-id. The raw header remains a
+      // fallback for any caller that somehow bypassed conversationId resolution.
+      sessionTag: conversationId || explicitSessionIdHeader,
     });
 
   // Primary path: merge client model id + alias target so config on either key applies; resolved
@@ -1823,7 +1832,11 @@ export async function handleChatCore({
     // engines (Caveman/RTK). Codex Desktop / Responses clients need this path even
     // when those engines are off, otherwise multi-turn image sessions hard-reject
     // at the budget check below (#8560).
-    if (reactiveContextCompactionEnabled && !nativeCodexPassthrough && estimatedTokens > threshold) {
+    if (
+      reactiveContextCompactionEnabled &&
+      !nativeCodexPassthrough &&
+      estimatedTokens > threshold
+    ) {
       log?.info?.(
         "CONTEXT",
         `Proactive compression triggered: ${estimatedTokens} tokens > ${threshold} threshold (${contextLimit} limit)`
@@ -1893,7 +1906,12 @@ export async function handleChatCore({
 
   // Last-resort compaction against the concrete input budget (not the 70% threshold).
   // Covers cases where the proactive pass was skipped or still left the request oversized (#8560).
-  if (reactiveContextCompactionEnabled && !nativeCodexPassthrough && finalEstimatedInputTokens >= finalContextLimit && body) {
+  if (
+    reactiveContextCompactionEnabled &&
+    !nativeCodexPassthrough &&
+    finalEstimatedInputTokens >= finalContextLimit &&
+    body
+  ) {
     const lastResortTarget = Math.max(1, finalContextLimit - toolsReserve - 1);
     const lastResortAdapter = adaptBodyForCompression(body as Record<string, unknown>);
     const lastResortResult = compressContext(lastResortAdapter.body, {
@@ -4349,7 +4367,11 @@ export async function handleChatCore({
           }
         : responseBody
     );
-    sanitizeUsagePayloadForRequest(responseBody, finalBody || translatedBody || body, responsePayloadFormat);
+    sanitizeUsagePayloadForRequest(
+      responseBody,
+      finalBody || translatedBody || body,
+      responsePayloadFormat
+    );
     effectiveServiceTier = resolveReportedServiceTier(responseBody) ?? effectiveServiceTier;
     // Notify success - caller can clear error status if needed
     if (onRequestSuccess) {
@@ -4494,9 +4516,14 @@ export async function handleChatCore({
     // #8331: keep the client-visible metering fields real everywhere except Claude-Code-compatible
     // providers, where Claude Code's own context accounting relies on the buffered number — see
     // clientUsageBuffer.ts module docstring.
-    applyClientUsageBuffer(translatedResponse, finalBody || translatedBody || body, clientResponseFormat, {
-      preserveContextBudgetInVisibleUsage: isClaudeCodeCompatible,
-    });
+    applyClientUsageBuffer(
+      translatedResponse,
+      finalBody || translatedBody || body,
+      clientResponseFormat,
+      {
+        preserveContextBudgetInVisibleUsage: isClaudeCodeCompatible,
+      }
+    );
 
     if (memoryOwnerId && memorySettings?.enabled && memorySettings.maxTokens > 0) {
       const requestMemoryText = extractMemoryTextFromRequestBody(body as Record<string, unknown>);

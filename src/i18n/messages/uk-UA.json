@@ -1290,7 +1290,9 @@
       "open": "відкрити",
       "close": "закрити"
     },
-    "noResults": "Немає результатів"
+    "noResults": "Немає результатів",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "Веб-хуки",
@@ -11033,7 +11035,8 @@
       "compressed": "Компресія",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

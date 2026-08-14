@@ -1290,7 +1290,9 @@
       "open": "فتح",
       "close": "إغلاق"
     },
-    "noResults": "لا توجد نتائج"
+    "noResults": "لا توجد نتائج",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "خطافات الويب",
@@ -11033,7 +11035,8 @@
       "compressed": "ضغط",
       "tps": "TPS",
       "duration": "المدة",
-      "time": "الوقت"
+      "time": "الوقت",
+      "conversation": "Conversation"
     },
     "loadingLogs": "جارٍ تحميل السجلات...",
     "noLogs": "لا توجد سجلات حتى الآن. قم بإجراء بعض استدعاءات واجهة برمجة التطبيقات (API) لرؤيتها هنا.",

@@ -1290,7 +1290,9 @@
       "open": "отвори",
       "close": "затвори"
     },
-    "noResults": "Няма резултати"
+    "noResults": "Няма резултати",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "Уеб кукички",
@@ -11033,7 +11035,8 @@
       "compressed": "Компресия",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

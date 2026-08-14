@@ -1290,7 +1290,9 @@
       "open": "খুলুন",
       "close": "বন্ধ করুন"
     },
-    "noResults": "কোন ফলাফল নেই"
+    "noResults": "কোন ফলাফল নেই",
+    "conversations": "Conversations",
+    "conversationsSubtitle": "Multi-turn agentic conversations"
   },
   "webhooks": {
     "title": "ওয়েবহুক",
@@ -11033,7 +11035,8 @@
       "compressed": "কম্প্রেশন",
       "tps": "TPS",
       "duration": "Duration",
-      "time": "Time"
+      "time": "Time",
+      "conversation": "Conversation"
     },
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs yet. Make some API calls to see them here.",

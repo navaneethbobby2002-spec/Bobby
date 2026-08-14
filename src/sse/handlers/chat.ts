@@ -4,6 +4,9 @@ import * as chatAdmission from "./chatAdmission.ts";
 import { buildClientRawRequest, resolveDispatchClientRawRequest } from "./chat/clientRawRequest.ts";
 export { buildClientRawRequest, resolveDispatchClientRawRequest };
 import { normalizeReasoningRequest } from "@/shared/reasoning/effortStandardization";
+import { isDetailedLoggingEnabled } from "@/lib/db/detailedLogs";
+import { resolvePreviousResponseState } from "@/lib/db/responsesContinuationStore";
+import { FORMATS } from "@omniroute/open-sse/translator/formats.ts";
 import { resolveRoutingModel, RoutingModelOps } from "./resolveRoutingModel";
 import {
   getProviderCredentialsWithQuotaPreflight,
@@ -84,8 +87,10 @@ import {
   withSelectedConnectionHeader,
   withCorrelationId,
   withModalityBridgeHeader,
+  withConversationId,
 } from "./chatHelpers";
 import { buildModalityBridgeHeader } from "@/lib/guardrails/modalityBridge/bridgeStats";
+import { resolveConversationId } from "@omniroute/open-sse/services/conversationTracker.ts";
 import {
   isAntigravityMissingProjectError,
   isProviderBreakerFailureStatus,
@@ -510,6 +515,48 @@ async function handleChatImplementation(
   const bypassProviderQuotaPolicy = hasProviderQuotaBypassScope(apiKeyInfo?.scopes);
   telemetry.endPhase();
 
+  // OmniRoute-native `previous_response_id` continuation: reconstruct the
+  // full input server-side before ANY downstream validation/translation
+  // sees this request, so everything after this point (message-shape
+  // guards, token-budget checks, provider translation) treats it exactly
+  // like an ordinary full-history request. This works regardless of
+  // whether the eventually-selected upstream provider itself understands
+  // Responses-API state -- OmniRoute always forwards the full reconstructed
+  // history upstream, exactly as it does today for a non-continued request.
+  // Client<->OmniRoute traffic shrinks to the new delta; OmniRoute<->
+  // provider traffic is unchanged. See src/lib/db/responsesContinuationStore.ts.
+  if (
+    sourceFormat === FORMATS.OPENAI_RESPONSES &&
+    typeof (body as { previous_response_id?: unknown }).previous_response_id === "string"
+  ) {
+    const previousResponseId = (body as { previous_response_id: string }).previous_response_id;
+    const detailedLoggingEnabled = await isDetailedLoggingEnabled();
+    const stored = detailedLoggingEnabled
+      ? resolvePreviousResponseState(previousResponseId, apiKeyInfo?.id ?? null)
+      : null;
+    if (!stored) {
+      // Matches OpenAI's own `previous_response_not_found` contract (missing
+      // or expired server-side state) so a client with the matching retry
+      // behavior -- resend the full request, same turn -- recovers exactly
+      // as it would against the real OpenAI backend.
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: "Previous response not found.",
+            type: "invalid_request_error",
+            code: "previous_response_not_found",
+          },
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    const deltaInput = Array.isArray((body as { input?: unknown }).input)
+      ? (body as { input: unknown[] }).input
+      : [];
+    body = { ...body, input: [...stored.input, ...stored.output, ...deltaInput] };
+    delete (body as { previous_response_id?: unknown }).previous_response_id;
+  }
+
   const admissionRejection = await admissionContext.acquire(apiKeyInfo?.id, request, body);
   if (admissionRejection) return admissionRejection;
   clientRawRequest = chatAdmission.resolveClientRawAfterAdmission(clientRawRequest, () =>
@@ -560,6 +607,19 @@ async function handleChatImplementation(
   // success exits below via withModalityBridgeHeader().
   const modalityBridgeHeader = buildModalityBridgeHeader(preCallGuardrails.results);
   telemetry.endPhase();
+
+  // Agentic conversation tracking (X-ConversationId): resolved once per
+  // incoming HTTP request, before combo dispatch / credential retries, so
+  // every attempt for this request shares the same id and the
+  // agentic_conversations row is only touched once.
+  const clientConversationHeader = request.headers.get("x-omniroute-session-id")?.trim() || null;
+  const { conversationId } = await resolveConversationId({
+    body: body as Record<string, unknown>,
+    model: modelStr,
+    apiKeyId: apiKeyInfo?.id ?? null,
+    clientSessionIdHeader: clientConversationHeader,
+    correlationId: reqId,
+  });
 
   // T08: per-key active session limit (0 = unlimited).
   if (apiKeyInfo?.id && sessionId) {
@@ -867,6 +927,7 @@ async function handleChatImplementation(
             cachedSettings: settings,
             providerId: target?.providerId ?? null,
             correlationId: reqId,
+            conversationId,
             modelPinned: (target as any)?.modelPinned ?? false,
             reasoningDecision,
             reasoningIntent,
@@ -937,6 +998,7 @@ async function handleChatImplementation(
             sessionAffinityKey,
             emergencyFallbackTried: true,
             forceLiveComboTest: isComboLiveTest,
+            conversationId,
           },
           combo.strategy,
           true
@@ -945,7 +1007,7 @@ async function handleChatImplementation(
           log.info("GLOBAL_FALLBACK", `Global fallback ${fallbackModel} succeeded`);
           recordTelemetry(telemetry);
           return withModalityBridgeHeader(
-            withSessionHeader(fallbackResponse, sessionId),
+            withConversationId(withSessionHeader(fallbackResponse, sessionId), conversationId),
             modalityBridgeHeader
           );
         }
@@ -979,13 +1041,17 @@ async function handleChatImplementation(
           apiKeyId: apiKeyInfo?.id ?? null,
           apiKeyName: apiKeyInfo?.name ?? null,
           correlationId: reqId,
+          sessionTag: conversationId,
           startTime: telemetry?.startTime,
           requestBody: clientRawRequest?.body ?? null,
         });
       } catch {}
     }
     return withModalityBridgeHeader(
-      withCorrelationId(withSessionHeader(response, sessionId), reqId),
+      withConversationId(
+        withCorrelationId(withSessionHeader(response, sessionId), reqId),
+        conversationId
+      ),
       modalityBridgeHeader
     );
   }
@@ -1020,6 +1086,7 @@ async function handleChatImplementation(
       forceLiveComboTest: isComboLiveTest,
       forcedConnectionId: requestedConnectionId,
       correlationId: reqId,
+      conversationId,
       routingComboId,
       reasoningDecision,
       reasoningIntent,
@@ -1030,7 +1097,10 @@ async function handleChatImplementation(
   );
   recordTelemetry(telemetry);
   return withModalityBridgeHeader(
-    withCorrelationId(withSessionHeader(response, sessionId), reqId),
+    withConversationId(
+      withCorrelationId(withSessionHeader(response, sessionId), reqId),
+      conversationId
+    ),
     modalityBridgeHeader
   );
 }
@@ -1061,6 +1131,7 @@ async function handleSingleModelChat(
     cachedSettings?: any;
     providerId?: string | null;
     correlationId?: string | null;
+    conversationId?: string | null;
     routingComboId?: string | null;
     modelPinned?: boolean;
     reasoningDecision?: ReasoningRuleDecision | null;
@@ -1127,6 +1198,7 @@ async function handleSingleModelChat(
             allowRateLimitedConnection: resolvedTarget?.allowRateLimitedConnection === true,
             providerId: resolvedTarget?.providerId ?? null,
             correlationId: runtimeOptions?.correlationId ?? null,
+            conversationId: runtimeOptions?.conversationId ?? null,
             // #7360 follow-up — see the primary handleSingleModel closure above.
             modelAbortSignal: target?.modelAbortSignal ?? null,
           },
@@ -1224,6 +1296,7 @@ async function handleSingleModelChat(
         apiKeyId: apiKeyInfo?.id ?? null,
         apiKeyName: apiKeyInfo?.name ?? null,
         correlationId: runtimeOptions?.correlationId ?? null,
+        sessionTag: runtimeOptions?.conversationId ?? null,
         startTime: telemetry?.startTime,
       });
     } catch {}
@@ -1560,6 +1633,7 @@ async function handleSingleModelChat(
           cachedSettings: runtimeOptions.cachedSettings,
           skipUpstreamRetry: runtimeOptions.skipUpstreamRetry ?? false,
           correlationId: runtimeOptions?.correlationId ?? null,
+          conversationId: runtimeOptions?.conversationId ?? null,
           modelPinned: runtimeOptions?.modelPinned ?? false,
           routingComboId: runtimeOptions?.routingComboId ?? null,
           sessionAffinityKey: runtimeOptions.sessionAffinityKey ?? null,
