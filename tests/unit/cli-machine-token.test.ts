@@ -9,12 +9,13 @@ test("cliToken.mjs pode ser importado sem erro", async () => {
   assert.equal(mod.CLI_TOKEN_HEADER, "x-omniroute-cli-token");
 });
 
-test("getCliToken retorna string de 32 chars ou string vazia", async () => {
+test("getCliToken retorna string de 64 chars ou string vazia", async () => {
   const { getCliToken } = await import("../../bin/cli/utils/cliToken.mjs");
   const token = await getCliToken();
   assert.ok(typeof token === "string");
-  // Pode ser "" se node-machine-id falhar, ou 32 chars se funcionar.
-  assert.ok(token === "" || token.length === 32, `expected 0 or 32 chars, got ${token.length}`);
+  // Pode ser "" se node-machine-id falhar, ou 64 chars se funcionar
+  // (HMAC-SHA256 digest hex — see #10148 cliToken hardening).
+  assert.ok(token === "" || token.length === 64, `expected 0 or 64 chars, got ${token.length}`);
 });
 
 test("getCliToken retorna mesmo valor em chamadas repetidas (cache)", async () => {
@@ -28,7 +29,8 @@ test("getCliToken produz apenas hex lowercase se não-vazio", async () => {
   const { getCliToken } = await import("../../bin/cli/utils/cliToken.mjs");
   const token = await getCliToken();
   if (token.length > 0) {
-    assert.match(token, /^[0-9a-f]{32}$/);
+    // HMAC-SHA256 digest hex = 64 chars (#10148 cliToken hardening).
+    assert.match(token, /^[0-9a-f]{64}$/);
   }
 });
 
@@ -70,17 +72,17 @@ test("isLoopback rejeita IP público", async () => {
 
 test("token derivado de machine-id diferente produz hash diferente", () => {
   const SALT = "omniroute-cli-auth-v1";
+  // Mirror the production derivation (#10148): HMAC-SHA256(machineId, SALT) hex.
   const hash = (mid: string) =>
     crypto
-      .createHash("sha256")
-      .update(mid + SALT)
-      .digest("hex")
-      .substring(0, 32);
+      .createHmac("sha256", mid)
+      .update(SALT)
+      .digest("hex");
   const t1 = hash("machine-id-host-A");
   const t2 = hash("machine-id-host-B");
   assert.notEqual(t1, t2);
-  assert.match(t1, /^[0-9a-f]{32}$/);
-  assert.match(t2, /^[0-9a-f]{32}$/);
+  assert.match(t1, /^[0-9a-f]{64}$/);
+  assert.match(t2, /^[0-9a-f]{64}$/);
 });
 
 test("OMNIROUTE_DISABLE_CLI_TOKEN desabilita auth (estrutura verificada)", async () => {

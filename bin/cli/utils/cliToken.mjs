@@ -8,13 +8,11 @@ let _cached = null;
 export async function getCliToken() {
   if (_cached !== null) return _cached;
   try {
-    const { machineIdSync } = await import("node-machine-id");
-    const mid = machineIdSync();
-    _cached = crypto
-      .createHash("sha256")
-      .update(mid + SALT)
-      .digest("hex")
-      .substring(0, 32);
+    const module = await import("node-machine-id");
+    const machineIdSync = module.machineIdSync ?? module.default?.machineIdSync;
+    if (typeof machineIdSync !== "function") throw new Error("machine-id API unavailable");
+    const mid = machineIdSync(true);
+    _cached = crypto.createHmac("sha256", mid).update(SALT).digest("hex");
   } catch {
     _cached = "";
   }
