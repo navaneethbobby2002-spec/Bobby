@@ -46,13 +46,6 @@ const TOOL_CALLING_UNSUPPORTED_PATTERNS: string[] = [
   "stable-diffusion",
 ];
 const REASONING_UNSUPPORTED_PATTERNS = [
-  "antigravity/claude-sonnet-4-6",
-  "antigravity/claude-sonnet-4-5",
-  "antigravity/claude-sonnet-4",
-  // Non-Claude antigravity models don't support thinking params (#1361)
-  "antigravity/gemini-",
-  "antigravity/gpt-oss-",
-  "antigravity/gemini-3",
   "antigravity/tab_",
   // Specialty / non-chat surfaces (#8016)
   "whisper",
@@ -768,7 +761,9 @@ export function getResolvedModelCapabilities(
   // reflects the real *total* window and wins over every static/synced source.
   // `maxInputTokens` still follows its own precedence chain; only when that
   // chain has no narrower source does it naturally fall back to this window.
-  const persistedContextWindow = usePersistedOverrides ? getContextOverride(resolved, snapshot) : null;
+  const persistedContextWindow = usePersistedOverrides
+    ? getContextOverride(resolved, snapshot)
+    : null;
   const contextWindow =
     persistedContextWindow ??
     authoritativeContextWindow ??
@@ -991,7 +986,11 @@ export function getModelContextLimit(
 ): number | null {
   const resolved =
     typeof providerOrInput === "string" && modelId !== undefined
-      ? getResolvedModelCapabilities({ provider: providerOrInput, model: modelId }, undefined, snapshot)
+      ? getResolvedModelCapabilities(
+          { provider: providerOrInput, model: modelId },
+          undefined,
+          snapshot
+        )
       : getResolvedModelCapabilities(providerOrInput, undefined, snapshot);
   // Feature 5004: a persisted override (operator-set or auto-discovered) wins over the
   // static catalog / models.dev sync. `getResolvedModelCapabilities` stays override-free
