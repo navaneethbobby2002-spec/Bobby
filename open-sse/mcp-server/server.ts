@@ -601,16 +601,7 @@ async function handleWebSearch(args: {
   query: string;
   max_results?: number;
   search_type?: "web" | "news";
-  provider?:
-    | "serper-search"
-    | "brave-search"
-    | "perplexity-search"
-    | "exa-search"
-    | "tavily-search"
-    | "google-pse-search"
-    | "linkup-search"
-    | "searchapi-search"
-    | "searxng-search";
+  provider?:string ;
 }) {
   const start = Date.now();
   try {

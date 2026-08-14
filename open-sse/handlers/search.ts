@@ -597,22 +597,28 @@ function buildOllamaRequest(
   };
 }
 
+const requestBuilders: Record<string, any> = {
+  "serper-search": buildSerperRequest,
+  "brave-search": buildBraveRequest,
+  "perplexity-search": buildPerplexityRequest,
+  "exa-search": buildExaRequest,
+  "tavily-search": buildTavilyRequest,
+  "firecrawl": fcSearch.buildFirecrawlSearchRequest,
+  "google-pse-search": buildGooglePseRequest,
+  "linkup-search": buildLinkupRequest,
+  "searchapi-search": buildSearchApiRequest,
+  "youcom-search": buildYouComRequest,
+  "searxng-search": buildSearxngRequest,
+  "ollama-search": buildOllamaRequest,
+};
+
 function buildRequest(
   config: SearchProviderConfig,
   params: SearchRequestParams
 ): { url: string; init: RequestInit } {
-  if (config.id === "serper-search") return buildSerperRequest(config, params);
-  if (config.id === "brave-search") return buildBraveRequest(config, params);
-  if (config.id === "perplexity-search") return buildPerplexityRequest(config, params);
-  if (config.id === "exa-search") return buildExaRequest(config, params);
-  if (config.id === "tavily-search") return buildTavilyRequest(config, params);
-  if (config.id === "firecrawl") return fcSearch.buildFirecrawlSearchRequest(config, params);
-  if (config.id === "google-pse-search") return buildGooglePseRequest(config, params);
-  if (config.id === "linkup-search") return buildLinkupRequest(config, params);
-  if (config.id === "searchapi-search") return buildSearchApiRequest(config, params);
-  if (config.id === "youcom-search") return buildYouComRequest(config, params);
-  if (config.id === "searxng-search") return buildSearxngRequest(config, params);
-  if (config.id === "ollama-search") return buildOllamaRequest(config, params);
+  const builder = requestBuilders[config.id];
+  if (builder) return builder(config, params);
+  
   // Fallback for future providers: POST with bearer auth
   return {
     url: resolveSearchBaseUrl(config, params),
@@ -1161,29 +1167,33 @@ async function tryZaiMCPProvider(
   }
 }
 
+  const responseNormalizers: Record<string, any> = {
+  "serper-search": normalizeSerperResponse,
+  "brave-search": normalizeBraveResponse,
+  "perplexity-search": normalizePerplexityResponse,
+  "exa-search": normalizeExaResponse,
+  "tavily-search": normalizeTavilyResponse,
+  "firecrawl": (data: any, q: string, st: string) => fcSearch.normalizeFirecrawlSearchResponse(data, st, makeResult),
+  "google-pse-search": normalizeGooglePseResponse,
+  "linkup-search": normalizeLinkupResponse,
+  "searchapi-search": normalizeSearchApiResponse,
+  "youcom-search": normalizeYouComResponse,
+  "searxng-search": normalizeSearxngResponse,
+  "ollama-search": normalizeOllamaResponse,
+};
+
 function normalizeResponse(
   providerId: string,
   data: any,
   query: string,
   searchType: string
 ): { results: SearchResult[]; totalResults: number | null } {
-  if (providerId === "serper-search") return normalizeSerperResponse(data, query, searchType);
-  if (providerId === "brave-search") return normalizeBraveResponse(data, query, searchType);
-  if (providerId === "perplexity-search")
-    return normalizePerplexityResponse(data, query, searchType);
-  if (providerId === "exa-search") return normalizeExaResponse(data, query, searchType);
-  if (providerId === "tavily-search") return normalizeTavilyResponse(data, query, searchType);
-  if (providerId === "firecrawl")
-    return fcSearch.normalizeFirecrawlSearchResponse(data, searchType, makeResult);
-  if (providerId === "google-pse-search")
-    return normalizeGooglePseResponse(data, query, searchType);
-  if (providerId === "linkup-search") return normalizeLinkupResponse(data, query, searchType);
-  if (providerId === "searchapi-search") return normalizeSearchApiResponse(data, query, searchType);
-  if (providerId === "youcom-search") return normalizeYouComResponse(data, query, searchType);
-  if (providerId === "searxng-search") return normalizeSearxngResponse(data, query, searchType);
-  if (providerId === "ollama-search") return normalizeOllamaResponse(data, query, searchType);
+  const normalizer = responseNormalizers[providerId];
+  if (normalizer) return normalizer(data, query, searchType);
+  
   return { results: [], totalResults: null };
 }
+
 export async function handleSearch(options: SearchHandlerOptions): Promise<SearchHandlerResult> {
   const {
     query,
@@ -1219,6 +1229,13 @@ export async function handleSearch(options: SearchHandlerOptions): Promise<Searc
       success: false,
       status: 400,
       error: `Unknown search provider: ${providerId}`,
+    };
+  }
+  if (primaryConfig.disabled) {
+    return {
+      success: false,
+      status: 403,
+      error: `Search provider '${providerId}' is currently disabled.`,
     };
   }
 

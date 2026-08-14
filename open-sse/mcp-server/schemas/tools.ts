@@ -12,6 +12,7 @@
 import { z } from "zod";
 import { toolSearchTool } from "./toolSearch.ts";
 import { pickFastestModelTool } from "./pickFastestModel.ts";
+import { getActiveSearchProviders } from "./providerEnums";
 import { CCR_MCP_TOOLS } from "./ccrTools.ts";
 import {
   AUTO_ROUTING_STRATEGY_VALUES,
@@ -456,17 +457,7 @@ export const webSearchInput = z.object({
     .describe("Maximum number of search results to return"),
   search_type: z.enum(["web", "news"]).default("web").describe("Type of search to perform"),
   provider: z
-    .enum([
-      "serper-search",
-      "brave-search",
-      "perplexity-search",
-      "exa-search",
-      "tavily-search",
-      "google-pse-search",
-      "linkup-search",
-      "searchapi-search",
-      "searxng-search",
-    ])
+    .enum(getActiveSearchProviders())
     .optional()
     .describe("Specific search provider to use"),
 });
