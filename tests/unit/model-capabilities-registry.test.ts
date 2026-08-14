@@ -171,8 +171,10 @@ test("Antigravity Gemini 3.5 upstream IDs share the Flash capability profile", (
   }
 });
 
-test("Antigravity Gemini 3.6 tier IDs share the Flash capability profile", () => {
+test("Antigravity Gemini 3.7 and 3.6 tier IDs share the Flash capability profile", () => {
   for (const modelId of [
+    "gemini-3.7-flash-high",
+    "gemini-3.7-flash-medium",
     "gemini-3.6-flash-high",
     "gemini-3.6-flash-medium",
     "gemini-3.6-flash-low",

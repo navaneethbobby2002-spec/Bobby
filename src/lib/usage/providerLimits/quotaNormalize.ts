@@ -1,5 +1,5 @@
 import {
-  isUserCallableAntigravityModelId,
+  isDiscoverableAntigravityModelId,
   toClientAntigravityModelId,
 } from "@omniroute/open-sse/config/antigravityModelAliases.ts";
 import { isUserCallableAgyModelId } from "@omniroute/open-sse/config/agyModels.ts";
@@ -12,7 +12,7 @@ export function isRecord(value: unknown): value is JsonRecord {
 
 export function isUsageQuotaKeyAllowed(provider: string, quotaKey: string): boolean {
   if (quotaKey === "credits" || quotaKey === "models") return true;
-  if (provider === "antigravity") return isUserCallableAntigravityModelId(quotaKey);
+  if (provider === "antigravity") return isDiscoverableAntigravityModelId(quotaKey);
   if (provider === "agy") return isUserCallableAgyModelId(quotaKey);
   return true;
 }
