@@ -1,0 +1,1 @@
+- **fix(guardrails):** Vision Bridge now reroutes whole requests for named combos whose targets have zero vision-capable models (previously such image requests died with `capability_mismatch` when the describe path could not run) ([#10415](https://github.com/diegosouzapw/OmniRoute/pull/10415)) — thanks @rqzbeh
