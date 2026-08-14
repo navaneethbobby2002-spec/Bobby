@@ -75,14 +75,6 @@
         "from": "../.build/electron-standalone",
         "to": "app",
         "filter": [
-          "**/*",
-          "node_modules/**/*"
-        ]
-      },
-      {
-        "from": "../.build/electron-standalone/node_modules",
-        "to": "app/node_modules",
-        "filter": [
           "**/*"
         ]
       },
