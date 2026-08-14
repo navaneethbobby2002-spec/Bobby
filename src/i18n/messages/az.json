@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Sorğu dayandırıldı: server sorğunu rədd etdi (404/403).",
     "pollErrorTransient": "Məlumat alarkən xəta: avtomatik yenidən cəhd edilir.",
     "degraded": "Qismən məlumat: əlçatmaz mənbələr: {sources}",
-    "degraded.source.database": "Verilənlər Bazası",
-    "degraded.source.circuitBreaker": "Dövrə Açarı",
-    "degraded.source.modelLockouts": "Model Blokları",
-    "degraded.source.count": "Bağlantı Sayı"
+    "degradedSource": {
+      "database": "Verilənlər Bazası",
+      "circuitBreaker": "Dövrə Açarı",
+      "modelLockouts": "Model Blokları",
+      "count": "Bağlantı Sayı"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Tələb olunan imkanlar (görmə, alətlər, strukturlaşdırılmış çıxış, kontekst pəncərəsi) olmayan hədəf modelində göndərilmədən əvvəl tələbləri rədd edin. Kombinasiya qatının uyğunluq filtrini keçən birbaşa tək təminatçı tələblərini qoruyur.",
-  "capabilityFilter.visionMismatch": "Təchizatçı bu şəkil tələbi üçün görünüşü dəstəkləmir",
-  "capabilityFilter.toolsMismatch": "Təchizatçı alət çağırışını dəstəkləmir",
-  "capabilityFilter.structuredOutputMismatch": "Təchizatçı strukturlaşdırılmış çıxışı dəstəkləmir",
-  "capabilityFilter.contextWindowMismatch": "Sorğu təminatçının kontekst pəncərəsini aşır",
+  "capabilityFilter": {
+    "visionMismatch": "Təchizatçı bu şəkil tələbi üçün görünüşü dəstəkləmir",
+    "toolsMismatch": "Təchizatçı alət çağırışını dəstəkləmir",
+    "structuredOutputMismatch": "Təchizatçı strukturlaşdırılmış çıxışı dəstəkləmir",
+    "contextWindowMismatch": "Sorğu təminatçının kontekst pəncərəsini aşır"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Səhifə tapılmadı",

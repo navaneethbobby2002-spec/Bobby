@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "轮询已停止:服务器拒绝了请求 (404/403)。",
     "pollErrorTransient": "获取数据出错:将自动重试。",
     "degraded": "部分数据:不可用的数据源: {sources}",
-    "degraded.source.database": "数据库",
-    "degraded.source.circuitBreaker": "断路器",
-    "degraded.source.modelLockouts": "模型锁定",
-    "degraded.source.count": "连接数"
+    "degradedSource": {
+      "database": "数据库",
+      "circuitBreaker": "断路器",
+      "modelLockouts": "模型锁定",
+      "count": "连接数"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "在目标模型缺少所需能力（视觉、工具、结构化输出、上下文窗口）时，拒绝调度前的请求。保护绕过组合层兼容性过滤器的直接单一提供者请求。",
-  "capabilityFilter.visionMismatch": "提供者不支持此图像请求的视觉效果",
-  "capabilityFilter.toolsMismatch": "提供者不支持工具调用",
-  "capabilityFilter.structuredOutputMismatch": "提供者不支持结构化输出",
-  "capabilityFilter.contextWindowMismatch": "请求超出提供者上下文窗口",
+  "capabilityFilter": {
+    "visionMismatch": "提供者不支持此图像请求的视觉效果",
+    "toolsMismatch": "提供者不支持工具调用",
+    "structuredOutputMismatch": "提供者不支持结构化输出",
+    "contextWindowMismatch": "请求超出提供者上下文窗口"
+  },
   "publicSystem": {
     "notFound": {
       "title": "页面未找到",

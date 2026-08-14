@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Sondage arrêté : le serveur a rejeté la requête (404/403).",
     "pollErrorTransient": "Erreur lors de la récupération des données : nouvelle tentative automatique.",
     "degraded": "Données partielles : sources indisponibles : {sources}",
-    "degraded.source.database": "Base de Données",
-    "degraded.source.circuitBreaker": "Disjoncteur",
-    "degraded.source.modelLockouts": "Blocages de Modèle",
-    "degraded.source.count": "Nombre de Connexions"
+    "degradedSource": {
+      "database": "Base de Données",
+      "circuitBreaker": "Disjoncteur",
+      "modelLockouts": "Blocages de Modèle",
+      "count": "Nombre de Connexions"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Rejeter les demandes avant l'expédition lorsque le modèle cible manque des capacités requises (vision, outils, sortie structurée, fenêtre de contexte). Protège les demandes directes à un seul fournisseur qui contournent le filtre de compatibilité de la couche combo.",
-  "capabilityFilter.visionMismatch": "Le fournisseur ne prend pas en charge la vision pour cette demande d'image",
-  "capabilityFilter.toolsMismatch": "Le fournisseur ne prend pas en charge l'appel d'outils",
-  "capabilityFilter.structuredOutputMismatch": "Le fournisseur ne prend pas en charge la sortie structurée",
-  "capabilityFilter.contextWindowMismatch": "La demande dépasse la fenêtre de contexte du fournisseur",
+  "capabilityFilter": {
+    "visionMismatch": "Le fournisseur ne prend pas en charge la vision pour cette demande d'image",
+    "toolsMismatch": "Le fournisseur ne prend pas en charge l'appel d'outils",
+    "structuredOutputMismatch": "Le fournisseur ne prend pas en charge la sortie structurée",
+    "contextWindowMismatch": "La demande dépasse la fenêtre de contexte du fournisseur"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Page introuvable",

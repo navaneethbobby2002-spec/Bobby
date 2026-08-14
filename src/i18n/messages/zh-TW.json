@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "輪詢已停止:伺服器拒絕了請求 (404/403)。",
     "pollErrorTransient": "取得資料時發生錯誤:將自動重試。",
     "degraded": "部分資料:無法使用的來源: {sources}",
-    "degraded.source.database": "資料庫",
-    "degraded.source.circuitBreaker": "斷路器",
-    "degraded.source.modelLockouts": "模型鎖定",
-    "degraded.source.count": "連線數"
+    "degradedSource": {
+      "database": "資料庫",
+      "circuitBreaker": "斷路器",
+      "modelLockouts": "模型鎖定",
+      "count": "連線數"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "在目標模型缺乏所需功能（視覺、工具、結構化輸出、上下文窗口）時，拒絕發送前的請求。保護繞過組合層兼容性過濾器的直接單一提供者請求。",
-  "capabilityFilter.visionMismatch": "提供者不支援此影像請求的視覺效果",
-  "capabilityFilter.toolsMismatch": "提供者不支援工具呼叫",
-  "capabilityFilter.structuredOutputMismatch": "提供者不支援結構化輸出",
-  "capabilityFilter.contextWindowMismatch": "請求超出提供者上下文窗口",
+  "capabilityFilter": {
+    "visionMismatch": "提供者不支援此影像請求的視覺效果",
+    "toolsMismatch": "提供者不支援工具呼叫",
+    "structuredOutputMismatch": "提供者不支援結構化輸出",
+    "contextWindowMismatch": "請求超出提供者上下文窗口"
+  },
   "publicSystem": {
     "notFound": {
       "title": "找不到頁面",

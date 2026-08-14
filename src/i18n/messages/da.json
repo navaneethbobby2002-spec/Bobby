@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Polling stoppet: serveren afviste anmodningen (404/403).",
     "pollErrorTransient": "Fejl ved hentning af data: forsøger automatisk igen.",
     "degraded": "Delvise data: utilgængelige kilder: {sources}",
-    "degraded.source.database": "Database",
-    "degraded.source.circuitBreaker": "Afbryder",
-    "degraded.source.modelLockouts": "Modellåsninger",
-    "degraded.source.count": "Antal Forbindelser"
+    "degradedSource": {
+      "database": "Database",
+      "circuitBreaker": "Afbryder",
+      "modelLockouts": "Modellåsninger",
+      "count": "Antal Forbindelser"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Afvis anmodninger før afsendelse, når målmodellen mangler de nødvendige funktioner (vision, værktøjer, struktureret output, kontekstvindue). Beskytter direkte anmodninger fra en enkelt udbyder, der omgår kombinationslagets kompatibilitetsfilter.",
-  "capabilityFilter.visionMismatch": "Udbyderen understøtter ikke vision for denne billedanmodning",
-  "capabilityFilter.toolsMismatch": "Udbyderen understøtter ikke værktøjsopkald.",
-  "capabilityFilter.structuredOutputMismatch": "Udbyderen understøtter ikke struktureret output",
-  "capabilityFilter.contextWindowMismatch": "Anmodningen overskrider udbyderens kontekstvindue",
+  "capabilityFilter": {
+    "visionMismatch": "Udbyderen understøtter ikke vision for denne billedanmodning",
+    "toolsMismatch": "Udbyderen understøtter ikke værktøjsopkald.",
+    "structuredOutputMismatch": "Udbyderen understøtter ikke struktureret output",
+    "contextWindowMismatch": "Anmodningen overskrider udbyderens kontekstvindue"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Siden blev ikke fundet",

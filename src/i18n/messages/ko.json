@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "폴링 중지됨: 서버가 요청을 거부했습니다(404/403).",
     "pollErrorTransient": "데이터 가져오기 오류: 자동으로 재시도합니다.",
     "degraded": "부분 데이터: 사용할 수 없는 소스: {sources}",
-    "degraded.source.database": "데이터베이스",
-    "degraded.source.circuitBreaker": "회로 차단기",
-    "degraded.source.modelLockouts": "모델 잠금",
-    "degraded.source.count": "연결 수"
+    "degradedSource": {
+      "database": "데이터베이스",
+      "circuitBreaker": "회로 차단기",
+      "modelLockouts": "모델 잠금",
+      "count": "연결 수"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "대상 모델에 필수 기능(비전, 도구, 구조화된 출력, 컨텍스트 창)이 부족할 경우 요청을 발송 전에 거부합니다. 콤보 레이어 호환성 필터를 우회하는 직접 단일 공급자 요청을 보호합니다.",
-  "capabilityFilter.visionMismatch": "제공자가 이 이미지 요청에 대한 비전을 지원하지 않습니다.",
-  "capabilityFilter.toolsMismatch": "공급자가 도구 호출을 지원하지 않습니다.",
-  "capabilityFilter.structuredOutputMismatch": "제공자가 구조화된 출력을 지원하지 않습니다",
-  "capabilityFilter.contextWindowMismatch": "요청이 공급자 컨텍스트 창을 초과했습니다",
+  "capabilityFilter": {
+    "visionMismatch": "제공자가 이 이미지 요청에 대한 비전을 지원하지 않습니다.",
+    "toolsMismatch": "공급자가 도구 호출을 지원하지 않습니다.",
+    "structuredOutputMismatch": "제공자가 구조화된 출력을 지원하지 않습니다",
+    "contextWindowMismatch": "요청이 공급자 컨텍스트 창을 초과했습니다"
+  },
   "publicSystem": {
     "notFound": {
       "title": "페이지를 찾을 수 없습니다",

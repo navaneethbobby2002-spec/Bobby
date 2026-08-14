@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Interogare oprită: serverul a respins cererea (404/403).",
     "pollErrorTransient": "Eroare la preluarea datelor: reîncercare automată.",
     "degraded": "Date parțiale: surse indisponibile: {sources}",
-    "degraded.source.database": "Bază de Date",
-    "degraded.source.circuitBreaker": "Întrerupător de Circuit",
-    "degraded.source.modelLockouts": "Blocaje Model",
-    "degraded.source.count": "Număr de Conexiuni"
+    "degradedSource": {
+      "database": "Bază de Date",
+      "circuitBreaker": "Întrerupător de Circuit",
+      "modelLockouts": "Blocaje Model",
+      "count": "Număr de Conexiuni"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Respinge cererile înainte de expediere atunci când modelul țintă nu are capabilitățile necesare (viziune, instrumente, ieșire structurată, fereastră de context). Protejează cererile directe de un singur furnizor care ocolesc filtrul de compatibilitate al stratului combinat.",
-  "capabilityFilter.visionMismatch": "Furnizorul nu suportă viziunea pentru această cerere de imagine",
-  "capabilityFilter.toolsMismatch": "Furnizorul nu suportă apelarea instrumentului",
-  "capabilityFilter.structuredOutputMismatch": "Furnizorul nu suportă ieșirea structurată",
-  "capabilityFilter.contextWindowMismatch": "Cererea depășește fereastra de context a furnizorului",
+  "capabilityFilter": {
+    "visionMismatch": "Furnizorul nu suportă viziunea pentru această cerere de imagine",
+    "toolsMismatch": "Furnizorul nu suportă apelarea instrumentului",
+    "structuredOutputMismatch": "Furnizorul nu suportă ieșirea structurată",
+    "contextWindowMismatch": "Cererea depășește fereastra de context a furnizorului"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Pagina nu a fost găsită",

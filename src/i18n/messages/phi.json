@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Huminto ang polling: tinanggihan ng server ang kahilingan (404/403).",
     "pollErrorTransient": "Error sa pagkuha ng data: awtomatikong sinusubukan muli.",
     "degraded": "Bahagyang data: hindi available na pinagmulan: {sources}",
-    "degraded.source.database": "Database",
-    "degraded.source.circuitBreaker": "Circuit Breaker",
-    "degraded.source.modelLockouts": "Mga Lockout ng Modelo",
-    "degraded.source.count": "Bilang ng Koneksyon"
+    "degradedSource": {
+      "database": "Database",
+      "circuitBreaker": "Circuit Breaker",
+      "modelLockouts": "Mga Lockout ng Modelo",
+      "count": "Bilang ng Koneksyon"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Tanggihan ang mga kahilingan bago ang pagpapadala kapag ang target na modelo ay kulang sa mga kinakailangang kakayahan (paningin, mga tool, nakabalangkas na output, bintana ng konteksto). Pinoprotektahan ang mga direktang kahilingan mula sa isang tagapagbigay na lumalampas sa filter ng pagiging tugma ng combo-layer.",
-  "capabilityFilter.visionMismatch": "Hindi sinusuportahan ng provider ang vision para sa kahilingang ito ng larawan",
-  "capabilityFilter.toolsMismatch": "Hindi sinusuportahan ng provider ang pagtawag sa tool",
-  "capabilityFilter.structuredOutputMismatch": "Hindi sinusuportahan ng provider ang nakabalangkas na output",
-  "capabilityFilter.contextWindowMismatch": "Lumampas ang kahilingan sa konteksto ng tagapagbigay",
+  "capabilityFilter": {
+    "visionMismatch": "Hindi sinusuportahan ng provider ang vision para sa kahilingang ito ng larawan",
+    "toolsMismatch": "Hindi sinusuportahan ng provider ang pagtawag sa tool",
+    "structuredOutputMismatch": "Hindi sinusuportahan ng provider ang nakabalangkas na output",
+    "contextWindowMismatch": "Lumampas ang kahilingan sa konteksto ng tagapagbigay"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Hindi matagpuan ang pahina",

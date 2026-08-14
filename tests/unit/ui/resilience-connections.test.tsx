@@ -213,7 +213,7 @@ describe("ResilienceConnectionsClient", () => {
     });
     // The degraded banner is the only caller passing a `sources` option, so the
     // interpolated JSON is a distinctive marker that the banner rendered.
-    await waitFor(() => el!.textContent?.includes('"sources":"degraded.source.circuitBreaker"'));
+    await waitFor(() => el!.textContent?.includes('"sources":"degradedSource.circuitBreaker"'));
   });
 
   it("degradation banner hidden when meta.degraded is empty", async () => {

@@ -186,7 +186,7 @@ export default function ResilienceConnectionsClient() {
           }}
         >
           {t("degraded", {
-            sources: data.meta.degraded.map((s) => t(`degraded.source.${s}`)).join(", "),
+            sources: data.meta.degraded.map((s) => t(`degradedSource.${s}`)).join(", "),
           })}
         </div>
       )}

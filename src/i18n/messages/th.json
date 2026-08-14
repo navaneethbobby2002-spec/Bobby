@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "หยุดการสำรวจ: เซิร์ฟเวอร์ปฏิเสธคำขอ (404/403)",
     "pollErrorTransient": "เกิดข้อผิดพลาดในการดึงข้อมูล: กำลังลองใหม่โดยอัตโนมัติ",
     "degraded": "ข้อมูลบางส่วน: แหล่งข้อมูลที่ไม่พร้อมใช้งาน: {sources}",
-    "degraded.source.database": "ฐานข้อมูล",
-    "degraded.source.circuitBreaker": "เซอร์กิตเบรกเกอร์",
-    "degraded.source.modelLockouts": "การล็อกเอาต์โมเดล",
-    "degraded.source.count": "จำนวนการเชื่อมต่อ"
+    "degradedSource": {
+      "database": "ฐานข้อมูล",
+      "circuitBreaker": "เซอร์กิตเบรกเกอร์",
+      "modelLockouts": "การล็อกเอาต์โมเดล",
+      "count": "จำนวนการเชื่อมต่อ"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "ปฏิเสธคำขอก่อนการส่งเมื่อโมเดลเป้าหมายขาดความสามารถที่จำเป็น (วิสัยทัศน์, เครื่องมือ, ผลลัพธ์ที่มีโครงสร้าง, หน้าต่างบริบท) ป้องกันคำขอจากผู้ให้บริการเดียวที่ข้ามตัวกรองความเข้ากันได้ของเลเยอร์รวม",
-  "capabilityFilter.visionMismatch": "ผู้ให้บริการไม่รองรับการมองเห็นสำหรับคำขอภาพนี้",
-  "capabilityFilter.toolsMismatch": "ผู้ให้บริการไม่รองรับการเรียกเครื่องมือ",
-  "capabilityFilter.structuredOutputMismatch": "ผู้ให้บริการไม่รองรับการส่งออกแบบมีโครงสร้าง",
-  "capabilityFilter.contextWindowMismatch": "คำขอเกินขอบเขตบริบทของผู้ให้บริการ",
+  "capabilityFilter": {
+    "visionMismatch": "ผู้ให้บริการไม่รองรับการมองเห็นสำหรับคำขอภาพนี้",
+    "toolsMismatch": "ผู้ให้บริการไม่รองรับการเรียกเครื่องมือ",
+    "structuredOutputMismatch": "ผู้ให้บริการไม่รองรับการส่งออกแบบมีโครงสร้าง",
+    "contextWindowMismatch": "คำขอเกินขอบเขตบริบทของผู้ให้บริการ"
+  },
   "publicSystem": {
     "notFound": {
       "title": "ไม่พบหน้า",

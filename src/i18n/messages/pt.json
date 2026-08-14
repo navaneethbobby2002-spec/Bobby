@@ -13239,24 +13239,21 @@
     "pollErrorLocalOnly": "Esta página só é acessível a partir de localhost ou LAN (LOCAL_ONLY).",
     "pollErrorStopped": "Sondagem interrompida: o servidor rejeitou o pedido (404/403).",
     "pollErrorTransient": "Erro ao obter dados: a repetir automaticamente.",
-    "degraded": {
-      "source": {
-        "database": "Base de Dados",
-        "circuitBreaker": "Disjuntor",
-        "modelLockouts": "Bloqueios de Modelo",
-        "count": "Contagem de Ligações"
-      }
-    },
-    "degraded.source.database": "Database",
-    "degraded.source.circuitBreaker": "Circuit Breaker",
-    "degraded.source.modelLockouts": "Model Lockouts",
-    "degraded.source.count": "Connection Count"
+    "degraded": "Dados parciais: fontes indisponíveis: {sources}",
+    "degradedSource": {
+      "database": "Base de Dados",
+      "circuitBreaker": "Disjuntor",
+      "modelLockouts": "Bloqueios de Modelo",
+      "count": "Contagem de Ligações"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Rejeitar pedidos antes do envio quando o modelo de destino não tiver as capacidades necessárias (visão, ferramentas, saída estruturada, janela de contexto). Protege pedidos diretos de um único fornecedor que contornam o filtro de compatibilidade da camada combinada.",
-  "capabilityFilter.visionMismatch": "Provider does not support vision for this image request",
-  "capabilityFilter.toolsMismatch": "Provider does not support tool calling",
-  "capabilityFilter.structuredOutputMismatch": "Provider does not support structured output",
-  "capabilityFilter.contextWindowMismatch": "Request exceeds provider context window",
+  "capabilityFilter": {
+    "visionMismatch": "O fornecedor não suporta visão para este pedido de imagem",
+    "toolsMismatch": "O fornecedor não suporta a chamada de ferramentas",
+    "structuredOutputMismatch": "O fornecedor não suporta saída estruturada",
+    "contextWindowMismatch": "A solicitação excede a janela de contexto do fornecedor"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Página não encontrada",

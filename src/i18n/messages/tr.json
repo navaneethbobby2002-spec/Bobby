@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Yoklama durduruldu: sunucu isteği reddetti (404/403).",
     "pollErrorTransient": "Veri alınırken hata: otomatik olarak yeniden deneniyor.",
     "degraded": "Kısmi veri: kullanılamayan kaynaklar: {sources}",
-    "degraded.source.database": "Veritabanı",
-    "degraded.source.circuitBreaker": "Devre Kesici",
-    "degraded.source.modelLockouts": "Model Kilitleri",
-    "degraded.source.count": "Bağlantı Sayısı"
+    "degradedSource": {
+      "database": "Veritabanı",
+      "circuitBreaker": "Devre Kesici",
+      "modelLockouts": "Model Kilitleri",
+      "count": "Bağlantı Sayısı"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Hedef model gerekli yeteneklere (görüş, araçlar, yapılandırılmış çıktı, bağlam penceresi) sahip olmadığında, gönderimden önce istekleri reddedin. Kombinasyon katmanı uyumluluk filtresini atlayan doğrudan tek sağlayıcı isteklerini korur.",
-  "capabilityFilter.visionMismatch": "Sağlayıcı, bu görüntü isteği için görsel desteği sağlamıyor.",
-  "capabilityFilter.toolsMismatch": "Sağlayıcı araç çağrısını desteklemiyor",
-  "capabilityFilter.structuredOutputMismatch": "Sağlayıcı yapılandırılmış çıktıyı desteklemiyor",
-  "capabilityFilter.contextWindowMismatch": "Talep sağlayıcı bağlam penceresini aşıyor",
+  "capabilityFilter": {
+    "visionMismatch": "Sağlayıcı, bu görüntü isteği için görsel desteği sağlamıyor.",
+    "toolsMismatch": "Sağlayıcı araç çağrısını desteklemiyor",
+    "structuredOutputMismatch": "Sağlayıcı yapılandırılmış çıktıyı desteklemiyor",
+    "contextWindowMismatch": "Talep sağlayıcı bağlam penceresini aşıyor"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Sayfa bulunamadı",

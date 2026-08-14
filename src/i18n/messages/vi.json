@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Đã dừng thăm dò: máy chủ đã từ chối yêu cầu (404/403).",
     "pollErrorTransient": "Lỗi khi lấy dữ liệu: tự động thử lại.",
     "degraded": "Dữ liệu một phần: nguồn không khả dụng: {sources}",
-    "degraded.source.database": "Cơ Sở Dữ Liệu",
-    "degraded.source.circuitBreaker": "Cầu Dao Mạch",
-    "degraded.source.modelLockouts": "Khóa Mô Hình",
-    "degraded.source.count": "Số Lượng Kết Nối"
+    "degradedSource": {
+      "database": "Cơ Sở Dữ Liệu",
+      "circuitBreaker": "Cầu Dao Mạch",
+      "modelLockouts": "Khóa Mô Hình",
+      "count": "Số Lượng Kết Nối"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Từ chối yêu cầu trước khi gửi đi khi mô hình đích thiếu các khả năng bắt buộc (thị giác, công cụ, đầu ra có cấu trúc, cửa sổ ngữ cảnh). Bảo vệ các yêu cầu trực tiếp đến một nhà cung cấp khi chúng bỏ qua bộ lọc tương thích của combo.",
-  "capabilityFilter.visionMismatch": "Nhà cung cấp không hỗ trợ thị giác cho yêu cầu hình ảnh này",
-  "capabilityFilter.toolsMismatch": "Nhà cung cấp không hỗ trợ gọi công cụ",
-  "capabilityFilter.structuredOutputMismatch": "Nhà cung cấp không hỗ trợ đầu ra có cấu trúc",
-  "capabilityFilter.contextWindowMismatch": "Yêu cầu vượt quá cửa sổ ngữ cảnh của nhà cung cấp",
+  "capabilityFilter": {
+    "visionMismatch": "Nhà cung cấp không hỗ trợ thị giác cho yêu cầu hình ảnh này",
+    "toolsMismatch": "Nhà cung cấp không hỗ trợ gọi công cụ",
+    "structuredOutputMismatch": "Nhà cung cấp không hỗ trợ đầu ra có cấu trúc",
+    "contextWindowMismatch": "Yêu cầu vượt quá cửa sổ ngữ cảnh của nhà cung cấp"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Không tìm thấy trang",

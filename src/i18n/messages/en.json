@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Polling stopped: the server rejected the request (404/403).",
     "pollErrorTransient": "Error fetching data: retrying automatically.",
     "degraded": "Partial data: unavailable sources: {sources}",
-    "degraded.source.database": "Database",
-    "degraded.source.circuitBreaker": "Circuit Breaker",
-    "degraded.source.modelLockouts": "Model Lockouts",
-    "degraded.source.count": "Connection Count"
+    "degradedSource": {
+      "database": "Database",
+      "circuitBreaker": "Circuit Breaker",
+      "modelLockouts": "Model Lockouts",
+      "count": "Connection Count"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Reject requests before dispatch when the target model lacks required capabilities (vision, tools, structured output, context window). Protects direct single-provider requests that bypass the combo-layer compatibility filter.",
-  "capabilityFilter.visionMismatch": "Provider does not support vision for this image request",
-  "capabilityFilter.toolsMismatch": "Provider does not support tool calling",
-  "capabilityFilter.structuredOutputMismatch": "Provider does not support structured output",
-  "capabilityFilter.contextWindowMismatch": "Request exceeds provider context window",
+  "capabilityFilter": {
+    "visionMismatch": "Provider does not support vision for this image request",
+    "toolsMismatch": "Provider does not support tool calling",
+    "structuredOutputMismatch": "Provider does not support structured output",
+    "contextWindowMismatch": "Request exceeds provider context window"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Page not found",

@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Опрос остановлен: сервер отклонил запрос (404/403).",
     "pollErrorTransient": "Ошибка получения данных: автоматический повтор.",
     "degraded": "Частичные данные: недоступные источники: {sources}",
-    "degraded.source.database": "База Данных",
-    "degraded.source.circuitBreaker": "Автомат Защиты",
-    "degraded.source.modelLockouts": "Блокировки Модели",
-    "degraded.source.count": "Количество Соединений"
+    "degradedSource": {
+      "database": "База Данных",
+      "circuitBreaker": "Автомат Защиты",
+      "modelLockouts": "Блокировки Модели",
+      "count": "Количество Соединений"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Отклонять запросы перед отправкой, когда целевая модель не имеет необходимых возможностей (визуализация, инструменты, структурированный вывод, контекстное окно). Защищает прямые запросы от единственного поставщика, которые обходят фильтр совместимости комбинированного слоя.",
-  "capabilityFilter.visionMismatch": "Поставщик не поддерживает визуализацию для этого запроса изображения",
-  "capabilityFilter.toolsMismatch": "Провайдер не поддерживает вызов инструмента",
-  "capabilityFilter.structuredOutputMismatch": "Поставщик не поддерживает структурированный вывод",
-  "capabilityFilter.contextWindowMismatch": "Запрос превышает контекстное окно провайдера",
+  "capabilityFilter": {
+    "visionMismatch": "Поставщик не поддерживает визуализацию для этого запроса изображения",
+    "toolsMismatch": "Провайдер не поддерживает вызов инструмента",
+    "structuredOutputMismatch": "Поставщик не поддерживает структурированный вывод",
+    "contextWindowMismatch": "Запрос превышает контекстное окно провайдера"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Страница не найдена",

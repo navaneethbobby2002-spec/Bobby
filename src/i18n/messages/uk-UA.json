@@ -13240,16 +13240,20 @@
     "pollErrorStopped": "Опитування зупинено: сервер відхилив запит (404/403).",
     "pollErrorTransient": "Помилка отримання даних: автоматичний повтор.",
     "degraded": "Часткові дані: недоступні джерела: {sources}",
-    "degraded.source.database": "База Даних",
-    "degraded.source.circuitBreaker": "Автоматичний Вимикач",
-    "degraded.source.modelLockouts": "Блокування Моделі",
-    "degraded.source.count": "Кількість З'єднань"
+    "degradedSource": {
+      "database": "База Даних",
+      "circuitBreaker": "Автоматичний Вимикач",
+      "modelLockouts": "Блокування Моделі",
+      "count": "Кількість З'єднань"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Відхиляйте запити перед відправкою, коли цільова модель не має необхідних можливостей (зір, інструменти, структурований вихід, контекстне вікно). Захищає прямі запити від одного постачальника, які обходять фільтр сумісності комбінаційного шару.",
-  "capabilityFilter.visionMismatch": "Постачальник не підтримує візуалізацію для цього запиту зображення",
-  "capabilityFilter.toolsMismatch": "Постачальник не підтримує виклик інструментів",
-  "capabilityFilter.structuredOutputMismatch": "Постачальник не підтримує структурований вивід",
-  "capabilityFilter.contextWindowMismatch": "Запит перевищує контекстне вікно постачальника",
+  "capabilityFilter": {
+    "visionMismatch": "Постачальник не підтримує візуалізацію для цього запиту зображення",
+    "toolsMismatch": "Постачальник не підтримує виклик інструментів",
+    "structuredOutputMismatch": "Постачальник не підтримує структурований вивід",
+    "contextWindowMismatch": "Запит перевищує контекстне вікно постачальника"
+  },
   "publicSystem": {
     "notFound": {
       "title": "Сторінку не знайдено",
