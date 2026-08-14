@@ -43,15 +43,14 @@ export const KNOWN_DUPLICATE_VERSIONS = new Set([
 // ---------------------------------------------------------------------------
 // ALLOWLIST 2 — gaps de sequência CONHECIDOS.
 // Fonte: auditoria do disco (src/lib/db/migrations/). Além dos slots legados,
-// 144–145 seguem reservados pelas migrations Radar que já existem na série
-// empilhada; a migration 143 já aterrissou. O job registry foi promovido de 139
-// para 146 pela tabela RENAMED_MIGRATION_COMPATIBILITY. A
+// As migrations Radar 144–145 e a migration 143 já aterrissaram. O job registry
+// foi promovido de 139 para 146 pela tabela RENAMED_MIGRATION_COMPATIBILITY. A
 // 147–149 estão reservadas por migrations atualmente em trânsito nos PRs #8228,
 // #9313, #10047 e #10066; esta branch usa 150 para evitar essas colisões conhecidas.
 // O stale-enforcement exige que cada reserva seja removida quando os arquivos
 // correspondentes aterrissarem na release.
 // ---------------------------------------------------------------------------
-export const KNOWN_GAPS = new Set(["026", "055", "121", "144", "145", "148", "149"]); // 121: número queimado no ciclo v3.8.47 — 122 (#6909) mergeou antes e 121 nunca aterrissou (validação e2e 2026-07-12)
+export const KNOWN_GAPS = new Set(["026", "055", "121", "148", "149"]); // 121: número queimado no ciclo v3.8.47 — 122 (#6909) mergeou antes e 121 nunca aterrissou (validação e2e 2026-07-12)
 
 function pad3(n) {
   return String(n).padStart(3, "0");

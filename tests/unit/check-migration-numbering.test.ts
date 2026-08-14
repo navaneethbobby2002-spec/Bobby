@@ -104,8 +104,8 @@ test("frozen allowlists match the documented legacy and stacked-series gaps", ()
   assert.ok((KNOWN_GAPS as Set<string>).has("055"));
   assert.ok((KNOWN_GAPS as Set<string>).has("121"));
   assert.equal((KNOWN_GAPS as Set<string>).has("143"), false);
-  assert.ok((KNOWN_GAPS as Set<string>).has("144"));
-  assert.ok((KNOWN_GAPS as Set<string>).has("145"));
+  assert.equal((KNOWN_GAPS as Set<string>).has("144"), false);
+  assert.equal((KNOWN_GAPS as Set<string>).has("145"), false);
   // 147 left the gap list when 147_api_keys_model_access_mode.sql landed (same pattern as 143).
   assert.equal((KNOWN_GAPS as Set<string>).has("147"), false);
   assert.ok((KNOWN_GAPS as Set<string>).has("148"));

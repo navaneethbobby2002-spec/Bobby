@@ -13126,7 +13126,21 @@
     "campaignsTitle": "Limited-time campaigns",
     "campaignsEmpty": "No active campaigns right now — check back later.",
     "campaignsUpsellCommunity": "Limited-time campaigns are a supporter extra. Everything on this page's fixed links stays free for everyone.",
-    "campaignsValidUntil": "Valid until {date}"
+    "campaignsValidUntil": "Valid until {date}",
+    "colActions": "Actions",
+    "localBadge": "local",
+    "editModel": "Edit",
+    "saveModel": "Save",
+    "cancelEdit": "Cancel",
+    "resetModel": "Reset local changes",
+    "hideModel": "Hide",
+    "restoreModel": "Restore",
+    "hiddenModelsTitle": "Hidden models",
+    "modelDisplayName": "Local display name",
+    "modelEnabled": "Enabled locally",
+    "localStateSaveFailed": "Failed to save local Radar settings",
+    "guidedCombos": "Guided combos",
+    "offers": "Offers"
   },
   "radarSetupPage": {
     "title": "प्रदाता सेटअप",
@@ -13241,17 +13255,17 @@
     "pollErrorLocalOnly": "हे पान फक्त localhost किंवा LAN वरून प्रवेशयोग्य आहे (LOCAL_ONLY).",
     "pollErrorStopped": "पोलिंग थांबले: सर्व्हरने विनंती नाकारली (404/403).",
     "pollErrorTransient": "डेटा आणण्यात त्रुटी: आपोआप पुन्हा प्रयत्न करत आहे.",
-    "degraded": "आंशिक डेटा: अनुपलब्ध स्रोत: {sources}",
-    "degraded.source.database": "डेटाबेस",
-    "degraded.source.circuitBreaker": "सर्किट ब्रेकर",
-    "degraded.source.modelLockouts": "मॉडेल लॉकआउट",
-    "degraded.source.count": "कनेक्शन संख्या"
+    "degraded": {
+      "message": "आंशिक डेटा: अनुपलब्ध स्रोत: {sources}",
+      "source": {
+        "database": "डेटाबेस",
+        "circuitBreaker": "सर्किट ब्रेकर",
+        "modelLockouts": "मॉडेल लॉकआउट",
+        "count": "कनेक्शन संख्या"
+      }
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "डिस्पॅच करण्यापूर्वी विनंत्या नाकारल्या जातात जेव्हा लक्ष्य मॉडेल आवश्यक क्षमतांचा अभाव असतो (दृष्टी, साधने, संरचित आउटपुट, संदर्भ विंडो). कॉम्बो-लेयर सुसंगतता फिल्टरला बायपास करणाऱ्या थेट एकल-प्रदात्याच्या विनंत्यांचे संरक्षण करते.",
-  "capabilityFilter.visionMismatch": "या प्रतिमेच्या विनंतीसाठी प्रदाता दृश्याचे समर्थन करत नाही",
-  "capabilityFilter.toolsMismatch": "प्रदायक साधन कॉलिंगला समर्थन करत नाही",
-  "capabilityFilter.structuredOutputMismatch": "प्रदायक संरचित आउटपुटला समर्थन करत नाही",
-  "capabilityFilter.contextWindowMismatch": "विनंती प्रदाता संदर्भ विंडो ओलांडते",
   "publicSystem": {
     "notFound": {
       "title": "पृष्ठ सापडले नाही",
@@ -13626,5 +13640,49 @@
     "hint": "सक्रिय केल्यास, शोधलेले मॉडेल OmniRoute मध्ये प्रदाता निवडींमध्ये दिसतात.",
     "updateFailed": "अद्यतन करण्यात अयशस्वी (HTTP {status})",
     "networkError": "नेटवर्क त्रुटी — प्रदाता एक्सपोजर सेटिंग अद्यतनित करता येत नाही"
+  },
+  "radarCombosPage": {
+    "title": "Radar guided combos",
+    "subtitle": "Create priority fallbacks from equivalent free models curated by Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading combo suggestions...",
+    "familyLabel": "Model family",
+    "modelsLabel": "Priority order",
+    "strategyReason": "Priority uses the largest recurring free budget first, then falls back across active providers.",
+    "generateButton": "Generate combo",
+    "generating": "Generating...",
+    "alreadyCreated": "Already created",
+    "created": "Combo created",
+    "noSuggestions": "No eligible model family currently has active connections to at least two providers.",
+    "catalogRequired": "Sync the Radar catalog first to load curated model families.",
+    "loadFailed": "Failed to load Radar combo suggestions.",
+    "createFailed": "Failed to create the combo. Review your provider connections and try again."
+  },
+  "radarOffersPage": {
+    "title": "Supporter offers",
+    "subtitle": "Official discounts, credits, trials, and reviewed partner benefits from Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading offers...",
+    "refresh": "Refresh offers",
+    "refreshing": "Refreshing...",
+    "loadFailed": "We couldn't refresh offers. The last verified local cache is kept.",
+    "empty": "No active offers are available right now.",
+    "keyRequiredTitle": "A supporter key is required",
+    "keyRequiredDescription": "Offers are a live Radar benefit. Add an existing supporter key on the Radar screen, verify your contributor status, or support the project to obtain one.",
+    "contributorButton": "I'm a contributor",
+    "supporterButton": "Support the project",
+    "partnerBadge": "Partner",
+    "officialBadge": "Official",
+    "conditionsLabel": "Conditions:",
+    "validUntil": "Valid until {date}",
+    "noExpiry": "No announced expiry",
+    "openOffer": "View offer",
+    "trialDays": "{days, plural, one {# day} other {# days}}"
+  },
+  "capabilityFilter": {
+    "visionMismatch": "या प्रतिमेच्या विनंतीसाठी प्रदाता दृश्याचे समर्थन करत नाही",
+    "toolsMismatch": "प्रदायक साधन कॉलिंगला समर्थन करत नाही",
+    "structuredOutputMismatch": "प्रदायक संरचित आउटपुटला समर्थन करत नाही",
+    "contextWindowMismatch": "विनंती प्रदाता संदर्भ विंडो ओलांडते"
   }
 }

@@ -819,6 +819,26 @@ export {
   getRadarSettings,
   setRadarOptIn,
   setRadarKey,
+  getRadarReferralsCache,
+  setRadarReferralsCache,
+  getRadarOffersCache,
+  setRadarOffersCache,
+  getRadarIntelCache,
+  setRadarIntelCache,
+  listRadarLocalModelState,
+  setRadarLocalModelOverride,
+  clearRadarLocalModelOverride,
+  setRadarModelTombstone,
+  getRadarLocalMergeState,
 } from "./db/radar";
-export type { RadarCache, RadarSettings } from "./db/radar";
+export type {
+  RadarCache,
+  RadarSettings,
+  RadarReferralsCache,
+  RadarOffersCache,
+  RadarIntelCache,
+  RadarLocalModelState,
+  RadarLocalModelOverridePatch,
+  RadarLocalMergeState,
+} from "./db/radar";
 export * from "./db/conductorBridge"; // OmniConductor hub mirror — SSE cursor (PRD Conductor RF1)

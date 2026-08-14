@@ -13126,7 +13126,21 @@
     "campaignsTitle": "Limited-time campaigns",
     "campaignsEmpty": "No active campaigns right now — check back later.",
     "campaignsUpsellCommunity": "Limited-time campaigns are a supporter extra. Everything on this page's fixed links stays free for everyone.",
-    "campaignsValidUntil": "Valid until {date}"
+    "campaignsValidUntil": "Valid until {date}",
+    "colActions": "Actions",
+    "localBadge": "local",
+    "editModel": "Edit",
+    "saveModel": "Save",
+    "cancelEdit": "Cancel",
+    "resetModel": "Reset local changes",
+    "hideModel": "Hide",
+    "restoreModel": "Restore",
+    "hiddenModelsTitle": "Hidden models",
+    "modelDisplayName": "Local display name",
+    "modelEnabled": "Enabled locally",
+    "localStateSaveFailed": "Failed to save local Radar settings",
+    "guidedCombos": "Guided combos",
+    "offers": "Offers"
   },
   "radarSetupPage": {
     "title": "Leverandøroppsett",
@@ -13241,17 +13255,17 @@
     "pollErrorLocalOnly": "Denne siden er kun tilgjengelig fra localhost eller LAN (LOCAL_ONLY).",
     "pollErrorStopped": "Polling stoppet: serveren avviste forespørselen (404/403).",
     "pollErrorTransient": "Feil ved henting av data: prøver automatisk igjen.",
-    "degraded": "Delvise data: utilgjengelige kilder: {sources}",
-    "degraded.source.database": "Database",
-    "degraded.source.circuitBreaker": "Kretsbryter",
-    "degraded.source.modelLockouts": "Modelllåsinger",
-    "degraded.source.count": "Antall Tilkoblinger"
+    "degraded": {
+      "message": "Delvise data: utilgjengelige kilder: {sources}",
+      "source": {
+        "database": "Database",
+        "circuitBreaker": "Kretsbryter",
+        "modelLockouts": "Modelllåsinger",
+        "count": "Antall Tilkoblinger"
+      }
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Avvis forespørselene før utsendelse når målmodellen mangler nødvendige funksjoner (visjon, verktøy, strukturert utdata, kontekstvindu). Beskytter direkte forespørseler fra enkeltleverandører som omgår kombinasjonslagets kompatibilitetsfilter.",
-  "capabilityFilter.visionMismatch": "Leverandøren støtter ikke visjon for denne bildeforespørselen",
-  "capabilityFilter.toolsMismatch": "Leverandøren støtter ikke verktøykall.",
-  "capabilityFilter.structuredOutputMismatch": "Leverandøren støtter ikke strukturert utdata",
-  "capabilityFilter.contextWindowMismatch": "Forespørselen overskrider leverandørens kontekstvindu",
   "publicSystem": {
     "notFound": {
       "title": "Siden ble ikke funnet",
@@ -13626,5 +13640,49 @@
     "hint": "Når aktivert, vises oppdagede modeller i leverandørvalg på tvers av OmniRoute.",
     "updateFailed": "Feilet å oppdatere (HTTP {status})",
     "networkError": "Nettverksfeil — kunne ikke oppdatere leverandørens eksponeringsinnstilling"
+  },
+  "radarCombosPage": {
+    "title": "Radar guided combos",
+    "subtitle": "Create priority fallbacks from equivalent free models curated by Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading combo suggestions...",
+    "familyLabel": "Model family",
+    "modelsLabel": "Priority order",
+    "strategyReason": "Priority uses the largest recurring free budget first, then falls back across active providers.",
+    "generateButton": "Generate combo",
+    "generating": "Generating...",
+    "alreadyCreated": "Already created",
+    "created": "Combo created",
+    "noSuggestions": "No eligible model family currently has active connections to at least two providers.",
+    "catalogRequired": "Sync the Radar catalog first to load curated model families.",
+    "loadFailed": "Failed to load Radar combo suggestions.",
+    "createFailed": "Failed to create the combo. Review your provider connections and try again."
+  },
+  "radarOffersPage": {
+    "title": "Supporter offers",
+    "subtitle": "Official discounts, credits, trials, and reviewed partner benefits from Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading offers...",
+    "refresh": "Refresh offers",
+    "refreshing": "Refreshing...",
+    "loadFailed": "We couldn't refresh offers. The last verified local cache is kept.",
+    "empty": "No active offers are available right now.",
+    "keyRequiredTitle": "A supporter key is required",
+    "keyRequiredDescription": "Offers are a live Radar benefit. Add an existing supporter key on the Radar screen, verify your contributor status, or support the project to obtain one.",
+    "contributorButton": "I'm a contributor",
+    "supporterButton": "Support the project",
+    "partnerBadge": "Partner",
+    "officialBadge": "Official",
+    "conditionsLabel": "Conditions:",
+    "validUntil": "Valid until {date}",
+    "noExpiry": "No announced expiry",
+    "openOffer": "View offer",
+    "trialDays": "{days, plural, one {# day} other {# days}}"
+  },
+  "capabilityFilter": {
+    "visionMismatch": "Leverandøren støtter ikke visjon for denne bildeforespørselen",
+    "toolsMismatch": "Leverandøren støtter ikke verktøykall.",
+    "structuredOutputMismatch": "Leverandøren støtter ikke strukturert utdata",
+    "contextWindowMismatch": "Forespørselen overskrider leverandørens kontekstvindu"
   }
 }

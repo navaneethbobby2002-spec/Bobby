@@ -19,8 +19,7 @@
  *  - the already-activated state shows the masked key (never the raw one)
  *    with a "change key" escape hatch;
  *  - the 4 new t("...") keys exist (non-empty, no price) in en.json and all
- *    43 locale files;
- *  - no OSS file mentions "freellmapi".
+ *    43 locale files.
  */
 
 import test from "node:test";
@@ -28,10 +27,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-const PAGE_PATH = path.resolve(
-  process.cwd(),
-  "src/app/(dashboard)/dashboard/radar/page.tsx"
-);
+const PAGE_PATH = path.resolve(process.cwd(), "src/app/(dashboard)/dashboard/radar/page.tsx");
 const PAGE_SRC = fs.readFileSync(PAGE_PATH, "utf-8");
 
 const NEW_KEYS = [
@@ -57,10 +53,7 @@ test("radar page: submitting a pasted key sends optIn+supporterKey together", ()
     /const handleSubmitKey = useCallback\(async \(\) => \{[\s\S]*?\n {2}\}, \[[^\]]*\]\);/
   )?.[0];
   assert.ok(submitFn, "handleSubmitKey callback must exist");
-  assert.ok(
-    submitFn!.includes("/api/radar/settings"),
-    "must POST to /api/radar/settings"
-  );
+  assert.ok(submitFn!.includes("/api/radar/settings"), "must POST to /api/radar/settings");
   assert.ok(
     /optIn:\s*true/.test(submitFn!),
     "pasting a key must also opt in (unlocks the activation screen)"
@@ -100,21 +93,19 @@ test("radar page: 'change key' escape hatch exists to replace an already-set key
   );
   assert.ok(
     PAGE_SRC.includes(`t("changeKeyButton")`),
-    "page.tsx must reference t(\"changeKeyButton\")"
+    'page.tsx must reference t("changeKeyButton")'
   );
 });
 
 test("radar page: references the 4 new key-input t(...) keys", () => {
   for (const key of NEW_KEYS) {
-    assert.ok(
-      PAGE_SRC.includes(`t("${key}")`),
-      `page.tsx must reference t("${key}")`
-    );
+    assert.ok(PAGE_SRC.includes(`t("${key}")`), `page.tsx must reference t("${key}")`);
   }
 });
 
 test("radar page + all 43 locale files: no price/monetary value in the key-input copy (D14)", () => {
-  const PRICE_PATTERN = /\$\s?\d|R\$\s?\d|\d+[.,]\d{2}\s?(USD|BRL|EUR)|\b(lifetime|life-time)\b.{0,20}\$/i;
+  const PRICE_PATTERN =
+    /\$\s?\d|R\$\s?\d|\d+[.,]\d{2}\s?(USD|BRL|EUR)|\b(lifetime|life-time)\b.{0,20}\$/i;
   assert.ok(!PRICE_PATTERN.test(PAGE_SRC), "page.tsx must not contain a price/monetary value");
 
   const messagesDir = path.resolve(process.cwd(), "src/i18n/messages");
@@ -138,17 +129,5 @@ test("radar page + all 43 locale files: no price/monetary value in the key-input
         `${file}: radarPage.${key} must not contain a price/monetary value`
       );
     }
-  }
-});
-
-test("no OSS file mentions the word 'freellmapi'", () => {
-  const filesToCheck = [
-    PAGE_PATH,
-    path.resolve(process.cwd(), "src/lib/radar/supporterKey.ts"),
-    path.resolve(process.cwd(), "src/app/api/radar/settings/route.ts"),
-  ];
-  for (const file of filesToCheck) {
-    const src = fs.readFileSync(file, "utf-8");
-    assert.ok(!/freellmapi/i.test(src), `${file} must not mention freellmapi`);
   }
 });

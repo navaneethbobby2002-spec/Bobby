@@ -13126,7 +13126,21 @@
     "campaignsTitle": "Campanhas por tempo limitado",
     "campaignsEmpty": "Sem campanhas ativas de momento — volta mais tarde.",
     "campaignsUpsellCommunity": "As campanhas por tempo limitado são um extra de supporter. Tudo o que está nos links fixos desta página continua grátis para todos.",
-    "campaignsValidUntil": "Válido até {date}"
+    "campaignsValidUntil": "Válido até {date}",
+    "colActions": "Ações",
+    "localBadge": "local",
+    "editModel": "Editar",
+    "saveModel": "Guardar",
+    "cancelEdit": "Cancelar",
+    "resetModel": "Repor alterações locais",
+    "hideModel": "Ocultar",
+    "restoreModel": "Restaurar",
+    "hiddenModelsTitle": "Modelos ocultos",
+    "modelDisplayName": "Nome de exibição local",
+    "modelEnabled": "Ativado localmente",
+    "localStateSaveFailed": "Falha ao guardar as definições locais do Radar",
+    "guidedCombos": "Guided combos",
+    "offers": "Ofertas"
   },
   "radarSetupPage": {
     "title": "Configuração do Fornecedor",
@@ -13248,17 +13262,9 @@
         "modelLockouts": "Bloqueios de Modelo",
         "count": "Contagem de Ligações"
       }
-    },
-    "degraded.source.database": "Database",
-    "degraded.source.circuitBreaker": "Circuit Breaker",
-    "degraded.source.modelLockouts": "Model Lockouts",
-    "degraded.source.count": "Connection Count"
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Rejeitar pedidos antes do envio quando o modelo de destino não tiver as capacidades necessárias (visão, ferramentas, saída estruturada, janela de contexto). Protege pedidos diretos de um único fornecedor que contornam o filtro de compatibilidade da camada combinada.",
-  "capabilityFilter.visionMismatch": "Provider does not support vision for this image request",
-  "capabilityFilter.toolsMismatch": "Provider does not support tool calling",
-  "capabilityFilter.structuredOutputMismatch": "Provider does not support structured output",
-  "capabilityFilter.contextWindowMismatch": "Request exceeds provider context window",
   "publicSystem": {
     "notFound": {
       "title": "Página não encontrada",
@@ -13633,5 +13639,49 @@
     "hint": "Quando ativado, os modelos descobertos aparecem nas seleções do provedor em todo o OmniRoute.",
     "updateFailed": "Falha ao atualizar (HTTP {status})",
     "networkError": "Erro de rede — não foi possível atualizar a configuração de exposição do fornecedor"
+  },
+  "radarCombosPage": {
+    "title": "Radar guided combos",
+    "subtitle": "Create priority fallbacks from equivalent free models curated by Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading combo suggestions...",
+    "familyLabel": "Model family",
+    "modelsLabel": "Priority order",
+    "strategyReason": "Priority uses the largest recurring free budget first, then falls back across active providers.",
+    "generateButton": "Generate combo",
+    "generating": "Generating...",
+    "alreadyCreated": "Already created",
+    "created": "Combo created",
+    "noSuggestions": "No eligible model family currently has active connections to at least two providers.",
+    "catalogRequired": "Sync the Radar catalog first to load curated model families.",
+    "loadFailed": "Failed to load Radar combo suggestions.",
+    "createFailed": "Failed to create the combo. Review your provider connections and try again."
+  },
+  "radarOffersPage": {
+    "title": "Ofertas para apoiadores",
+    "subtitle": "Descontos, créditos, testes oficiais e benefícios de parceiros revisados pelo Radar.",
+    "backToRadar": "Voltar ao Radar",
+    "loading": "Carregando ofertas...",
+    "refresh": "Atualizar ofertas",
+    "refreshing": "Atualizando...",
+    "loadFailed": "Não foi possível atualizar as ofertas. O último cache local verificado foi preservado.",
+    "empty": "Não há ofertas ativas neste momento.",
+    "keyRequiredTitle": "É necessária uma chave de apoiador",
+    "keyRequiredDescription": "As ofertas são um benefício ao vivo do Radar. Adicione uma chave existente na tela do Radar, valide sua contribuição ou apoie o projeto para obter uma.",
+    "contributorButton": "Sou contribuidor",
+    "supporterButton": "Apoiar o projeto",
+    "partnerBadge": "Parceiro",
+    "officialBadge": "Oficial",
+    "conditionsLabel": "Condições:",
+    "validUntil": "Válida até {date}",
+    "noExpiry": "Sem validade anunciada",
+    "openOffer": "Ver oferta",
+    "trialDays": "{days, plural, one {# dia} other {# dias}}"
+  },
+  "capabilityFilter": {
+    "visionMismatch": "Provider does not support vision for this image request",
+    "toolsMismatch": "Provider does not support tool calling",
+    "structuredOutputMismatch": "Provider does not support structured output",
+    "contextWindowMismatch": "Request exceeds provider context window"
   }
 }

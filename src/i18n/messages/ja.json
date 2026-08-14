@@ -13126,7 +13126,21 @@
     "campaignsTitle": "Limited-time campaigns",
     "campaignsEmpty": "No active campaigns right now — check back later.",
     "campaignsUpsellCommunity": "Limited-time campaigns are a supporter extra. Everything on this page's fixed links stays free for everyone.",
-    "campaignsValidUntil": "Valid until {date}"
+    "campaignsValidUntil": "Valid until {date}",
+    "colActions": "Actions",
+    "localBadge": "local",
+    "editModel": "Edit",
+    "saveModel": "Save",
+    "cancelEdit": "Cancel",
+    "resetModel": "Reset local changes",
+    "hideModel": "Hide",
+    "restoreModel": "Restore",
+    "hiddenModelsTitle": "Hidden models",
+    "modelDisplayName": "Local display name",
+    "modelEnabled": "Enabled locally",
+    "localStateSaveFailed": "Failed to save local Radar settings",
+    "guidedCombos": "Guided combos",
+    "offers": "オファー"
   },
   "radarSetupPage": {
     "title": "プロバイダーセットアップ",
@@ -13241,17 +13255,17 @@
     "pollErrorLocalOnly": "このページはlocalhostまたはLANからのみアクセス可能です(LOCAL_ONLY)。",
     "pollErrorStopped": "ポーリング停止:サーバーがリクエストを拒否しました(404/403)。",
     "pollErrorTransient": "データ取得エラー:自動的に再試行します。",
-    "degraded": "部分データ:利用できないソース: {sources}",
-    "degraded.source.database": "データベース",
-    "degraded.source.circuitBreaker": "サーキットブレーカー",
-    "degraded.source.modelLockouts": "モデルロックアウト",
-    "degraded.source.count": "接続数"
+    "degraded": {
+      "message": "部分データ:利用できないソース: {sources}",
+      "source": {
+        "database": "データベース",
+        "circuitBreaker": "サーキットブレーカー",
+        "modelLockouts": "モデルロックアウト",
+        "count": "接続数"
+      }
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "ディスパッチ前にリクエストを拒否します。ターゲットモデルに必要な機能（ビジョン、ツール、構造化出力、コンテキストウィンドウ）が欠けている場合。コンボレイヤーの互換性フィルターをバイパスする直接の単一プロバイダーリクエストを保護します。",
-  "capabilityFilter.visionMismatch": "プロバイダーはこの画像リクエストのビジョンをサポートしていません",
-  "capabilityFilter.toolsMismatch": "プロバイダーはツール呼び出しをサポートしていません",
-  "capabilityFilter.structuredOutputMismatch": "プロバイダーは構造化出力をサポートしていません",
-  "capabilityFilter.contextWindowMismatch": "リクエストがプロバイダーのコンテキストウィンドウを超えています",
   "publicSystem": {
     "notFound": {
       "title": "ページが見つかりません",
@@ -13626,5 +13640,49 @@
     "hint": "有効にすると、発見されたモデルがOmniRoute全体のプロバイダーセレクトに表示されます。",
     "updateFailed": "更新に失敗しました (HTTP {status})",
     "networkError": "ネットワークエラー — プロバイダーの露出設定を更新できませんでした"
+  },
+  "radarCombosPage": {
+    "title": "Radar guided combos",
+    "subtitle": "Create priority fallbacks from equivalent free models curated by Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading combo suggestions...",
+    "familyLabel": "Model family",
+    "modelsLabel": "Priority order",
+    "strategyReason": "Priority uses the largest recurring free budget first, then falls back across active providers.",
+    "generateButton": "Generate combo",
+    "generating": "Generating...",
+    "alreadyCreated": "Already created",
+    "created": "Combo created",
+    "noSuggestions": "No eligible model family currently has active connections to at least two providers.",
+    "catalogRequired": "Sync the Radar catalog first to load curated model families.",
+    "loadFailed": "Failed to load Radar combo suggestions.",
+    "createFailed": "Failed to create the combo. Review your provider connections and try again."
+  },
+  "radarOffersPage": {
+    "title": "サポーター向けオファー",
+    "subtitle": "Radar が確認した公式割引、クレジット、トライアル、パートナー特典です。",
+    "backToRadar": "Radar に戻る",
+    "loading": "オファーを読み込み中...",
+    "refresh": "オファーを更新",
+    "refreshing": "更新中...",
+    "loadFailed": "オファーを更新できませんでした。最後に検証されたローカルキャッシュは保持されます。",
+    "empty": "現在利用できるオファーはありません。",
+    "keyRequiredTitle": "サポーターキーが必要です",
+    "keyRequiredDescription": "オファーは Radar のライブ特典です。既存のキーを追加するか、貢献者資格を確認するか、プロジェクトを支援してキーを取得してください。",
+    "contributorButton": "コントリビューターです",
+    "supporterButton": "プロジェクトを支援",
+    "partnerBadge": "パートナー",
+    "officialBadge": "公式",
+    "conditionsLabel": "条件:",
+    "validUntil": "{date} まで有効",
+    "noExpiry": "有効期限の記載なし",
+    "openOffer": "オファーを見る",
+    "trialDays": "{days} 日間"
+  },
+  "capabilityFilter": {
+    "visionMismatch": "プロバイダーはこの画像リクエストのビジョンをサポートしていません",
+    "toolsMismatch": "プロバイダーはツール呼び出しをサポートしていません",
+    "structuredOutputMismatch": "プロバイダーは構造化出力をサポートしていません",
+    "contextWindowMismatch": "リクエストがプロバイダーのコンテキストウィンドウを超えています"
   }
 }

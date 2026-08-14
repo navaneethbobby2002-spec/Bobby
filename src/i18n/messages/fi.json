@@ -13126,7 +13126,21 @@
     "campaignsTitle": "Limited-time campaigns",
     "campaignsEmpty": "No active campaigns right now — check back later.",
     "campaignsUpsellCommunity": "Limited-time campaigns are a supporter extra. Everything on this page's fixed links stays free for everyone.",
-    "campaignsValidUntil": "Valid until {date}"
+    "campaignsValidUntil": "Valid until {date}",
+    "colActions": "Actions",
+    "localBadge": "local",
+    "editModel": "Edit",
+    "saveModel": "Save",
+    "cancelEdit": "Cancel",
+    "resetModel": "Reset local changes",
+    "hideModel": "Hide",
+    "restoreModel": "Restore",
+    "hiddenModelsTitle": "Hidden models",
+    "modelDisplayName": "Local display name",
+    "modelEnabled": "Enabled locally",
+    "localStateSaveFailed": "Failed to save local Radar settings",
+    "guidedCombos": "Guided combos",
+    "offers": "Offers"
   },
   "radarSetupPage": {
     "title": "Palveluntarjoajan asennus",
@@ -13241,17 +13255,17 @@
     "pollErrorLocalOnly": "Tämä sivu on käytettävissä vain localhostista tai LAN-verkosta (LOCAL_ONLY).",
     "pollErrorStopped": "Kysely pysäytetty: palvelin hylkäsi pyynnön (404/403).",
     "pollErrorTransient": "Virhe tietojen haussa: yritetään automaattisesti uudelleen.",
-    "degraded": "Osittaiset tiedot: käyttökelvottomat lähteet: {sources}",
-    "degraded.source.database": "Tietokanta",
-    "degraded.source.circuitBreaker": "Piirikatkaisija",
-    "degraded.source.modelLockouts": "Mallilukitukset",
-    "degraded.source.count": "Yhteyksien Määrä"
+    "degraded": {
+      "message": "Osittaiset tiedot: käyttökelvottomat lähteet: {sources}",
+      "source": {
+        "database": "Tietokanta",
+        "circuitBreaker": "Piirikatkaisija",
+        "modelLockouts": "Mallilukitukset",
+        "count": "Yhteyksien Määrä"
+      }
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "Hylkää pyynnöt ennen lähettämistä, kun kohdemallilta puuttuu vaadittuja ominaisuuksia (näkö, työkalut, jäsennelty ulostulo, kontekstikkelu). Suojaa suorat yhden tarjoajan pyynnöt, jotka ohittavat yhdistelmäkerroksen yhteensopivuussuodattimen.",
-  "capabilityFilter.visionMismatch": "Palveluntarjoaja ei tue näkymää tälle kuvapyynnölle",
-  "capabilityFilter.toolsMismatch": "Toimittaja ei tue työkalun kutsumista",
-  "capabilityFilter.structuredOutputMismatch": "Palveluntarjoaja ei tue jäsenneltyä tulostusta",
-  "capabilityFilter.contextWindowMismatch": "Pyyntö ylittää tarjoajan kontekstin ikkunan",
   "publicSystem": {
     "notFound": {
       "title": "Sivua ei löytynyt",
@@ -13626,5 +13640,49 @@
     "hint": "Kun käytössä, löydetyt mallit näkyvät tarjoajien valinnoissa OmniRoutessa.",
     "updateFailed": "Päivitys epäonnistui (HTTP {status})",
     "networkError": "Verkkovirhe — ei voitu päivittää tarjoajan altistusasetusta"
+  },
+  "radarCombosPage": {
+    "title": "Radar guided combos",
+    "subtitle": "Create priority fallbacks from equivalent free models curated by Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading combo suggestions...",
+    "familyLabel": "Model family",
+    "modelsLabel": "Priority order",
+    "strategyReason": "Priority uses the largest recurring free budget first, then falls back across active providers.",
+    "generateButton": "Generate combo",
+    "generating": "Generating...",
+    "alreadyCreated": "Already created",
+    "created": "Combo created",
+    "noSuggestions": "No eligible model family currently has active connections to at least two providers.",
+    "catalogRequired": "Sync the Radar catalog first to load curated model families.",
+    "loadFailed": "Failed to load Radar combo suggestions.",
+    "createFailed": "Failed to create the combo. Review your provider connections and try again."
+  },
+  "radarOffersPage": {
+    "title": "Supporter offers",
+    "subtitle": "Official discounts, credits, trials, and reviewed partner benefits from Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading offers...",
+    "refresh": "Refresh offers",
+    "refreshing": "Refreshing...",
+    "loadFailed": "We couldn't refresh offers. The last verified local cache is kept.",
+    "empty": "No active offers are available right now.",
+    "keyRequiredTitle": "A supporter key is required",
+    "keyRequiredDescription": "Offers are a live Radar benefit. Add an existing supporter key on the Radar screen, verify your contributor status, or support the project to obtain one.",
+    "contributorButton": "I'm a contributor",
+    "supporterButton": "Support the project",
+    "partnerBadge": "Partner",
+    "officialBadge": "Official",
+    "conditionsLabel": "Conditions:",
+    "validUntil": "Valid until {date}",
+    "noExpiry": "No announced expiry",
+    "openOffer": "View offer",
+    "trialDays": "{days, plural, one {# day} other {# days}}"
+  },
+  "capabilityFilter": {
+    "visionMismatch": "Palveluntarjoaja ei tue näkymää tälle kuvapyynnölle",
+    "toolsMismatch": "Toimittaja ei tue työkalun kutsumista",
+    "structuredOutputMismatch": "Palveluntarjoaja ei tue jäsenneltyä tulostusta",
+    "contextWindowMismatch": "Pyyntö ylittää tarjoajan kontekstin ikkunan"
   }
 }

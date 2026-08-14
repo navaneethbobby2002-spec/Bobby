@@ -13126,7 +13126,21 @@
     "campaignsTitle": "Limited-time campaigns",
     "campaignsEmpty": "No active campaigns right now — check back later.",
     "campaignsUpsellCommunity": "Limited-time campaigns are a supporter extra. Everything on this page's fixed links stays free for everyone.",
-    "campaignsValidUntil": "Valid until {date}"
+    "campaignsValidUntil": "Valid until {date}",
+    "colActions": "Actions",
+    "localBadge": "local",
+    "editModel": "Edit",
+    "saveModel": "Save",
+    "cancelEdit": "Cancel",
+    "resetModel": "Reset local changes",
+    "hideModel": "Hide",
+    "restoreModel": "Restore",
+    "hiddenModelsTitle": "Hidden models",
+    "modelDisplayName": "Local display name",
+    "modelEnabled": "Enabled locally",
+    "localStateSaveFailed": "Failed to save local Radar settings",
+    "guidedCombos": "Guided combos",
+    "offers": "Offers"
   },
   "radarSetupPage": {
     "title": "提供者設置",
@@ -13241,17 +13255,17 @@
     "pollErrorLocalOnly": "此頁面僅能從 localhost 或區域網路存取 (LOCAL_ONLY)。",
     "pollErrorStopped": "輪詢已停止:伺服器拒絕了請求 (404/403)。",
     "pollErrorTransient": "取得資料時發生錯誤:將自動重試。",
-    "degraded": "部分資料:無法使用的來源: {sources}",
-    "degraded.source.database": "資料庫",
-    "degraded.source.circuitBreaker": "斷路器",
-    "degraded.source.modelLockouts": "模型鎖定",
-    "degraded.source.count": "連線數"
+    "degraded": {
+      "message": "部分資料:無法使用的來源: {sources}",
+      "source": {
+        "database": "資料庫",
+        "circuitBreaker": "斷路器",
+        "modelLockouts": "模型鎖定",
+        "count": "連線數"
+      }
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "在目標模型缺乏所需功能（視覺、工具、結構化輸出、上下文窗口）時，拒絕發送前的請求。保護繞過組合層兼容性過濾器的直接單一提供者請求。",
-  "capabilityFilter.visionMismatch": "提供者不支援此影像請求的視覺效果",
-  "capabilityFilter.toolsMismatch": "提供者不支援工具呼叫",
-  "capabilityFilter.structuredOutputMismatch": "提供者不支援結構化輸出",
-  "capabilityFilter.contextWindowMismatch": "請求超出提供者上下文窗口",
   "publicSystem": {
     "notFound": {
       "title": "找不到頁面",
@@ -13626,5 +13640,49 @@
     "hint": "啟用後，發現的模型將出現在 OmniRoute 的提供者選擇中。",
     "updateFailed": "更新失敗 (HTTP {status})",
     "networkError": "網絡錯誤 — 無法更新提供者曝光設置"
+  },
+  "radarCombosPage": {
+    "title": "Radar guided combos",
+    "subtitle": "Create priority fallbacks from equivalent free models curated by Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading combo suggestions...",
+    "familyLabel": "Model family",
+    "modelsLabel": "Priority order",
+    "strategyReason": "Priority uses the largest recurring free budget first, then falls back across active providers.",
+    "generateButton": "Generate combo",
+    "generating": "Generating...",
+    "alreadyCreated": "Already created",
+    "created": "Combo created",
+    "noSuggestions": "No eligible model family currently has active connections to at least two providers.",
+    "catalogRequired": "Sync the Radar catalog first to load curated model families.",
+    "loadFailed": "Failed to load Radar combo suggestions.",
+    "createFailed": "Failed to create the combo. Review your provider connections and try again."
+  },
+  "radarOffersPage": {
+    "title": "Supporter offers",
+    "subtitle": "Official discounts, credits, trials, and reviewed partner benefits from Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading offers...",
+    "refresh": "Refresh offers",
+    "refreshing": "Refreshing...",
+    "loadFailed": "We couldn't refresh offers. The last verified local cache is kept.",
+    "empty": "No active offers are available right now.",
+    "keyRequiredTitle": "A supporter key is required",
+    "keyRequiredDescription": "Offers are a live Radar benefit. Add an existing supporter key on the Radar screen, verify your contributor status, or support the project to obtain one.",
+    "contributorButton": "I'm a contributor",
+    "supporterButton": "Support the project",
+    "partnerBadge": "Partner",
+    "officialBadge": "Official",
+    "conditionsLabel": "Conditions:",
+    "validUntil": "Valid until {date}",
+    "noExpiry": "No announced expiry",
+    "openOffer": "View offer",
+    "trialDays": "{days, plural, one {# day} other {# days}}"
+  },
+  "capabilityFilter": {
+    "visionMismatch": "提供者不支援此影像請求的視覺效果",
+    "toolsMismatch": "提供者不支援工具呼叫",
+    "structuredOutputMismatch": "提供者不支援結構化輸出",
+    "contextWindowMismatch": "請求超出提供者上下文窗口"
   }
 }

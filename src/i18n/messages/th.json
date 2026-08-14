@@ -13126,7 +13126,21 @@
     "campaignsTitle": "Limited-time campaigns",
     "campaignsEmpty": "No active campaigns right now — check back later.",
     "campaignsUpsellCommunity": "Limited-time campaigns are a supporter extra. Everything on this page's fixed links stays free for everyone.",
-    "campaignsValidUntil": "Valid until {date}"
+    "campaignsValidUntil": "Valid until {date}",
+    "colActions": "Actions",
+    "localBadge": "local",
+    "editModel": "Edit",
+    "saveModel": "Save",
+    "cancelEdit": "Cancel",
+    "resetModel": "Reset local changes",
+    "hideModel": "Hide",
+    "restoreModel": "Restore",
+    "hiddenModelsTitle": "Hidden models",
+    "modelDisplayName": "Local display name",
+    "modelEnabled": "Enabled locally",
+    "localStateSaveFailed": "Failed to save local Radar settings",
+    "guidedCombos": "Guided combos",
+    "offers": "Offers"
   },
   "radarSetupPage": {
     "title": "การตั้งค่าผู้ให้บริการ",
@@ -13241,17 +13255,17 @@
     "pollErrorLocalOnly": "หน้านี้เข้าถึงได้เฉพาะจาก localhost หรือ LAN เท่านั้น (LOCAL_ONLY)",
     "pollErrorStopped": "หยุดการสำรวจ: เซิร์ฟเวอร์ปฏิเสธคำขอ (404/403)",
     "pollErrorTransient": "เกิดข้อผิดพลาดในการดึงข้อมูล: กำลังลองใหม่โดยอัตโนมัติ",
-    "degraded": "ข้อมูลบางส่วน: แหล่งข้อมูลที่ไม่พร้อมใช้งาน: {sources}",
-    "degraded.source.database": "ฐานข้อมูล",
-    "degraded.source.circuitBreaker": "เซอร์กิตเบรกเกอร์",
-    "degraded.source.modelLockouts": "การล็อกเอาต์โมเดล",
-    "degraded.source.count": "จำนวนการเชื่อมต่อ"
+    "degraded": {
+      "message": "ข้อมูลบางส่วน: แหล่งข้อมูลที่ไม่พร้อมใช้งาน: {sources}",
+      "source": {
+        "database": "ฐานข้อมูล",
+        "circuitBreaker": "เซอร์กิตเบรกเกอร์",
+        "modelLockouts": "การล็อกเอาต์โมเดล",
+        "count": "จำนวนการเชื่อมต่อ"
+      }
+    }
   },
   "featureFlagCapabilityFilterEnabledDescription": "ปฏิเสธคำขอก่อนการส่งเมื่อโมเดลเป้าหมายขาดความสามารถที่จำเป็น (วิสัยทัศน์, เครื่องมือ, ผลลัพธ์ที่มีโครงสร้าง, หน้าต่างบริบท) ป้องกันคำขอจากผู้ให้บริการเดียวที่ข้ามตัวกรองความเข้ากันได้ของเลเยอร์รวม",
-  "capabilityFilter.visionMismatch": "ผู้ให้บริการไม่รองรับการมองเห็นสำหรับคำขอภาพนี้",
-  "capabilityFilter.toolsMismatch": "ผู้ให้บริการไม่รองรับการเรียกเครื่องมือ",
-  "capabilityFilter.structuredOutputMismatch": "ผู้ให้บริการไม่รองรับการส่งออกแบบมีโครงสร้าง",
-  "capabilityFilter.contextWindowMismatch": "คำขอเกินขอบเขตบริบทของผู้ให้บริการ",
   "publicSystem": {
     "notFound": {
       "title": "ไม่พบหน้า",
@@ -13626,5 +13640,49 @@
     "hint": "เมื่อเปิดใช้งาน โมเดลที่ค้นพบจะปรากฏในตัวเลือกผู้ให้บริการทั่วทั้ง OmniRoute.",
     "updateFailed": "ไม่สามารถอัปเดตได้ (HTTP {status})",
     "networkError": "ข้อผิดพลาดของเครือข่าย — ไม่สามารถอัปเดตการตั้งค่าการเปิดเผยผู้ให้บริการได้"
+  },
+  "radarCombosPage": {
+    "title": "Radar guided combos",
+    "subtitle": "Create priority fallbacks from equivalent free models curated by Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading combo suggestions...",
+    "familyLabel": "Model family",
+    "modelsLabel": "Priority order",
+    "strategyReason": "Priority uses the largest recurring free budget first, then falls back across active providers.",
+    "generateButton": "Generate combo",
+    "generating": "Generating...",
+    "alreadyCreated": "Already created",
+    "created": "Combo created",
+    "noSuggestions": "No eligible model family currently has active connections to at least two providers.",
+    "catalogRequired": "Sync the Radar catalog first to load curated model families.",
+    "loadFailed": "Failed to load Radar combo suggestions.",
+    "createFailed": "Failed to create the combo. Review your provider connections and try again."
+  },
+  "radarOffersPage": {
+    "title": "Supporter offers",
+    "subtitle": "Official discounts, credits, trials, and reviewed partner benefits from Radar.",
+    "backToRadar": "Back to Radar",
+    "loading": "Loading offers...",
+    "refresh": "Refresh offers",
+    "refreshing": "Refreshing...",
+    "loadFailed": "We couldn't refresh offers. The last verified local cache is kept.",
+    "empty": "No active offers are available right now.",
+    "keyRequiredTitle": "A supporter key is required",
+    "keyRequiredDescription": "Offers are a live Radar benefit. Add an existing supporter key on the Radar screen, verify your contributor status, or support the project to obtain one.",
+    "contributorButton": "I'm a contributor",
+    "supporterButton": "Support the project",
+    "partnerBadge": "Partner",
+    "officialBadge": "Official",
+    "conditionsLabel": "Conditions:",
+    "validUntil": "Valid until {date}",
+    "noExpiry": "No announced expiry",
+    "openOffer": "View offer",
+    "trialDays": "{days, plural, one {# day} other {# days}}"
+  },
+  "capabilityFilter": {
+    "visionMismatch": "ผู้ให้บริการไม่รองรับการมองเห็นสำหรับคำขอภาพนี้",
+    "toolsMismatch": "ผู้ให้บริการไม่รองรับการเรียกเครื่องมือ",
+    "structuredOutputMismatch": "ผู้ให้บริการไม่รองรับการส่งออกแบบมีโครงสร้าง",
+    "contextWindowMismatch": "คำขอเกินขอบเขตบริบทของผู้ให้บริการ"
   }
 }

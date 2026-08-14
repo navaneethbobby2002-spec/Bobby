@@ -487,6 +487,15 @@ function isSchemaAlreadyApplied(
       // but still burn a version-tracking slot mismatch — guard it the same
       // way as the other renumbers for consistency.
       return hasTable(db, "connection_runtime_state");
+    case "143":
+      // A cumulative Radar checkout could have occupied version 143 before the
+      // canonical API-key cache migration landed. Once that legacy row is
+      // reconciled to 153, apply 143 only when its column is genuinely absent.
+      return hasColumn(db, "api_keys", "cache_default_mode");
+    case "153":
+      // Retroactive guard for 143_radar_local_model_state -> 153. A database
+      // that already created the table must not execute or track it twice.
+      return hasTable(db, "radar_local_model_state");
     default:
       return false;
   }
