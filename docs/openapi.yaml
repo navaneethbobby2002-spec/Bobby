@@ -8435,7 +8435,12 @@ components:
           type: string
         url:
           type: string
-          description: Redacted subscription URL.
+          description: >-
+            Redacted subscription URL. May be a local/loopback address
+            (e.g. `http://127.0.0.1:8080/list`) — local-first fetch targets
+            are allowed by default (`OMNIROUTE_ALLOW_LOCAL_PROVIDER_URLS`);
+            cloud-metadata / link-local endpoints (169.254.0.0/16) are always
+            blocked.
         enabled:
           type: boolean
         mode:
