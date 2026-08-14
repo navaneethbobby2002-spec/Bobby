@@ -32,6 +32,7 @@ import { NlpCloudExecutor } from "./nlpcloud.ts";
 import { DevinDesktopExecutor } from "./devin-desktop.ts";
 import { ZedHostedExecutor } from "./zed-hosted.ts";
 import { DevinCliExecutor } from "./devin-cli.ts";
+import { ZcodeExecutor } from "./zcode.ts";
 import { DevinCliAgenticExecutor } from "./devin-cli-agentic.ts";
 import { AuggieExecutor } from "./auggie.ts";
 import { DeepSeekWebExecutor } from "./deepseek-web.ts";
@@ -133,6 +134,8 @@ const executors = {
   "devin-desktop": new DevinDesktopExecutor(),
   "zed-hosted": new ZedHostedExecutor(),
   "devin-cli": new DevinCliExecutor(),
+  zcode: new ZcodeExecutor(),
+  zc: new ZcodeExecutor(), // Alias
   "devin-cli-agentic": new DevinCliAgenticExecutor(),
   devin: new DevinCliExecutor(), // Alias
   "deepseek-web": new DeepSeekWebWithAutoRefreshExecutor(),
