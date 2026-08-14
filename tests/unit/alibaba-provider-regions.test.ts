@@ -204,6 +204,7 @@ test("Qwen Cloud is a first-class metered API-key provider", () => {
   assert.deepEqual(
     REGISTRY["qwen-cloud"].models.map((model) => model.id),
     [
+      "qwen3.8-max",
       "qwen3.7-max-2026-06-08",
       "qwen3.7-plus",
       "qwen3.6-plus",
@@ -223,6 +224,7 @@ test("Qwen Cloud is a first-class metered API-key provider", () => {
 
 test("Alibaba Model Studio exposes the curated modern text catalog", () => {
   const expectedModels = [
+    "qwen3.8-max",
     "qwen3.7-max",
     "qwen3.7-plus",
     "qwen3.6-plus",
@@ -272,19 +274,20 @@ test("Qwen Cloud Token Plan remains a flat-rate provider with chat models only",
 
   const modelIds = REGISTRY["qwen-cloud-token-plan"].models.map((model) => model.id);
   assert.deepEqual(modelIds, [
-    "qwen3.8-max-preview",
+    "qwen3.8-max",
     "qwen3.7-max",
     "qwen3.7-plus",
     "qwen3.6-flash",
     "glm-5.2",
     "deepseek-v4-pro",
+    "deepseek-v4-flash-0731",
   ]);
 
-  const preview = REGISTRY["qwen-cloud-token-plan"].models[0];
-  assert.equal(preview.supportsReasoning, true);
-  assert.equal(preview.supportsVision, true);
-  assert.equal(preview.contextLength, 1_000_000);
-  assert.equal(preview.maxOutputTokens, 65_536);
+  const qwen38 = REGISTRY["qwen-cloud-token-plan"].models[0];
+  assert.equal(qwen38.supportsReasoning, true);
+  assert.equal(qwen38.supportsVision, true);
+  assert.equal(qwen38.contextLength, 1_000_000);
+  assert.equal(qwen38.maxOutputTokens, 131_072);
 });
 
 test("dashboard folds legacy China connections into the unified Alibaba card", () => {
