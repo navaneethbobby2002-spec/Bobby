@@ -94,3 +94,13 @@
       '''omniroute-kimi-sponsor-banner-dismissed-v\d+''',
       '''SunbreakWebUI1''',
     ]
+
+
+[[rules]]
+  # Allowlist the gitleaks baseline file so CI can compare against it without creating noise
+  id = "gitleaks-baseline-file"
+  [rules.allowlist]
+    description = "Allow gitleaks-baseline.json (approved historical findings baseline). Maintainers must review and update this baseline when real secrets are fixed/rotated."
+    paths = [
+      '''gitleaks-baseline.json''',
+    ]
