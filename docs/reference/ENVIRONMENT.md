@@ -1503,3 +1503,11 @@ Long-lived SSE consumer that mirrors OmniConductor hub tasks into the local A2A 
 | `CONDUCTOR_HUB_TOKEN` | _(empty)_  | `src/lib/conductor/boot.ts`  | Hub credential for the SSE feed — emit a `spokesperson`-kind peer on the hub (`POST /v1/peers`, admin).  |
 | `CONDUCTOR_ORCHESTRATOR_TOKEN` | _(empty)_ | `src/lib/conductor/hubProxy.ts` | Credential for inbound A2A→hub task delegation (`POST /v1/tasks`); falls back to `CONDUCTOR_HUB_TOKEN` when unset. |
 | `CONDUCTOR_SPOKESPERSON_URL` | `http://127.0.0.1:7920` | `src/lib/conductor/faroProxy.ts` | Base URL of the spokesperson (Faro) service behind the dashboard chat proxy (`/api/conductor/ask`). |
+
+### Quota-aware scheduling
+
+Used by `open-sse/services/combo.ts` and `src/lib/quota/quotaScheduler.ts` for pre-request token-budget checks. Opt-in — default routing behavior is unchanged when unset.
+
+| Variable                          | Default  | Source File                       | Description                                                                                                      |
+| --------------------------------- | -------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `OMNIROUTE_QUOTA_AWARE_ROUTING`   | `0`      | `open-sse/services/combo.ts`      | When `1`, skip connections whose per-window token budget (`rateLimitOverrides.tpm`, table `provider_quota_state`) cannot afford the estimated request cost before dispatch. Fail-open when no budget configured. |
