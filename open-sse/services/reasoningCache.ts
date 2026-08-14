@@ -302,7 +302,11 @@ export function buildAssistantMessageCacheKey(
   if (!message || message.role !== "assistant") return "";
 
   const transcript = messages.slice(0, messageIndex + 1).map(canonicalizeHistoryMessage);
-  const digest = createHash("sha256")
+  // CodeQL: not password hashing — this derives a cache-lookup key from the
+  // conversation transcript, never verified against a stored credential.
+  // Same false-positive class as src/lib/db/apiKeys.ts::hashKey.
+  // lgtm[js/insufficient-password-hash]
+  const digest = createHash("sha256") // nosemgrep: insufficient-password-hash
     .update(normalizedScope)
     .update("\x1f")
     .update(JSON.stringify(transcript))
