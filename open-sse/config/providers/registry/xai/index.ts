@@ -14,6 +14,17 @@ export const xaiProvider: RegistryEntry = {
   authType: "apikey",
   authHeader: "bearer",
   models: [
+    {
+      id: "grok-4.6",
+      name: "Grok 4.6",
+      contextLength: 500000,
+      supportsReasoning: true,
+      supportedThinkingEfforts: ["low", "medium", "high", "xhigh"],
+      supportsVision: true,
+      supportsXHighEffort: true,
+      toolCalling: true,
+      targetFormat: "openai-responses",
+    },
     { id: "grok-4.3", name: "Grok 4.3" },
     { id: "grok-build-0.1", name: "Grok Build 0.1", contextLength: 256000 },
     // Responses-only per upstream 9router#2439: xAI serves this id exclusively

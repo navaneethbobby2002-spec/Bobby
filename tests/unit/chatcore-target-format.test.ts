@@ -115,6 +115,18 @@ test("#8994: customModelTargetFormat takes precedence over apiFormat='responses'
   assert.equal(r.targetFormat, "claude", "model-level targetFormat must win over apiFormat");
 });
 
+test("a declared connection alternate overrides the inbound Responses protocol", () => {
+  const r = resolveChatCoreTargetFormat({
+    provider: "deepseek",
+    resolvedModel: "deepseek-v4-pro",
+    apiFormat: "responses",
+    sourceFormat: FORMATS.OPENAI_RESPONSES,
+    customModelTargetFormat: undefined,
+    providerSpecificData: { targetFormat: FORMATS.CLAUDE },
+  });
+  assert.equal(r.targetFormat, FORMATS.CLAUDE);
+});
+
 test("unmapped provider → alias falls back to the provider id", () => {
   const r = resolveChatCoreTargetFormat({
     provider: "some-unmapped-provider",
