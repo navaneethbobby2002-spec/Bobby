@@ -66,6 +66,7 @@
       "lib/resolveNodeHelper.js",
       "lib/resolveRemoteServerUrl.js",
       "lib/remoteServerPreferences.js",
+      "lib/serverReadiness.js",
       "assets/remoteServerPrompt.html",
       "package.json",
       "node_modules/**/*"
