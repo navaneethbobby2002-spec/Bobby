@@ -65,7 +65,14 @@ const BEDROCK_CLAUDE_ALIASES = (...modelIds: string[]) => [
 // Provider discovery/sync sources can under-report GLM-5.2 IDs as 128K.
 // Keep native/bare Z.AI GLM-5.2 context authoritative, but do not blindly apply
 // it to every provider-wrapped alias: hosted providers can and do cap lower.
-const AUTHORITATIVE_CONTEXT_WINDOW_MODEL_IDS = new Set(["glm-5.2", "glm-5.2-high", "glm-5.2-max"]);
+const AUTHORITATIVE_CONTEXT_WINDOW_MODEL_IDS = new Set([
+  "glm-5.3",
+  "glm-5.3-high",
+  "glm-5.3-low",
+  "glm-5.2",
+  "glm-5.2-high",
+  "glm-5.2-max",
+]);
 const AUTHORITATIVE_PROVIDER_CONTEXT_WINDOWS = new Map<string, number>([
   ["cloudflare-ai/@cf/zai-org/glm-5.2", 262144],
   // Hugging Face Router has 1M-capable backends, but bare routing can select
@@ -505,6 +512,30 @@ export const MODEL_SPECS: Record<string, ModelSpec> = {
   "mimo-v2-flash": {
     maxOutputTokens: 65536,
     contextWindow: 262144,
+    supportsTools: true,
+  },
+
+  // ── Z.AI GLM-5.3 (1M context mirrored from 5.2 — same base model; 128K max
+  // output; effort via reasoning_effort param, tiers are OmniRoute aliases) ──
+  "glm-5.3": {
+    maxOutputTokens: 131072,
+    contextWindow: 1000000,
+    thinkingBudgetCap: 38912,
+    supportsThinking: true,
+    supportsTools: true,
+  },
+  "glm-5.3-high": {
+    maxOutputTokens: 131072,
+    contextWindow: 1000000,
+    thinkingBudgetCap: 38912,
+    supportsThinking: true,
+    supportsTools: true,
+  },
+  "glm-5.3-low": {
+    maxOutputTokens: 131072,
+    contextWindow: 1000000,
+    thinkingBudgetCap: 38912,
+    supportsThinking: true,
     supportsTools: true,
   },
 

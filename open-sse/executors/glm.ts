@@ -52,17 +52,41 @@ function getEffectiveKey(credentials: ProviderCredentials): string {
   return credentials.apiKey || credentials.accessToken || "";
 }
 
+export type GlmEffortLevel = "low" | "high" | "max";
+
+type GlmEffortTier = {
+  baseModel: string;
+  effort: GlmEffortLevel;
+  /** Transport where the upstream honors the effort selector for this family. */
+  transport: GlmTransport;
+};
+
 /**
- * GLM-5.2 effort tiers route exclusively through the Anthropic transport,
- * where Zhipu maps Claude Code effort selectors (high/max) to reasoning
- * intensity. The base model ID sent upstream is always "glm-5.2".
+ * GLM-5.2 effort tiers (glm-5.2-high/-max) route exclusively through the
+ * Anthropic transport, where Zhipu maps Claude Code effort selectors (high/max)
+ * to reasoning intensity. The base model ID sent upstream is always "glm-5.2".
+ *
+ * GLM-5.3 replaced tier endpoints with a documented `reasoning_effort` request
+ * parameter (low|high|max, default max) on the coding chat/completions endpoint,
+ * so its tiers stay on the OpenAI transport and inject `reasoning_effort` +
+ * `thinking.type=enabled` (5.3 no longer accepts thinking disabled).
  *
  * https://docs.z.ai/devpack/latest-model
+ * https://z.ai/blog/glm-5.3
  */
-function parseGlm52Effort(model: string): { baseModel: string; effort: "high" | "max" } | null {
-  if (model === "glm-5.2-high") return { baseModel: "glm-5.2", effort: "high" };
-  if (model === "glm-5.2-max") return { baseModel: "glm-5.2", effort: "max" };
-  return null;
+function parseGlmEffortTier(model: string): GlmEffortTier | null {
+  switch (model) {
+    case "glm-5.2-high":
+      return { baseModel: "glm-5.2", effort: "high", transport: "anthropic" };
+    case "glm-5.2-max":
+      return { baseModel: "glm-5.2", effort: "max", transport: "anthropic" };
+    case "glm-5.3-high":
+      return { baseModel: "glm-5.3", effort: "high", transport: "openai" };
+    case "glm-5.3-low":
+      return { baseModel: "glm-5.3", effort: "low", transport: "openai" };
+    default:
+      return null;
+  }
 }
 
 /**
@@ -278,7 +302,7 @@ export class GlmExecutor extends DefaultExecutor {
     credentials: ProviderCredentials,
     transport: GlmTransport
   ) {
-    const effortTier = parseGlm52Effort(model);
+    const effortTier = parseGlmEffortTier(model);
     const effectiveModel = effortTier ? effortTier.baseModel : model;
 
     const transformed = this.transformRequest(effectiveModel, body, stream, credentials);
@@ -313,6 +337,14 @@ export class GlmExecutor extends DefaultExecutor {
     }
 
     if (transport === "openai") {
+      // GLM-5.3 effort tiers: inject the documented `reasoning_effort` param and
+      // force thinking on — 5.3 rejects thinking.type "disabled", and an effort
+      // tier without thinking would silently drop the selector upstream.
+      if (record && effortTier && effortTier.transport === "openai") {
+        const existingThinking = asRecord(record.thinking);
+        record.thinking = { ...existingThinking, type: "enabled" };
+        record.reasoning_effort = effortTier.effort;
+      }
       if (record && stream && hasTools(record) && record.tool_stream === undefined) {
         return { ...record, tool_stream: true };
       }
@@ -446,7 +478,12 @@ export class GlmExecutor extends DefaultExecutor {
    */
   private async finalizeAnthropicTransportResult(
     input: ExecuteInput,
-    result: { response: Response; url: string; headers: Record<string, string>; transformedBody: unknown }
+    result: {
+      response: Response;
+      url: string;
+      headers: Record<string, string>;
+      transformedBody: unknown;
+    }
   ): Promise<GlmExecuteResult> {
     const { response: rawResponse, url, headers, transformedBody } = result;
     const clientHeaders = input.clientHeaders ?? {};
@@ -475,13 +512,14 @@ export class GlmExecutor extends DefaultExecutor {
   }
 
   async execute(input: ExecuteInput): Promise<GlmExecuteResult> {
-    const effortTier = parseGlm52Effort(input.model);
+    const effortTier = parseGlmEffortTier(input.model);
 
-    // GLM-5.2 effort tiers route directly through Anthropic transport (no fallback).
-    // Zhipu only graduates effort on the Anthropic endpoint via the
-    // effort-2025-11-24 beta header included in GLM_ANTHROPIC_BETA.
+    // Effort tiers route directly through their family's transport (no fallback):
+    // GLM-5.2 → Anthropic (Zhipu only graduates effort there, via the
+    // effort-2025-11-24 beta header in GLM_ANTHROPIC_BETA); GLM-5.3 → OpenAI
+    // coding endpoint (`reasoning_effort` param). See parseGlmEffortTier.
     if (effortTier) {
-      return this.executeTransport(input, "anthropic");
+      return this.executeTransport(input, effortTier.transport);
     }
 
     const primaryTransport = getGlmTransport(

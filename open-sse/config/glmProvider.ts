@@ -19,6 +19,35 @@ export const GLM_ANTHROPIC_DEFAULT_BASE_URLS = Object.freeze({
 
 export const GLM_SHARED_MODELS = Object.freeze([
   {
+    // GLM-5.3 (2026-08-14): one upstream id; effort is the reasoning_effort
+    // param (low|high|max, default max) — the -high/-low entries below are
+    // OmniRoute aliases resolved by GlmExecutor::parseGlmEffortTier.
+    // Default context window not yet published by Z.ai; 1M mirrored from
+    // GLM-5.2 (same base model). https://z.ai/blog/glm-5.3
+    id: "glm-5.3",
+    name: "GLM 5.3",
+    contextLength: 1000000,
+    maxOutputTokens: 131072,
+    toolCalling: true,
+    supportsReasoning: true,
+  },
+  {
+    id: "glm-5.3-high",
+    name: "GLM 5.3 High",
+    contextLength: 1000000,
+    maxOutputTokens: 131072,
+    toolCalling: true,
+    supportsReasoning: true,
+  },
+  {
+    id: "glm-5.3-low",
+    name: "GLM 5.3 Low",
+    contextLength: 1000000,
+    maxOutputTokens: 131072,
+    toolCalling: true,
+    supportsReasoning: true,
+  },
+  {
     id: "glm-5.2",
     name: "GLM 5.2",
     contextLength: 1000000,
